@@ -77,6 +77,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Formats\BND0.cs" />
+    <Compile Include="Formats\Kuon\DVDBND0.cs" />
+    <Compile Include="Formats\Kuon\BND0.cs" />
     <Compile Include="Formats\BTAB.cs" />
     <Compile Include="Formats\BTL.cs" />
     <Compile Include="Formats\BXF3.cs" />
@@ -91,6 +93,7 @@
     <Compile Include="Formats\FLVER.cs" />
     <Compile Include="Formats\FMG.cs" />
     <Compile Include="Formats\FILTPARAM.cs" />
+    <Compile Include="Formats\FXR3.cs" />
     <Compile Include="Formats\GPARAM.cs" />
     <Compile Include="Formats\HKX\Collision.cs" />
     <Compile Include="Formats\HKX\HKX.cs" />
