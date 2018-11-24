@@ -92,6 +92,8 @@
     <Compile Include="Formats\FMG.cs" />
     <Compile Include="Formats\FILTPARAM.cs" />
     <Compile Include="Formats\GPARAM.cs" />
+    <Compile Include="Formats\HKX\Collision.cs" />
+    <Compile Include="Formats\HKX\HKX.cs" />
     <Compile Include="Formats\MSB3\MSB3.cs" />
     <Compile Include="Formats\MSB3\MSB3.BoneNamesSection.cs" />
     <Compile Include="Formats\MSB3\MSB3.PartsPoseSection.cs" />
