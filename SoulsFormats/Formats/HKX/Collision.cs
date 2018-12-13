@@ -9,10 +9,13 @@ namespace SoulsFormats
 {
     public partial class HKX
     {
-        // From's basic collision class
+        // From's basic collision class for DS3/BB
         public class FSNPCustomParamCompressedMeshShape : HKXObject
         {
-            public int Unk10;
+            public byte Unk10;
+            public byte Unk11;
+            public byte Unk12;
+            public byte Unk13;
             public int Unk14;
             public HKArray<HKUInt> Unk68;
             public int Unk78;
@@ -29,7 +32,10 @@ namespace SoulsFormats
 
                 br.AssertUInt64(0);
                 br.AssertUInt64(0);
-                Unk10 = br.ReadInt32();
+                Unk10 = br.ReadByte();
+                Unk11 = br.ReadByte();
+                Unk12 = br.ReadByte();
+                Unk13 = br.ReadByte();
                 Unk14 = br.ReadInt32();
                 br.AssertUInt64(0);
                 br.AssertUInt64(0);
@@ -53,7 +59,7 @@ namespace SoulsFormats
                 br.AssertUInt32(0xFFFFFFFF);
                 br.AssertUInt32(0);
 
-                MeshShapeData = ResolveGlobalReference(section, br);
+                MeshShapeData = ResolveGlobalReference(hkx, section, br);
 
                 Unk68 = new HKArray<HKUInt>(hkx, section, this, br, variation);
                 Unk78 = br.ReadInt32();
@@ -65,7 +71,7 @@ namespace SoulsFormats
 
                 br.AssertUInt64(0);
 
-                CustomParam = ResolveGlobalReference(section, br);
+                CustomParam = ResolveGlobalReference(hkx, section, br);
 
                 UnkA8 = new HKArray<HKUInt>(hkx, section, this, br, variation);
                 if (variation == HKXVariation.HKXDS3)
@@ -82,7 +88,10 @@ namespace SoulsFormats
                 SectionOffset = (uint)bw.Position - sectionBaseOffset;
                 bw.WriteInt64(0);
                 bw.WriteInt64(0);
-                bw.WriteInt32(Unk10);
+                bw.WriteByte(Unk10);
+                bw.WriteByte(Unk11);
+                bw.WriteByte(Unk12);
+                bw.WriteByte(Unk13);
                 bw.WriteInt32(Unk14);
                 bw.WriteInt64(0);
                 bw.WriteInt64(0);
@@ -130,6 +139,11 @@ namespace SoulsFormats
                 Unk80.WriteReferenceData(hkx, section, bw, sectionBaseOffset, variation);
                 UnkA8.WriteReferenceData(hkx, section, bw, sectionBaseOffset, variation);
             }
+
+            public HKNPCompressedMeshShapeData GetMeshShapeData()
+            {
+                return (HKNPCompressedMeshShapeData)MeshShapeData.DestObject;
+            }
         }
 
         // Weird 5-byte structure
@@ -157,6 +171,30 @@ namespace SoulsFormats
                 bw.WriteByte(Unk2);
                 bw.WriteByte(Unk3);
                 bw.WriteByte(Unk4);
+            }
+        }
+
+        public class MeshPrimitive : IHKXSerializable
+        {
+            public byte Idx0;
+            public byte Idx1;
+            public byte Idx2;
+            public byte Idx3;
+
+            public override void Read(HKX hkx, HKXSection section, HKXObject source, BinaryReaderEx br, HKXVariation variation)
+            {
+                Idx0 = br.ReadByte();
+                Idx1 = br.ReadByte();
+                Idx2 = br.ReadByte();
+                Idx3 = br.ReadByte();
+            }
+
+            public override void Write(HKX hkx, HKXSection section, BinaryWriterEx bw, uint sectionBaseOffset, HKXVariation variation)
+            {
+                bw.WriteByte(Idx0);
+                bw.WriteByte(Idx1);
+                bw.WriteByte(Idx2);
+                bw.WriteByte(Idx3);
             }
         }
 
@@ -200,14 +238,22 @@ namespace SoulsFormats
             }
 
             // Decompress quantized vertex using collision mesh bounding box as quantization grid boundaries
-            public Vector3 Decompress(Vector4 bbMin, Vector4 bbMax)
+            /*public Vector3 Decompress(Vector4 bbMin, Vector4 bbMax)
             {
                 float scaleX = (bbMax.X - bbMin.X) / (float)((1 << 11) - 1);
                 float scaleY = (bbMax.Y - bbMin.Y) / (float)((1 << 11) - 1);
                 float scaleZ = (bbMax.Z - bbMin.Z) / (float)((1 << 10) - 1);
                 float x = ((float)(vertex & 0x7FF)) * scaleX + bbMin.X;
                 float y = ((float)((vertex >> 11) & 0x7FF)) * scaleY + bbMin.Y;
-                float z = ((float)((vertex >> 22) & 0x7FF)) * scaleZ + bbMin.Z;
+                float z = ((float)((vertex >> 22) & 0x3FF)) * scaleZ + bbMin.Z;
+                return new Vector3(x, y, z);
+            }*/
+
+            public Vector3 Decompress(Vector3 scale, Vector3 offset)
+            {
+                float x = ((float)(vertex & 0x7FF)) * scale.X + offset.X;
+                float y = ((float)((vertex >> 11) & 0x7FF)) * scale.Y + offset.Y;
+                float z = ((float)((vertex >> 22) & 0x3FF)) * scale.Z + offset.Z;
                 return new Vector3(x, y, z);
             }
         }
@@ -225,13 +271,17 @@ namespace SoulsFormats
             public float Unk3C;
             public float Unk40;
             public float Unk44;
-            public uint Unk48;
+
+            public Vector3 SmallVertexOffset;
+            public Vector3 SmallVertexScale;
+
+            public uint SmallVerticesBase;
 
             public int VertexIndicesIndex;
             public byte VertexIndicesLength;
 
-            public int Unk50Index;
-            public byte Unk50Length;
+            public int ByteIndicesIndex;
+            public byte ByteIndicesLength;
 
             public int Unk54Index;
             public byte Unk54Length;
@@ -244,21 +294,18 @@ namespace SoulsFormats
                 Unk0 = new HKArray<HKUInt>(hkx, section, source, br, variation);
                 Unk10 = br.ReadVector4();
                 Unk20 = br.ReadVector4();
-                Unk30 = br.ReadSingle();
-                Unk34 = br.ReadSingle();
-                Unk38 = br.ReadSingle();
-                Unk3C = br.ReadSingle();
-                Unk40 = br.ReadSingle();
-                Unk44 = br.ReadSingle();
-                Unk48 = br.ReadUInt32();
+                SmallVertexOffset = br.ReadVector3();
+                SmallVertexScale = br.ReadVector3();
+
+                SmallVerticesBase = br.ReadUInt32();
 
                 uint vertexIndices = br.ReadUInt32();
                 VertexIndicesIndex = (int)(vertexIndices >> 8);
                 VertexIndicesLength = (byte)(vertexIndices & 0xFF);
 
                 uint unk50 = br.ReadUInt32();
-                Unk50Index = (int)(unk50 >> 8);
-                Unk50Length = (byte)(unk50 & 0xFF);
+                ByteIndicesIndex = (int)(unk50 >> 8);
+                ByteIndicesLength = (byte)(unk50 & 0xFF);
 
                 uint unk54 = br.ReadUInt32();
                 Unk54Index = (int)(unk54 >> 8);
@@ -273,17 +320,13 @@ namespace SoulsFormats
                 Unk0.Write(hkx, section, bw, sectionBaseOffset, variation);
                 bw.WriteVector4(Unk10);
                 bw.WriteVector4(Unk20);
-                bw.WriteSingle(Unk30);
-                bw.WriteSingle(Unk34);
-                bw.WriteSingle(Unk38);
-                bw.WriteSingle(Unk3C);
-                bw.WriteSingle(Unk40);
-                bw.WriteSingle(Unk44);
-                bw.WriteUInt32(Unk48);
+                bw.WriteVector3(SmallVertexOffset);
+                bw.WriteVector3(SmallVertexScale);
+                bw.WriteUInt32(SmallVerticesBase);
 
-                bw.WriteUInt32(((uint)(VertexIndicesIndex) << 8) & (uint)(VertexIndicesLength));
-                bw.WriteUInt32(((uint)(Unk50Index) << 8) & (uint)(Unk50Length));
-                bw.WriteUInt32(((uint)(Unk54Index) << 8) & (uint)(Unk54Length));
+                bw.WriteUInt32(((uint)(VertexIndicesIndex) << 8) | (uint)(VertexIndicesLength));
+                bw.WriteUInt32(((uint)(ByteIndicesIndex) << 8) | (uint)(ByteIndicesLength));
+                bw.WriteUInt32(((uint)(Unk54Index) << 8) | (uint)(Unk54Length));
 
                 bw.WriteUInt32(Unk58);
                 bw.WriteUInt32(Unk5C);
@@ -405,7 +448,7 @@ namespace SoulsFormats
             public uint Unk4C;
 
             public HKArray<CollisionMeshChunk> Chunks;
-            public HKArray<HKUInt> MeshIndices;
+            public HKArray<MeshPrimitive> MeshIndices;
             public HKArray<HKUShort> VertexIndices;
             public HKArray<SmallCompressedVertex> SmallVertices;
             public HKArray<LargeCompressedVertex> LargeVertices;
@@ -418,8 +461,8 @@ namespace SoulsFormats
             {
                 SectionOffset = (uint)br.Position;
 
-                br.AssertUInt64(0);
-                br.AssertUInt64(0);
+                AssertPointer(hkx, br);
+                AssertPointer(hkx, br);
 
                 Unk10 = new HKArray<UnknownStructure1>(hkx, section, this, br, variation);
                 BoundingBoxMin = br.ReadVector4();
@@ -431,7 +474,7 @@ namespace SoulsFormats
                 Unk4C = br.ReadUInt32();
 
                 Chunks = new HKArray<CollisionMeshChunk>(hkx, section, this, br, variation);
-                MeshIndices = new HKArray<HKUInt>(hkx, section, this, br, variation);
+                MeshIndices = new HKArray<MeshPrimitive>(hkx, section, this, br, variation);
                 VertexIndices = new HKArray<HKUShort>(hkx, section, this, br, variation);
                 SmallVertices = new HKArray<SmallCompressedVertex>(hkx, section, this, br, variation);
                 LargeVertices = new HKArray<LargeCompressedVertex>(hkx, section, this, br, variation);
@@ -448,8 +491,8 @@ namespace SoulsFormats
             {
                 SectionOffset = (uint)bw.Position - sectionBaseOffset;
 
-                bw.WriteUInt64(0);
-                bw.WriteUInt64(0);
+                WriteEmptyPointer(hkx, bw);
+                WriteEmptyPointer(hkx, bw);
 
                 Unk10.Write(hkx, section, bw, sectionBaseOffset, variation);
                 bw.WriteVector4(BoundingBoxMin);
@@ -480,6 +523,41 @@ namespace SoulsFormats
                 UnkA0.WriteReferenceData(hkx, section, bw, sectionBaseOffset, variation);
                 UnkB8.WriteReferenceData(hkx, section, bw, sectionBaseOffset, variation);
             }
-        };
+        }
+
+        // Used in DeS/DS1/DS2 to store collision mesh data
+        public class HKPStorageExtendedMeshShapeMeshSubpartStorage : HKXObject
+        {
+            public HKArray<HKVector4> Vertices;
+            public HKArray<HKUShort> Indices16;
+            public override void Read(HKX hkx, HKXSection section, BinaryReaderEx br, HKXVariation variation)
+            {
+                // By no means complete but currently quickly extracts most meshes
+                SectionOffset = (uint)br.Position;
+
+                // vtable stuff
+                AssertPointer(hkx, br);
+                AssertPointer(hkx, br);
+
+                Vertices = new HKArray<HKVector4>(hkx, section, this, br, variation);
+                if (variation != HKXVariation.HKSDeS)
+                {
+                    // Supposed to be 8-bit indices for collision, but doesn't seem to be used much if at all, so implement later
+                    AssertPointer(hkx, br);
+                    br.ReadUInt64();
+                }
+                Indices16 = new HKArray<HKUShort>(hkx, section, this, br, variation);
+
+                // More stuff to implement (seemingly unused)
+
+                DataSize = (uint)br.Position - SectionOffset;
+                ResolveDestinations(hkx, section);
+            }
+
+            public override void Write(HKX hkx, HKXSection section, BinaryWriterEx bw, uint sectionBaseOffset, HKXVariation variation)
+            {
+                throw new NotImplementedException();
+            }
+        }
     }
 }
