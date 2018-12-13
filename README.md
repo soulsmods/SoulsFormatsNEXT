@@ -106,7 +106,6 @@ Essentially a BND3 split into separate header and data files.
 Extensions: `.*bhd` (header) and `.*bdt` (data)
 * DS1: Full Read and Write
 * DSR: Full Read and Write
-* DeS: Untested
 
 ### BXF4
 Essentially a BND4 split into separate header and data files.  
@@ -145,23 +144,28 @@ Extension: `.filtparam`
 * DS2: Partial Read and Write
 
 ### FLVER
-A 3D model file used throughout the series.  
+A 3D model file used since DS1.  
 Extension: `.flv` or `.flver`
 * DS1: Full Read and Write
 * DSR: Full Read and Write
 * DS2: Full Read and Write
 * DS3: Full Read and Write
-* DeS: No support
 * BB: Full Read and Write
+
+### FLVERD
+A 3D model file used before DS1.  
+Extension: `.flver`
+* DeS: Full Read, No Write
+* NB: Partial Read, No Write
 
 ### FMG
 A text bundle format used throughout the series.  
 Extension: `.fmg`
-* DS1: No support
-* DS2: Untested
-* DS3: Full Read and Write
-* DeS: No support
-* BB: Untested
+* DS1: Full Read, Write, and Create
+* DS2: Full Read, Write, and Create
+* DS3: Full Read, Write, and Create
+* DeS: Full Read, Write, and Create
+* BB: Full Read, Write, and Create
 
 ### GPARAM
 A graphics configuration format used in DS3 and BB.  
@@ -189,6 +193,11 @@ A general configuration file used in DS3.
 Extension: `.param`
 * DS3: Full Read and Write
 
+### PMDCL
+Defines static decals in maps in DS3.  
+Extension: `.pmdcl`
+* DS3: Full Read and Write
+
 ### TAE3
 Controls when different events happen during animations; this specific version used in DS3.  
 Extension: `.tae`
@@ -207,10 +216,11 @@ Extension: `.tpf`
 
 ## Special Thanks
 To everyone below, for either creating tools that I learned from, or helping decipher these formats one way or another. Please yell at me on Discord if I missed you.
+* albeartron
 * Atvaark
 * B3LYP
 * HotPocketRemix
-* Ian
+* katalash
 * Lance
 * Meowmaritus
 * Nyxojaele

@@ -77,6 +77,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Formats\BND0.cs" />
+    <Compile Include="Formats\EnchantedArms\COMPBND.cs" />
+    <Compile Include="Formats\FLVERD.cs" />
+    <Compile Include="Formats\KF4\DAT.cs" />
     <Compile Include="Formats\Kuon\DVDBND0.cs" />
     <Compile Include="Formats\Kuon\BND0.cs" />
     <Compile Include="Formats\BTAB.cs" />
@@ -97,6 +100,12 @@
     <Compile Include="Formats\GPARAM.cs" />
     <Compile Include="Formats\HKX\Collision.cs" />
     <Compile Include="Formats\HKX\HKX.cs" />
+    <Compile Include="Formats\MSBD\MSBD.cs" />
+    <Compile Include="Formats\MSBD\MSBD.ModelSection.cs" />
+    <Compile Include="Formats\MSBD\MSBD.PartsSection.cs" />
+    <Compile Include="Formats\MSB2\MSB2.cs" />
+    <Compile Include="Formats\MSB2\MSB2.ModelSection.cs" />
+    <Compile Include="Formats\MSB2\MSB2.PartsSection.cs" />
     <Compile Include="Formats\MSB3\MSB3.cs" />
     <Compile Include="Formats\MSB3\MSB3.BoneNamesSection.cs" />
     <Compile Include="Formats\MSB3\MSB3.PartsPoseSection.cs" />
@@ -106,11 +115,16 @@
     <Compile Include="Formats\MSB3\MSB3.PartsSection.cs" />
     <Compile Include="Formats\MSB3\MSB3.EventSection.cs" />
     <Compile Include="Formats\MSB3\MSB3.ModelSection.cs" />
+    <Compile Include="Formats\MSBN\MSBN.cs" />
+    <Compile Include="Formats\MSBN\MSBN.ModelSection.cs" />
+    <Compile Include="Formats\MSBN\MSBN.PartsSection.cs" />
     <Compile Include="Formats\MTD.cs" />
     <Compile Include="Formats\PARAM64.cs" />
     <Compile Include="Formats\PARAM64.Layout.cs" />
     <Compile Include="Formats\DDS.cs" />
+    <Compile Include="Formats\PMDCL.cs" />
     <Compile Include="Formats\TAE3\TAE3.cs" />
+    <Compile Include="IBinder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Formats\TPF.cs" />
     <Compile Include="SoulsFile.cs" />
