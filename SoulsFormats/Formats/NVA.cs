@@ -264,9 +264,9 @@ namespace SoulsFormats
             public int Unk38 { get; set; }
 
             /// <summary>
-            /// Should equal number of vertices in the model file.
+            /// Should equal number of triangles in the model file.
             /// </summary>
-            public int VertexCount { get; set; }
+            public int TriangleCount { get; set; }
 
             /// <summary>
             /// Unknown.
@@ -283,8 +283,8 @@ namespace SoulsFormats
             /// </summary>
             public bool Unk4C { get; set; }
 
-            private short MapNodesIndex;
-            private short MapNodeCount;
+            public short MapNodesIndex;
+            public short MapNodeCount;
 
             /// <summary>
             /// Creates a Navmesh with default values.
@@ -308,7 +308,7 @@ namespace SoulsFormats
                 ModelID = br.ReadInt32();
                 Unk38 = br.ReadInt32();
                 br.AssertInt32(0);
-                VertexCount = br.ReadInt32();
+                TriangleCount = br.ReadInt32();
                 int nameRefCount = br.ReadInt32();
                 MapNodesIndex = br.ReadInt16();
                 MapNodeCount = br.ReadInt16();
@@ -358,7 +358,7 @@ namespace SoulsFormats
                 bw.WriteInt32(ModelID);
                 bw.WriteInt32(Unk38);
                 bw.WriteInt32(0);
-                bw.WriteInt32(VertexCount);
+                bw.WriteInt32(TriangleCount);
                 bw.WriteInt32(NameReferenceIDs.Count);
                 bw.WriteInt16(MapNodesIndex);
                 bw.WriteInt16((short)MapNodes.Count);
