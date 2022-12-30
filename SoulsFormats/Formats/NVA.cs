@@ -701,10 +701,10 @@ namespace SoulsFormats
             /// </summary>
             public List<ConnectorCondition> Conditions { get; set; }
 
-            private int PointCount;
-            private int ConditionCount;
-            private int PointsIndex;
-            private int ConditionsIndex;
+            public int PointCount;
+            public int ConditionCount;
+            public int PointsIndex;
+            public int ConditionsIndex;
 
             /// <summary>
             /// Creates a Connector with default values.
