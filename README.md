@@ -1,7 +1,18 @@
 # SoulsFormats
-A .NET library for reading and writing various FromSoftware file formats, targeting .NET Framework 4.6 and .NET Standard 2.1.  
-Dark Souls, Demon's Souls, Bloodborne, and Sekiro are the main focus, but other From games may be supported to varying degrees.  
-A brief description of each supported format can be found in FORMATS.md, with further documentation for some formats.  
+A .NET library for reading and writing various FromSoftware file formats, targeting .NET Framework 4.8 and .NET Standard 2.1.
+This library primarily supports:
+
+* Dark Souls
+* Demon's Souls
+* Dark Souls II
+* Dark Souls III
+* Bloodborne
+* Sekiro
+* Elden Ring
+* Armored Core VI
+
+Other From games may be supported to varying degrees.  
+A brief description of each supported format can be found in [FORMATS.md](FORMATS.md), with further documentation for some formats.  
 
 ## Usage
 Objects for most formats can be created with the static method Read, which accepts either a byte array or a file path. Using a path is preferable as it will be read with a stream, reducing memory consumption.
@@ -66,8 +77,29 @@ byte[] dcxBytes = DCX.Compress(bndBytes, type);
 File.WriteAllBytes(@"C:\your\path\here.chrbnd.dcx", dcxBytes);
 ```
 
-## Special Thanks
+## Community Maintenance
+
+SoulsFormats is a project originally made by TKGP. This repository is a community-maintained continuation, which compiles commonly needed changes and improvements to the formats, based on insights that have been gained since its original creation.
+
+## Credits
+
+* *TKGP* - Original implementation of SoulsFormats
+* *katalash* - GPARAM, PARAM
+* *Nordgaren* - Armored Core VI additions, Oodle DLL location
+* *DSMapStudio team* - Paramdex
+* *Meowmaritus* - FXR, TAE
+* *NamelessHoodie* - FXR
+* *Vawser* - Paramdex
+* *CCCode* - FXR
+* *ClayAmore* - ZSTD Decompression
+* *NatsuDragneelTheFireDragon* - Maintainer, legacy Armored Core formats
+* *The12thAvenger* - Maintainer
+* *Shadowth117* - Maintainer
+* *ividyon* - Maintainer
+
+### TKGP's Special Thanks
 To everyone below, for either creating tools that I learned from, or helping decipher these formats one way or another. Please yell at me on Discord if I missed you.
+
 * albeartron
 * Atvaark
 * B3LYP
