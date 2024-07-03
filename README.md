@@ -86,10 +86,8 @@ SoulsFormats is a project originally made by TKGP. This repository is a communit
 * *TKGP* - Original implementation of SoulsFormats
 * *katalash* - GPARAM, PARAM
 * *Nordgaren* - Armored Core VI additions, Oodle DLL location
-* *DSMapStudio team* - Paramdex
 * *Meowmaritus* - FXR, TAE
 * *NamelessHoodie* - FXR
-* *Vawser* - Paramdex
 * *CCCode* - FXR
 * *ClayAmore* - ZSTD Decompression
 * *NatsuDragneelTheFireDragon* - Maintainer, legacy Armored Core formats
