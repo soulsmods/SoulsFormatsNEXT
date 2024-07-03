@@ -1,5 +1,5 @@
-# SoulsFormats (Community fork)
-A community-continued fork of TKGP's .NET library for reading and writing various FromSoftware file formats, targeting .NET Framework 4.8 and .NET Standard 2.1.
+# SoulsFormatsNEXT
+A community-driven continuation of TKGP's .NET library for reading and writing various FromSoftware file formats, targeting .NET Framework 4.8 and .NET Standard 2.1.
 This library primarily supports:
 
 * Dark Souls
@@ -79,12 +79,14 @@ File.WriteAllBytes(@"C:\your\path\here.chrbnd.dcx", dcxBytes);
 
 ## Community Maintenance
 
-SoulsFormats is a project originally made by TKGP. This repository is a community-maintained continuation, which compiles commonly needed changes and improvements to the formats, based on insights that have been gained since its original creation.
+SoulsFormats is a project originally developed by TKGP. This repository is a community-maintained continuation, which compiles commonly needed changes and improvements to the formats, based on insights that have been gained since its original creation.
+
+Due to the nature of community contributions, there are no claims made to perfect accuracy of all output. If working with games older than Sekiro, you may prefer to use [the original library](https://github.com/JKAnderson/SoulsFormats).
 
 ## Credits
 
 * *TKGP* - Original implementation of SoulsFormats
-* *katalash* - GPARAM, PARAM
+* *katalash* - FsParam
 * *Nordgaren* - Armored Core VI additions, Oodle DLL location
 * *Meowmaritus* - FXR, TAE
 * *NamelessHoodie* - FXR
