@@ -16,7 +16,7 @@ namespace SoulsFormats
             public string Name { get; set; }
 
             /// <summary>
-            /// Virtual path to an MTD file.
+            /// Virtual path to an MTD file or a Matxml file in games since ER.
             /// </summary>
             public string MTD { get; set; }
 
@@ -37,9 +37,9 @@ namespace SoulsFormats
             public int GXIndex { get; set; }
 
             /// <summary>
-            /// Unknown; only used in Sekiro.
+            /// Index of the material in the material list. Used since Sekiro during cutscenes. 
             /// </summary>
-            public int Unk18 { get; set; }
+            public int Index { get; set; }
 
             private int textureIndex, textureCount;
 
@@ -64,7 +64,7 @@ namespace SoulsFormats
                 Flags = flags;
                 Textures = new List<Texture>();
                 GXIndex = -1;
-                Unk18 = 0;
+                Index = 0;
             }
 
             internal Material(BinaryReaderEx br, FLVERHeader header, List<GXList> gxLists, Dictionary<int, int> gxListIndices)
@@ -75,7 +75,7 @@ namespace SoulsFormats
                 textureIndex = br.ReadInt32();
                 Flags = br.ReadInt32();
                 int gxOffset = br.ReadInt32();
-                Unk18 = br.ReadInt32();
+                Index = br.ReadInt32();
                 br.AssertInt32(0);
 
                 if (header.Unicode)
@@ -132,7 +132,7 @@ namespace SoulsFormats
                 bw.ReserveInt32($"TextureIndex{index}");
                 bw.WriteInt32(Flags);
                 bw.ReserveInt32($"GXOffset{index}");
-                bw.WriteInt32(Unk18);
+                bw.WriteInt32(Index);
                 bw.WriteInt32(0);
             }
 
