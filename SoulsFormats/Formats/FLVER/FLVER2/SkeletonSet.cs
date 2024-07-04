@@ -111,7 +111,7 @@ namespace SoulsFormats
                 /// <summary>
                 /// Creates a BoneSet with default values.
                 /// </summary>
-                public Bone(short nodeIndex)
+                public Bone(int nodeIndex)
                 {
                     NodeIndex = nodeIndex;
                     ParentIndex = -1;
