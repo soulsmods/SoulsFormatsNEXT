@@ -117,6 +117,34 @@ namespace SoulsFormats.Other
                 br.Position = paramsStart + 0x800;
             }
 
+            public Dictionary<string, string> GetTexDict()
+            {
+                Dictionary<string, string> parameters = new Dictionary<string, string>();
+                for (int i = 0; i < Params.Count; i++)
+                {
+                    if (Params[i].Name.ToLower().Contains("texture"))
+                    {
+                        parameters.Add(Params[i].Name.ToLower(), (string)Params[i].Value + ".dds");
+                    }
+                }
+
+                return parameters;
+            }
+
+            public List<string> GetTexList()
+            {
+                List<string> parameters = new List<string>();
+                for (int i = 0; i < Params.Count; i++)
+                {
+                    if (Params[i].Name.ToLower().Contains("texture"))
+                    {
+                        parameters.Add((string)Params[i].Value + ".dds");
+                    }
+                }
+
+                return parameters;
+            }
+
             public class Param
             {
                 public ParamType Type;
@@ -378,8 +406,8 @@ namespace SoulsFormats.Other
                     if (format == 0)
                     {
                         Position = br.ReadVector3();
-                        Normal = ReadSByteVector4(br);
-                        Tangent = ReadSByteVector4(br);
+                        Normal = ReadSByteVector4Normal(br);
+                        Tangent = ReadSByteVector4Normal(br);
                         Color = br.ReadBytes(4);
                         UVs.Add(ReadShortUV(br));
                         UVs.Add(ReadShortUV(br));
@@ -405,6 +433,15 @@ namespace SoulsFormats.Other
                 sbyte y = br.ReadSByte();
                 sbyte x = br.ReadSByte();
                 return new Vector4(x / 127f, y / 127f, z / 127f, w / 127f);
+            }
+
+            private static Vector4 ReadSByteVector4Normal(BinaryReaderEx br)
+            {
+                sbyte w = br.ReadSByte();
+                sbyte z = br.ReadSByte();
+                sbyte y = br.ReadSByte();
+                sbyte x = br.ReadSByte();
+                return new Vector4(x / 127f, y / 127f, z / 127f, w);
             }
 
             private static Vector2 ReadShortUV(BinaryReaderEx br)
