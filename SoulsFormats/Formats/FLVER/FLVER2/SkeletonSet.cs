@@ -109,7 +109,7 @@ namespace SoulsFormats
                 public int NodeIndex { get; set; }
 
                 /// <summary>
-                /// Creates a BoneSet with default values.
+                /// Creates a Bone with default values.
                 /// </summary>
                 public Bone(int nodeIndex)
                 {
