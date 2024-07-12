@@ -173,6 +173,14 @@ namespace SoulsFormats
             /// </summary>
             public TriangleFlags Flags;
 
+            /// <summary>
+            /// Default triangle constructor
+            /// </summary>
+            public Triangle()
+            {
+
+            }
+
             internal Triangle(BinaryReaderEx br)
             {
                 VertexIndex1 = br.ReadInt32();
@@ -248,7 +256,7 @@ namespace SoulsFormats
             /// <summary>
             /// One of two corners defining the extent of the box.
             /// </summary>
-            public Vector3 Corner1, Corner2;
+            public Vector3 MinValueCorner, MaxValueCorner;
 
             /// <summary>
             /// Indices of triangles within this box. Only used for leaf nodes.
@@ -257,14 +265,43 @@ namespace SoulsFormats
 
             /// <summary>
             /// The four boxes that subdivide this one.
+            /// Boxes are always separated horizontally so Y/Vertical values remain constant.
             /// </summary>
+            //                           MaxValueCorner
+            // ---------------------------------------
+            // |                  |                  |
+            // |                  |                  |
+            // |                  |                  |
+            // |    ChildBox4     |    ChildBox3     |
+            // |                  |                  |
+            // |                  |                  |
+            // |                  |                  |
+            // | ------------------------------------| 
+            // |                  |                  |
+            // |                  |                  |
+            // |                  |                  |
+            // |     ChildBox1    |    ChildBox2     |
+            // |                  |                  |
+            // |                  |                  |
+            // |                  |                  |
+            // ---------------------------------------
+            // MinValue Corner
+
             public Box ChildBox1, ChildBox2, ChildBox3, ChildBox4;
+
+            /// <summary>
+            /// Default box constructor
+            /// </summary>
+            public Box()
+            {
+
+            }
 
             internal Box(BinaryReaderEx br)
             {
-                Corner1 = br.ReadVector3();
+                MinValueCorner = br.ReadVector3();
                 int triangleCount = br.ReadInt32();
-                Corner2 = br.ReadVector3();
+                MaxValueCorner = br.ReadVector3();
                 int triangleOffset = br.ReadInt32();
                 int boxOffset1 = br.ReadInt32();
                 int boxOffset2 = br.ReadInt32();
@@ -303,9 +340,9 @@ namespace SoulsFormats
                 int boxOffset4 = ChildBox4?.Write(bw, triangleIndexOffsets) ?? 0;
 
                 int thisOffset = (int)bw.Position;
-                bw.WriteVector3(Corner1);
+                bw.WriteVector3(MinValueCorner);
                 bw.WriteInt32(TriangleIndices.Count);
-                bw.WriteVector3(Corner2);
+                bw.WriteVector3(MaxValueCorner);
                 bw.WriteInt32(triangleIndexOffsets.Dequeue());
                 bw.WriteInt32(boxOffset1);
                 bw.WriteInt32(boxOffset2);
@@ -333,6 +370,14 @@ namespace SoulsFormats
             /// The triangles to be disabled from an event script.
             /// </summary>
             public List<int> TriangleIndices;
+
+            /// <summary>
+            /// Default entity constructor
+            /// </summary>
+            public Entity()
+            {
+
+            }
 
             internal Entity(BinaryReaderEx br)
             {
