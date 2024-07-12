@@ -12,7 +12,7 @@ namespace SoulsFormats.Other
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public int Unk04;
         public int Unk08;
-        public List<Bone> Bones;
+        public List<Node> Nodes;
         public List<ushort> Indices;
         public List<Vertex> VerticesA;
         public List<Vertex> VerticesB;
@@ -47,9 +47,9 @@ namespace SoulsFormats.Other
             int texturesOffset = br.ReadInt32();
 
             br.Position = bonesOffset;
-            Bones = new List<Bone>(boneCount);
+            Nodes = new List<Node>(boneCount);
             for (int i = 0; i < boneCount; i++)
-                Bones.Add(new Bone(br));
+                Nodes.Add(new Node(br));
 
             br.Position = indicesOffset;
             Indices = new List<ushort>(br.ReadUInt16s(indexCount));
@@ -123,7 +123,7 @@ namespace SoulsFormats.Other
             return triangles;
         }
 
-        public class Bone
+        public class Node
         {
             public Vector3 Translation;
             public Vector3 Rotation;
@@ -137,7 +137,7 @@ namespace SoulsFormats.Other
             public List<MeshGroup> MeshesC;
             public int Unk4C;
 
-            internal Bone(BinaryReaderEx br)
+            internal Node(BinaryReaderEx br)
             {
                 Translation = br.ReadVector3();
                 Rotation = br.ReadVector3();
@@ -233,10 +233,10 @@ namespace SoulsFormats.Other
             public Vector3 Normal;
             public Color Color;
             public Vector2[] UVs;
-            public short UnkShortA;
-            public short UnkShortB;
-            public float UnkFloatA;
-            public float UnkFloatB;
+            public MDLWeightIndex PrimaryWeightFlag;
+            public MDLWeightIndex SecondaryWeightFlag;
+            public float PrimaryVertexWeight;
+            public float SecondaryVertexWeight;
 
             public Vertex(Vector3 position, Vector3 normal)
             {
@@ -256,14 +256,42 @@ namespace SoulsFormats.Other
 
                 if (format >= VertexFormat.B)
                 {
-                    UnkShortA = br.ReadInt16();
-                    UnkShortB = br.ReadInt16();
+                    // Both may be 0, 4, 8, 12, etc
+                    PrimaryWeightFlag = br.ReadEnum16<MDLWeightIndex>();
+                    SecondaryWeightFlag = br.ReadEnum16<MDLWeightIndex>();
                 }
 
                 if (format >= VertexFormat.C)
                 {
-                    UnkFloatA = br.ReadSingle();
-                    UnkFloatB = br.ReadSingle();
+                    PrimaryVertexWeight = br.ReadSingle();
+                    SecondaryVertexWeight = br.ReadSingle();
+                }
+            }
+
+            public short GetPrimaryWeightIndex()
+            {
+                return GetWeightIndex(PrimaryWeightFlag);
+            }
+
+            public short GetSecondaryWeightIndex()
+            {
+                return GetWeightIndex(SecondaryWeightFlag);
+            }
+
+            private short GetWeightIndex(MDLWeightIndex weightIndex)
+            {
+                switch (weightIndex)
+                {
+                    case MDLWeightIndex.Index0:
+                        return 0;
+                    case MDLWeightIndex.Index1:
+                        return 1;
+                    case MDLWeightIndex.Index2:
+                        return 2;
+                    case MDLWeightIndex.Index3:
+                        return 3;
+                    default:
+                        throw new System.NotImplementedException("Unexpected weight index!");
                 }
             }
         }

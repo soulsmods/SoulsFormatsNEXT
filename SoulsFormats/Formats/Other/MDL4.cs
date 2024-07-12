@@ -20,7 +20,7 @@ namespace SoulsFormats.Other
 
         public List<Dummy> Dummies;
         public List<Material> Materials;
-        public List<Bone> Bones;
+        public List<Node> Nodes;
         public List<Mesh> Meshes;
 
         protected override bool Is(BinaryReaderEx br)
@@ -58,9 +58,9 @@ namespace SoulsFormats.Other
             for (int i = 0; i < materialCount; i++)
                 Materials.Add(new Material(br));
 
-            Bones = new List<Bone>(boneCount);
+            Nodes = new List<Node>(boneCount);
             for (int i = 0; i < boneCount; i++)
-                Bones.Add(new Bone(br));
+                Nodes.Add(new Node(br));
 
             Meshes = new List<Mesh>(meshCount);
             for (int i = 0; i < meshCount; i++)
@@ -181,7 +181,7 @@ namespace SoulsFormats.Other
             }
         }
 
-        public class Bone
+        public class Node
         {
             public string Name;
             public Vector3 Translation;
@@ -195,7 +195,7 @@ namespace SoulsFormats.Other
             public short PreviousSiblingIndex;
             public short[] UnkIndices;
 
-            internal Bone(BinaryReaderEx br)
+            internal Node(BinaryReaderEx br)
             {
                 Name = br.ReadFixStr(0x20);
                 Translation = br.ReadVector3();
