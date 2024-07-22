@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
-using System.Diagnostics;
 using System.Linq;
 using static SoulsFormats.DDS;
-using static SoulsFormats.MSBS.Event;
 using static SoulsFormats.TPF;
 
 namespace SoulsFormats
@@ -46,6 +43,7 @@ namespace SoulsFormats
         110 - DXT5
         112 - BC7_UNORM_SRGB
         113 - BC6H_UF16
+        115 - BC6H_UF16
         */
         /// <summary>
         /// Map to DXGI format
@@ -79,6 +77,7 @@ namespace SoulsFormats
             [110] = DXGI_FORMAT.BC3_UNORM,
             [112] = DXGI_FORMAT.BC7_UNORM_SRGB,
             [113] = DXGI_FORMAT.BC6H_UF16,
+            [115] = DXGI_FORMAT.BC6H_UF16,
         };
 
         /// <summary>
@@ -106,6 +105,7 @@ namespace SoulsFormats
             [110] = 16,
             [112] = 16,
             [113] = 16,
+            [115] = 16,
         };
 
         /// <summary>
@@ -514,10 +514,6 @@ namespace SoulsFormats
 
         public static byte[] WritePS4Images(List<Image> images, TPF.TexType type)
         {
-            if (type == TexType.Volume)
-            {
-                throw new NotImplementedException();
-            }
             AddEmptyImagePadding(images, type);
             int maxMipCount = 0;
             int minBufferSize = images.Count > 1 ? 0x400 : 0x200;
