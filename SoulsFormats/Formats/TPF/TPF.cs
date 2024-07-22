@@ -273,6 +273,16 @@ namespace SoulsFormats
                         throw new NotImplementedException($"TPF compression is expected to be DCP_EDGE, but it was {type}");
                 }
 
+                //Cubemap fix
+                //Check if this is a DX10 FourCC, check if it's a cubemap
+                //FromSoft erroneously sets the image count for DX10 cubemaps to 6, which causes editors to think there's
+                //an array of cubemaps instead of just 6 images and break. 
+                if (Bytes[0x56] == 0x31 && Bytes[0x57] == 0x30 && Bytes[0x54] == 0x44 && Bytes[0x55] == 0x58
+                    && Bytes[0x88] == (int)DDS.RESOURCE_MISC.TEXTURECUBE && Bytes[0x8C] == 0x6)
+                {
+                    Bytes[0x8C] = 0x1;
+                }
+
                 if (encoding == 1)
                     Name = br.GetUTF16(nameOffset);
                 else if (encoding == 0 || encoding == 2)
