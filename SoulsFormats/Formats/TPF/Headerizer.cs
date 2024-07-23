@@ -1,52 +1,89 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using static SoulsFormats.DDS;
+using static SoulsFormats.TPF;
 
 namespace SoulsFormats
 {
-    /* Known TPF texture formats
-  0 - DXT1
-  1 - DXT1
-  3 - DXT3
-  5 - DXT5
-  6 - B5G5R5A1_UNORM
-  9 - B8G8R8A8
- 10 - R8G8B8 on PC, A8G8B8R8 on PS3
- 16 - A8
- 22 - A16B16G16R16f
- 23 - DXT5
- 24 - DXT1
- 25 - DXT1
- 33 - DXT5
-100 - BC6H_UF16
-102 - BC7_UNORM
-103 - ATI1
-104 - ATI2
-105 - A8B8G8R8
-106 - BC7_UNORM
-107 - BC7_UNORM
-108 - DXT1
-109 - DXT1
-110 - DXT5
-112 - BC7_UNORM_SRGB
-113 - BC6H_UF16
-*/
-
-/* BCn block sizes
-BC1 (DXT1) - 8
-BC2 (DXT3) - 16
-BC3 (DXT5) - 16
-BC4 (ATI1) - 8
-BC5 (ATI2) - 16
-BC6 - 16
-BC7 - 16
-*/
-
-// Source: TK SoulsFormats
-// TKSF Headerizer, but included here to be accesses from the DSMS TPF.
-    internal static class Headerizer
+    /* BCn block sizes
+    BC1 (DXT1) - 8
+    BC2 (DXT3) - 16
+    BC3 (DXT5) - 16
+    BC4 (ATI1) - 8
+    BC5 (ATI2) - 16
+    BC6 - 16
+    BC7 - 16
+    */
+    public static class Headerizer
     {
+        /* Known TPF texture formats
+          0 - DXT1
+          1 - DXT1
+          3 - DXT3
+          5 - DXT5
+          6 - B5G5R5A1_UNORM
+          9 - B8G8R8A8
+         10 - R8G8B8 on PC, A8G8B8R8 on PS3
+         16 - A8
+         22 - A16B16G16R16f
+         23 - DXT5
+         24 - BC4
+         25 - DXT1
+         33 - DXT5
+        100 - BC6H_UF16
+        102 - BC7_UNORM
+        103 - ATI1
+        104 - ATI2
+        105 - A8B8G8R8
+        106 - BC7_UNORM
+        107 - BC7_UNORM
+        108 - DXT1
+        109 - DXT1
+        110 - DXT5
+        112 - BC7_UNORM_SRGB
+        113 - BC6H_UF16
+        115 - BC6H_UF16
+        */
+        /// <summary>
+        /// Map to DXGI format
+        /// </summary>
+        public static Dictionary<int, DXGI_FORMAT> textureFormatMap = new Dictionary<int, DXGI_FORMAT>()
+        {
+            [0] = DXGI_FORMAT.BC1_UNORM,
+            [1] = DXGI_FORMAT.BC1_UNORM,
+            [3] = DXGI_FORMAT.BC2_UNORM,
+            [5] = DXGI_FORMAT.BC3_UNORM,
+            [6] = DXGI_FORMAT.B5G5R5A1_UNORM,
+            [8] = DXGI_FORMAT.R8G8B8A8_UNORM,
+            [9] = DXGI_FORMAT.B8G8R8A8_UNORM,
+            [10] = DXGI_FORMAT.R8G8B8A8_UNORM,
+            [16] = DXGI_FORMAT.A8_UNORM,
+            [22] = DXGI_FORMAT.R16G16B16A16_UNORM,
+            [23] = DXGI_FORMAT.BC3_UNORM,
+            [24] = DXGI_FORMAT.BC4_UNORM,
+            [25] = DXGI_FORMAT.BC1_UNORM,
+            [29] = DXGI_FORMAT.BC1_UNORM,
+            [33] = DXGI_FORMAT.BC3_UNORM,
+            [100] = DXGI_FORMAT.BC6H_UF16,
+            [102] = DXGI_FORMAT.BC7_UNORM,
+            [103] = DXGI_FORMAT.BC4_UNORM,
+            [104] = DXGI_FORMAT.BC5_UNORM,
+            [105] = DXGI_FORMAT.R8G8B8A8_UNORM,
+            [106] = DXGI_FORMAT.BC7_UNORM,
+            [107] = DXGI_FORMAT.BC7_UNORM,
+            [108] = DXGI_FORMAT.BC1_UNORM,
+            [109] = DXGI_FORMAT.BC1_UNORM,
+            [110] = DXGI_FORMAT.BC3_UNORM,
+            [112] = DXGI_FORMAT.BC7_UNORM_SRGB,
+            [113] = DXGI_FORMAT.BC6H_UF16,
+            [115] = DXGI_FORMAT.BC6H_UF16,
+        };
+
+        /// <summary>
+        /// Compressed Bits Per Block
+        /// </summary>
         private static Dictionary<byte, int> CompressedBPB = new Dictionary<byte, int>
         {
             [0] = 8,
@@ -56,6 +93,7 @@ BC7 - 16
             [23] = 16,
             [24] = 8,
             [25] = 8,
+            [29] = 8,
             [33] = 16,
             [100] = 16,
             [102] = 16,
@@ -68,11 +106,16 @@ BC7 - 16
             [110] = 16,
             [112] = 16,
             [113] = 16,
+            [115] = 16,
         };
 
+        /// <summary>
+        /// Uncompressed Bytes Per Pixel
+        /// </summary>
         private static Dictionary<byte, int> UncompressedBPP = new Dictionary<byte, int>
         {
             [6] = 2,
+            [8] = 4,
             [9] = 4,
             [10] = 4,
             [16] = 1,
@@ -80,6 +123,9 @@ BC7 - 16
             [105] = 4,
         };
 
+        /// <summary>
+        /// DDS FourCC bytes
+        /// </summary>
         private static Dictionary<byte, string> FourCC = new Dictionary<byte, string>
         {
             [0] = "DXT1",
@@ -88,8 +134,9 @@ BC7 - 16
             [5] = "DXT5",
             [22] = "q\0\0\0", // 0x71
             [23] = "DXT5",
-            [24] = "DXT1",
+            [24] = "ATI1",
             [25] = "DXT1",
+            [29] = "DXT1",
             [33] = "DXT5",
             [103] = "ATI1",
             [104] = "ATI2",
@@ -98,8 +145,14 @@ BC7 - 16
             [110] = "DXT5",
         };
 
-        private static byte[] DX10Formats = { 6, 100, 102, 106, 107, 112, 113 };
+        /// <summary>
+        /// DX10+ dds pixel formats from the Texture.Format field
+        /// </summary>
+        private static byte[] DX10Formats = { 6, 100, 102, 106, 107, 112, 113, 115 };
 
+        /// <summary>
+        /// By default, we'll assume no swizzling, PC type. Bear in mind Demon's Souls and Dark Souls 1 do NOT use PS3 swizzling and should be assigned 'PC'!
+        /// </summary>
         public static byte[] Headerize(TPF.Texture texture)
         {
             if (SFEncoding.ASCII.GetString(texture.Bytes, 0, 4) == "DDS ")
@@ -109,6 +162,7 @@ BC7 - 16
             byte format = texture.Format;
             short width = texture.Header.Width;
             short height = texture.Header.Height;
+            int depth = texture.Header.TextureCount;
             int mipCount = texture.Mipmaps;
             TPF.TexType type = texture.Type;
 
@@ -126,8 +180,7 @@ BC7 - 16
             else if (UncompressedBPP.ContainsKey(format))
                 dds.dwPitchOrLinearSize = (width * UncompressedBPP[format] + 7) / 8;
 
-            // This line serves only to remind me that I didn't forget about dwDepth, I left it 0 on purpose.
-            dds.dwDepth = 0;
+            dds.dwDepth = type == TPF.TexType.Volume ? depth : 0;
 
             if (mipCount == 0)
                 mipCount = DetermineMipCount(width, height);
@@ -145,10 +198,12 @@ BC7 - 16
                 dds.dwCaps2 = DDSCAPS2.VOLUME;
 
             PIXELFORMAT ddspf = dds.ddspf;
-            var dxFormats = DX10Formats.ToList();
-            if (FourCC.ContainsKey(format) || dxFormats.Contains(format))
+
+            if (FourCC.ContainsKey(format) || DX10DXGI.Contains((byte)texture.Header.DXGIFormat))
                 ddspf.dwFlags = DDPF.FOURCC;
             if (format == 6)
+                ddspf.dwFlags |= DDPF.ALPHAPIXELS | DDPF.RGB;
+            else if (format == 8)
                 ddspf.dwFlags |= DDPF.ALPHAPIXELS | DDPF.RGB;
             else if (format == 9)
                 ddspf.dwFlags |= DDPF.ALPHAPIXELS | DDPF.RGB;
@@ -159,10 +214,10 @@ BC7 - 16
             else if (format == 105)
                 ddspf.dwFlags |= DDPF.ALPHAPIXELS | DDPF.RGB;
 
-            if (FourCC.ContainsKey(format))
-                ddspf.dwFourCC = FourCC[format];
-            else if (dxFormats.Contains(format))
+            if (DX10DXGI.Contains((byte)texture.Header.DXGIFormat))
                 ddspf.dwFourCC = "DX10";
+            else if (FourCC.ContainsKey(format))
+                ddspf.dwFourCC = FourCC[format];
 
             if (format == 6)
             {
@@ -171,6 +226,14 @@ BC7 - 16
                 ddspf.dwGBitMask = 0b00000011_11100000;
                 ddspf.dwBBitMask = 0b00000000_00011111;
                 ddspf.dwABitMask = 0b10000000_00000000;
+            }
+            else if (format == 8)
+            {
+                ddspf.dwRGBBitCount = 32;
+                ddspf.dwRBitMask = 0x00FF0000;
+                ddspf.dwGBitMask = 0x0000FF00;
+                ddspf.dwBBitMask = 0x000000FF;
+                ddspf.dwABitMask = 0xFF000000;
             }
             else if (format == 9)
             {
@@ -201,16 +264,30 @@ BC7 - 16
                 ddspf.dwABitMask = 0xFF000000;
             }
 
-            if (DX10Formats.Contains(format))
+            if (DX10DXGI.Contains((byte)texture.Header.DXGIFormat))
             {
                 dds.header10 = new HEADER_DXT10();
                 dds.header10.dxgiFormat = (DXGI_FORMAT)texture.Header.DXGIFormat;
                 if (type == TPF.TexType.Cubemap)
                     dds.header10.miscFlag = RESOURCE_MISC.TEXTURECUBE;
             }
+            var images = RebuildPixelData(texture.Bytes, format, width, height, depth, mipCount, type, texture.Platform);
 
-            byte[] bytes = RebuildPixelData(texture.Bytes, format, width, height, mipCount, type);
-            return dds.Write(bytes);
+            //Failsafe for if whatever reason we don't read all of the mipmaps
+            if (images.Count > 0)
+            {
+                dds.dwMipMapCount = images[0].subImages.Count;
+            }
+
+            //Bandaid fix for the moment for PS5 textures that somehow don't have enough data
+            if (texture.Platform == TPFPlatform.PS5)
+            {
+                List<byte> outBytes = new List<byte>();
+                outBytes.AddRange(dds.Write(Image.Write(images)));
+                outBytes.AddRange(new byte[0x100]);
+                return outBytes.ToArray();
+            }
+            return dds.Write(Image.Write(images));
         }
 
         private static int DetermineMipCount(int width, int height)
@@ -218,40 +295,11 @@ BC7 - 16
             return (int)Math.Ceiling(Math.Log(Math.Max(width, height), 2)) + 1;
         }
 
-        private static byte[] RebuildPixelData(byte[] bytes, byte format, short width, short height, int mipCount, TPF.TexType type)
+        private static List<Image> RebuildPixelData(byte[] bytes, byte format, short width, short height, int depth, int mipCount, TPF.TexType type, TPFPlatform platform)
         {
-            int imageCount = type == TPF.TexType.Cubemap ? 6 : 1;
-            int padDimensions = 1;
-            if (format == 102)
-                padDimensions = 32;
+            List<Image> images = ReadImages(platform, bytes, width, height, depth, mipCount, format, type);
 
-            List<Image> images;
-            if (CompressedBPB.ContainsKey(format))
-                images = Image.ReadCompressed(bytes, width, height, padDimensions, imageCount, mipCount, 0x80, CompressedBPB[format]);
-            else if (UncompressedBPP.ContainsKey(format))
-                images = Image.ReadUncompressed(bytes, width, height, padDimensions, imageCount, mipCount, 0x80, UncompressedBPP[format]);
-            else
-                throw new NotSupportedException($"Cannot decompose format {format}.");
-
-            if (format == 10 || format == 102)
-            {
-                int texelSize = -1;
-                if (format == 10)
-                    texelSize = 4;
-                else if (format == 102)
-                    texelSize = 16;
-
-                foreach (Image image in images)
-                {
-                    for (int i = 0; i < image.MipLevels.Count; i++)
-                    {
-                        int scale = (int)Math.Pow(2, i);
-                        image.MipLevels[i] = DeswizzleMipLevel(image.MipLevels[i], format, texelSize, width / scale, height / scale, padDimensions);
-                    }
-                }
-            }
-
-            return Image.Write(images);
+            return images;
         }
 
         private static int PadTo(int value, int pad)
@@ -259,176 +307,477 @@ BC7 - 16
             return (int)Math.Ceiling(value / (float)pad) * pad;
         }
 
-        private static byte[] DeswizzleMipLevel(byte[] swizzled, byte format, int texelSize, int width, int height, int padDimensions)
+        private static List<Image> ReadImages(TPFPlatform platform, byte[] bytes, int width, int height, int depth, int mipCount, int format, TPF.TexType type)
         {
-            int paddedWidth = PadTo(width, padDimensions);
-            int paddedHeight = PadTo(height, padDimensions);
-            int texelWidth = paddedWidth;
-            if (format == 102)
-                texelWidth = paddedWidth / 4;
-
-            byte[] unswizzled;
-            if (format == 10)
+            switch (platform)
             {
-                unswizzled = DeswizzlePS3(swizzled, texelSize, texelWidth);
-                byte[] trimmed = new byte[unswizzled.Length / 4 * 3];
-                for (int j = 0; j < unswizzled.Length / 4; j++)
-                {
-                    Array.Reverse(unswizzled, j * 4, 4);
-                    Array.Copy(unswizzled, j * 4, trimmed, j * 3, 3);
-                }
-                unswizzled = trimmed;
+                case TPFPlatform.Xbox360:
+                    return Read360Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format);
+                case TPFPlatform.Xbone:
+                    throw new NotImplementedException();
+                case TPFPlatform.PS3:
+                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format);
+                case TPFPlatform.PS4:
+                    return ReadPS4Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format, type);
+                case TPFPlatform.PS5:
+                    return ReadPS5Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format);
+                case TPFPlatform.PC:
+                default:
+                    //Similar to original SF behavior, probably not necessary.
+                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format);
             }
-            else if (format == 102)
+        }
+
+        private static List<Image> Read360Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, int format)
+        {
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)textureFormatMap[format];
+
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
+            var images = new List<Image>(depth);
+
+            List<byte[]> bufferArray = new List<byte[]>();
+            for (int i = 0; i < depth; i++)
             {
-                unswizzled = DeswizzlePS4(swizzled, format, texelSize, paddedWidth, paddedHeight);
-                byte[] trimmed = new byte[(int)Math.Max(1, width / 4f) * (int)Math.Max(1, height / 4f) * texelSize];
-                for (int j = 0; j < height / 4; j++)
+                var image = new Image();
+                for (int j = 0; j < mipCount; j++)
                 {
-                    int sourceIndex = j * texelSize * texelWidth;
-                    int destIndex = j * texelSize * (width / 4);
-                    int length = texelSize * (width / 4);
-                    Array.Copy(unswizzled, sourceIndex, trimmed, destIndex, length);
+                    int scale = (int)Math.Pow(2, j);
+                    int w = PadTo(finalWidth / scale, 1);
+                    int h = PadTo(finalHeight / scale, 1);
+                    long calculatedBufferLength = formatBpp * w * h / 8;
+
+                    if (calculatedBufferLength < sourceBytesPerPixelSet)
+                    {
+                        calculatedBufferLength = sourceBytesPerPixelSet;
+                    }
+
+                    //Xbox 360 textures have minimum buffer caps. To read all the mips properly, you'd need to extract them as tiles from these.
+                    //It gets a bit crazy when it gets low enough for Dark Souls and frankly, someone else can handle it better later if they so desire.
+                    long ogCalcBuffLength = calculatedBufferLength;
+                    int ogW = w;
+                    int ogH = h;
+
+                    byte[] mip = DrSwizzler.Deswizzler.Xbox360Deswizzle(br.ReadBytes((int)calculatedBufferLength), w, h, pixelFormat);
+                    mip = DrSwizzler.Util.ExtractTile(mip, pixelFormat, w, 0, 0, ogW, ogH);
+                    image.subImages.Add(mip);
+
+                    //Skip all but the first mip unless someone wants to finish it offer more properly.
+                    break;
                 }
-                unswizzled = trimmed;
+                images.Add(image);
+            }
+            return images;
+        }
+
+        private static List<Image> ReadPS3Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, int format)
+        {
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)textureFormatMap[format];
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
+            var images = new List<Image>(depth);
+
+            for (int i = 0; i < depth; i++)
+            {
+                var image = new Image();
+                br.Pad(0x80);
+                for (int j = 0; j < mipCount; j++)
+                {
+                    int scale = (int)Math.Pow(2, j);
+                    int w = PadTo(finalWidth / scale, 1);
+                    int h = PadTo(finalHeight / scale, 1);
+                    long calculatedBufferLength = formatBpp * w * h / 8;
+
+                    if (calculatedBufferLength < sourceBytesPerPixelSet)
+                    {
+                        calculatedBufferLength = sourceBytesPerPixelSet;
+                    }
+
+                    byte[] mip = br.ReadBytes((int)calculatedBufferLength);
+                    if (format == 10)
+                    {
+                        mip = DrSwizzler.Deswizzler.PS3Deswizzle(mip, w, h, pixelFormat);
+                    }
+                    image.subImages.Add(mip);
+                }
+                images.Add(image);
+            }
+            return images;
+        }
+
+        public static byte[] WritePS3Images(List<Image> images)
+        {
+            var bw = new BinaryWriterEx(false);
+            foreach (var img in images)
+            {
+                bw.Pad(0x80);
+                foreach (var mip in img.subImages)
+                {
+                    bw.WriteBytes(mip);
+                }
+            }
+
+            return bw.FinishBytes();
+        }
+
+        private static List<Image> ReadPS4Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, int format, TPF.TexType type)
+        {
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)textureFormatMap[format];
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
+
+            long sliceBufferLength = br.Length / depth;
+            List<Image> imageList = new List<Image>();
+            long bufferUsed = 0;
+            int mipWidth = finalWidth;
+            int mipHeight = finalHeight;
+
+            //Swizzling can go outside the bounds of the texture so we want to check the full buffer in these cases. Hopefully it's only for single mip instances
+            long bufferLength = mipCount == 1 ? sliceBufferLength : formatBpp * finalWidth * finalHeight / 8;
+
+            //Prepare mip set lists
+            for (int i = 0; i < depth; i++)
+            {
+                imageList.Add(new Image());
+            }
+
+            int sliceBufferMin;
+            if (depth > 1)
+            {
+                sliceBufferMin = 0x400;
             }
             else
             {
-                throw new NotSupportedException($"Cannot deswizzle format {format}.");
-            }
-            return unswizzled;
-        }
-
-        // Black magic stolen from Insomniac Games
-        // https://web.archive.org/web/20080704105751/http://www.insomniacgames.com/tech/articles/0108/curiouslysmallcode.php
-        private static byte[] DeswizzlePS3(byte[] swizzled, int texelSize, int texelWidth)
-        {
-            byte[] unswizzled = new byte[swizzled.Length];
-
-            int x = 0;
-            int y = 0;
-            for (int i = 0; i < swizzled.Length / texelSize; i++)
-            {
-                Array.Copy(swizzled, i * texelSize, unswizzled, y * texelWidth * texelSize + x * texelSize, texelSize);
-
-                int and0 = x & y;
-                int and1 = and0 + 1;
-                int xinc = and0 ^ and1;
-                int yinc = x & xinc;
-                x ^= xinc;
-                y ^= yinc;
+                sliceBufferMin = 0x200;
             }
 
-            return unswizzled;
-        }
-
-        private static byte[] DeswizzlePS4(byte[] swizzled, byte format, int texelSize, int width, int height)
-        {
-            byte[] unswizzled = new byte[swizzled.Length];
-
-            int blocksH = (width + 31) / 32;
-            int blocksV = (height + 31) / 32;
-            int swizzleBlockSize = 32;
-
-            int readOffset = 0;
-            int h;
-            int v = 0;
-            for (int i = 0; i < blocksV; i++)
+            if (bufferLength < sliceBufferMin)
             {
-                h = 0;
-                for (int j = 0; j < blocksH; j++)
+                bufferLength = sliceBufferMin;
+            }
+
+            //PS4 textures seem to lay out slices at the same level sequentially rather than having slices go through each mip in their set before proceeding to the next slice
+            for (int i = 0; i < mipCount; i++)
+            {
+                if (mipCount > 1 || depth > 1)
                 {
-                    int writeOffset = h + v;
-                    DeswizzlePS4Block(swizzled, unswizzled, ref readOffset, width, texelSize, 32, 32, writeOffset, 2);
-                    h += swizzleBlockSize / 4 * texelSize;
+                    if (bufferLength != sliceBufferMin && i != 0)
+                    {
+                        bufferLength = bufferLength / 4;
+                        if (bufferLength < sliceBufferMin)
+                        {
+                            bufferLength = sliceBufferMin;
+                        }
+                    }
                 }
-                v += swizzleBlockSize * width;
+
+                for (int s = 0; s < depth; s++)
+                {
+                    var mipOffset = bufferUsed;
+                    br.Position = mipOffset;
+                    var mipFull = br.ReadBytes((int)bufferLength);
+                    bufferUsed += bufferLength;
+
+                    //Make sure that we have enough bytes to actually deswizzle
+                    var deSwizzChunkSize = GetDeswizzleSize(mipFull.Length, formatBpp, mipWidth, mipHeight, out int deSwizzWidth, out int deSwizzHeight);
+                    int swizzleBlockWidth = deSwizzWidth < 8 ? 8 : deSwizzWidth;
+                    int swizzleBlockHeight = deSwizzHeight < 8 ? 8 : deSwizzHeight;
+
+                    //If it's too small, we don't need to deswizzle
+                    if ((formatBpp * mipWidth * mipHeight / 8) <= sourceBytesPerPixelSet)
+                    {
+                        var newMipFull = new byte[sourceBytesPerPixelSet];
+
+                        for (int m = 0; m < Math.Min(mipFull.Length, newMipFull.Length); m++)
+                        {
+                            newMipFull[m] = mipFull[m];
+                        }
+                        mipFull = newMipFull;
+                    }
+                    else
+                    {
+                        mipFull = DrSwizzler.Deswizzler.PS4Deswizzle(mipFull, swizzleBlockWidth, swizzleBlockHeight, pixelFormat);
+
+                        //Extract as a tile from the pixels if we haven't done that at the deswizzle step
+                        if (swizzleBlockWidth != mipWidth || swizzleBlockHeight != mipHeight)
+                        {
+                            mipFull = DrSwizzler.Util.ExtractTile(mipFull, pixelFormat, swizzleBlockWidth, 0, 0, mipWidth, mipHeight);
+                        }
+                    }
+
+                    imageList[s].subImages.Add(mipFull);
+                }
+                mipWidth /= 2;
+                mipHeight /= 2;
+
+                //Cubemaps seem to pad to the size of 8 textures
+                if (type == TexType.Cubemap)
+                {
+                    bufferUsed += 8 * bufferLength - depth * bufferLength;
+                }
             }
 
-            return unswizzled;
+            return imageList;
         }
 
-        private static void DeswizzlePS4Block(byte[] swizzled, byte[] unswizzled, ref int readOffset, int imageWidth, int texelSize, int blockWidth, int blockHeight, int writeOffset, int offsetFactor)
+
+        public static byte[] WritePS4Images(List<Image> images, DDS ddsHeader, TPF.TexType type)
         {
-            if (blockWidth * blockHeight > 16)
+            AddEmptyImagePadding(images, type);
+            int maxMipCount = 0;
+            int minBufferSize = images.Count > 1 ? 0x400 : 0x200;
+            foreach (var img in images)
             {
-                DeswizzlePS4Block(swizzled, unswizzled, ref readOffset, imageWidth, texelSize, blockWidth / 2, blockHeight / 2,
-                    writeOffset,
-                    offsetFactor * 2);
-                DeswizzlePS4Block(swizzled, unswizzled, ref readOffset, imageWidth, texelSize, blockWidth / 2, blockHeight / 2,
-                    writeOffset + blockWidth / 8 * texelSize,
-                    offsetFactor * 2);
-                DeswizzlePS4Block(swizzled, unswizzled, ref readOffset, imageWidth, texelSize, blockWidth / 2, blockHeight / 2,
-                    writeOffset + (imageWidth / 8 * (blockHeight / 4) * texelSize),
-                    offsetFactor * 2);
-                DeswizzlePS4Block(swizzled, unswizzled, ref readOffset, imageWidth, texelSize, blockWidth / 2, blockHeight / 2,
-                    writeOffset + imageWidth / 8 * (blockHeight / 4) * texelSize + blockWidth / 8 * texelSize,
-                    offsetFactor * 2);
+                maxMipCount = Math.Max(img.subImages.Count, maxMipCount);
+            }
+
+            var bw = new BinaryWriterEx(false);
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)ddsHeader.GetDXGIFormat();
+            int width = ddsHeader.dwWidth;
+            int height = ddsHeader.dwHeight;
+            for (int m = 0; m < maxMipCount; m++)
+            {
+                foreach (var img in images)
+                {
+                    if (img.subImages.Count > m)
+                    {
+                        var buffer = DrSwizzler.Swizzler.PS4Swizzle(img.subImages[m], width, height, pixelFormat, minBufferSize);
+                        bw.WriteBytes(buffer);
+
+                        //Pad out mipmap buffers as needed
+                        if (buffer.Length < minBufferSize)
+                        {
+                            bw.WritePattern(minBufferSize - buffer.Length, 0);
+                        }
+                    }
+                }
+
+                width /= 2;
+                height /= 2;
+            }
+
+            return bw.FinishBytes();
+        }
+
+        /// <summary>
+        /// PS4 textures require some extra, blank images to ensure they function properly
+        /// </summary>
+        private static void AddEmptyImagePadding(List<Image> images, TexType type)
+        {
+            if (type == TexType.Cubemap && images.Count < 8)
+            {
+                while (images.Count < 8)
+                {
+                    Image paddingImage = new Image();
+                    foreach (var img in images[0].subImages)
+                    {
+                        paddingImage.subImages.Add(new byte[img.Length]);
+                    }
+
+                    images.Add(paddingImage);
+                }
+            }
+        }
+
+        /// <summary> 
+        /// The texture buffers for internal mipmaps seemingly subdivide by 2 each time we go down a mip, UNTIL we reach 0x400. When the buffer should be 0x400, we instead skip to 0x200.
+        /// All mipmap buffers after this will be 0x100 regardless of true size.
+        /// While the buffers are larger than the actual texture size, the swizzling happens at the BUFFER level and thus reading the full buffer for deswizzling is paramount
+        /// </summary>
+        private static List<Image> ReadPS5Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, int format)
+        {
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)textureFormatMap[format];
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
+            List<Image> imageList = new List<Image>();
+
+            //Prepare mip set lists
+            for (int i = 0; i < depth; i++)
+            {
+                imageList.Add(new Image());
+            }
+
+            long sliceBufferLength = br.Length / depth;
+            for (int s = 0; s < depth; s++)
+            {
+                int mipWidth = finalWidth;
+                int mipHeight = finalHeight;
+                long bufferLength = sliceBufferLength;
+                if (mipCount > 1)
+                {
+                    bufferLength /= 2;
+                }
+
+                //In some cases, we want the full buffer size because of overrun and the need for it in deswizzling,
+                //but sometimes we want the calculated version since larger buffers don't have padding,
+                //which means the smaller mips combined won't equal half the slice's buffer length
+                long calculatedBufferLength = formatBpp * finalWidth * finalHeight / 8;
+                if (calculatedBufferLength > bufferLength)
+                {
+                    bufferLength = calculatedBufferLength;
+                }
+
+                long bufferUsed = 0;
+                for (int i = 0; i < mipCount; i++)
+                {
+                    if (mipCount > 1)
+                    {
+                        if (bufferLength != 0x100 && i != 0)
+                        {
+                            bufferLength = bufferLength / 2;
+
+                            if (bufferLength == 0x400 || (bufferLength >= 0x10000))
+                            {
+                                bufferLength = bufferLength / 2;
+                            }
+                        }
+                    }
+                    bufferUsed += bufferLength;
+                    var mipOffset = ((sliceBufferLength * depth) - (sliceBufferLength * s)) - bufferUsed;
+                    br.Position = mipOffset;
+                    var mipFull = br.ReadBytes((int)bufferLength);
+
+                    //Make sure that we have enough bytes to actually deswizzle
+                    var deSwizzChunkSize = GetDeswizzleSize(mipFull.Length, formatBpp, mipWidth, mipHeight, out int deSwizzWidth, out int deSwizzHeight);
+                    int swizzleBlockWidth = deSwizzWidth < 8 ? 8 : deSwizzWidth;
+                    int swizzleBlockHeight = deSwizzHeight < 8 ? 8 : deSwizzHeight;
+
+                    //If it's too small, we don't need to deswizzle
+                    if ((formatBpp * mipWidth * mipHeight / 8) <= sourceBytesPerPixelSet)
+                    {
+                        var newMipFull = new byte[sourceBytesPerPixelSet];
+                        Array.Copy(mipFull, 0, newMipFull, 0, sourceBytesPerPixelSet);
+                        mipFull = newMipFull;
+                    }
+                    else
+                    {
+                        mipFull = DrSwizzler.Deswizzler.PS5Deswizzle(mipFull, swizzleBlockWidth, swizzleBlockHeight, pixelFormat);
+
+                        //Extract as a tile from the pixels if we haven't done that at the deswizzle step
+                        if (swizzleBlockWidth != mipWidth || swizzleBlockHeight != mipHeight)
+                        {
+                            mipFull = DrSwizzler.Util.ExtractTile(mipFull, pixelFormat, swizzleBlockWidth, 0, 0, mipWidth, mipHeight);
+                        }
+                    }
+
+                    imageList[s].subImages.Add(mipFull);
+                    mipWidth /= 2;
+                    mipHeight /= 2;
+                }
+            }
+
+            return imageList;
+        }
+
+        private static long GetDeswizzleSize(long dataLength, int formatBpp, int width, int height, out int deSwizzWidth, out int deSwizzHeight)
+        {
+            if (((width * height * formatBpp) / 8) < dataLength)
+            {
+                if (width > height)
+                {
+                    deSwizzWidth = width;
+                    deSwizzHeight = width;
+                    return (deSwizzWidth * deSwizzHeight * formatBpp) / 8;
+                }
+                else
+                {
+                    deSwizzWidth = height;
+                    deSwizzHeight = height;
+                    return (deSwizzWidth * deSwizzHeight * formatBpp) / 8;
+                }
             }
             else
             {
-                Array.Copy(swizzled, readOffset, unswizzled, writeOffset, texelSize);
-                readOffset += texelSize;
+                deSwizzWidth = width;
+                deSwizzHeight = height;
+                return dataLength;
             }
         }
 
-        private class Image
+        /// <summary>
+        /// Grab a dds's texture buffer data.
+        /// Returns a List which contains 
+        /// </summary>
+        public static List<Image> GetDDSTextureBuffers(DDS ddsHeader, byte[] ddsBytes)
         {
-            public List<byte[]> MipLevels;
+            BinaryReaderEx br = new BinaryReaderEx(false, ddsBytes);
+            List<Image> imageList = new List<Image>();
+            br.Position = ddsHeader.DataOffset;
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize((DrSwizzler.DDS.DXEnums.DXGIFormat)ddsHeader.GetDXGIFormat(), out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
+            long fullImageSize = formatBpp * ddsHeader.dwWidth * ddsHeader.dwHeight / 8;
+
+            if (ddsHeader.dwCaps2.HasFlag(DDS.DDSCAPS2.VOLUME))
+            {
+                int depth = ddsHeader.dwDepth;
+                for (int m = 0; m < ddsHeader.dwMipMapCount; m++)
+                {
+                    Image img = new Image();
+                    var imageSize = fullImageSize;
+                    for (int i = 0; i < depth; i++)
+                    {
+                        img.subImages.Add(br.ReadBytes((int)imageSize));
+                        imageSize /= 4;
+                        if (imageSize < sourceBytesPerPixelSet)
+                        {
+                            imageSize = sourceBytesPerPixelSet;
+                        }
+                    }
+
+                    //After we hit 1 depth, we should continue with 1 map for each subsequent mip
+                    if (depth != 1)
+                    {
+                        depth /= 2;
+                    }
+                    imageList.Add(img);
+                }
+
+            }
+            else //We can read CubeMaps and standard textures together
+            {
+                int depth = 1;
+                //If someone tries to put in a screwy cubemap with less than 6 textures, user error.
+                if (ddsHeader.dwCaps2.HasFlag(DDS.DDSCAPS2.CUBEMAP))
+                {
+                    depth = 6;
+                }
+                else if (ddsHeader.dwDepth > 1)
+                {
+                    depth = ddsHeader.dwDepth;
+                }
+
+                for (int i = 0; i < depth; i++)
+                {
+                    Image img = new Image();
+                    var imageSize = fullImageSize;
+                    for (int m = 0; m < ddsHeader.dwMipMapCount; m++)
+                    {
+                        img.subImages.Add(br.ReadBytes((int)imageSize));
+                        imageSize /= 4;
+                        if (imageSize < sourceBytesPerPixelSet)
+                        {
+                            imageSize = sourceBytesPerPixelSet;
+                        }
+                    }
+                    imageList.Add(img);
+                }
+            }
+
+            return imageList;
+        }
+
+        public class Image
+        {
+            //Used for a particular image's mipmap, or for all images of a particular miplevel for a volume texture
+            public List<byte[]> subImages;
 
             public Image()
             {
-                MipLevels = new List<byte[]>();
+                subImages = new List<byte[]>();
             }
 
             public static byte[] Write(List<Image> images)
             {
                 var bw = new BinaryWriterEx(false);
                 foreach (Image image in images)
-                foreach (byte[] mip in image.MipLevels)
-                    bw.WriteBytes(mip);
+                    foreach (byte[] mip in image.subImages)
+                        bw.WriteBytes(mip);
                 return bw.FinishBytes();
-            }
-
-            public static List<Image> ReadUncompressed(byte[] bytes, int width, int height, int padDimensions, int imageCount, int mipCount, int padBetween, int bytesPerPixel)
-            {
-                var images = new List<Image>(imageCount);
-                var br = new BinaryReaderEx(false, bytes);
-                for (int i = 0; i < imageCount; i++)
-                {
-                    var image = new Image();
-                    br.Pad(padBetween);
-                    for (int j = 0; j < mipCount; j++)
-                    {
-                        int scale = (int)Math.Pow(2, j);
-                        int w = PadTo(width / scale, padDimensions);
-                        int h = PadTo(height / scale, padDimensions);
-                        image.MipLevels.Add(br.ReadBytes(w * h * bytesPerPixel));
-                    }
-                    images.Add(image);
-                }
-                return images;
-            }
-
-            public static List<Image> ReadCompressed(byte[] bytes, int width, int height, int padDimensions, int imageCount, int mipCount, int padBetween, int bytesPerBlock)
-            {
-                var images = new List<Image>(imageCount);
-                var br = new BinaryReaderEx(false, bytes);
-                for (int i = 0; i < imageCount; i++)
-                {
-                    var image = new Image();
-                    br.Pad(padBetween);
-                    for (int j = 0; j < mipCount; j++)
-                    {
-                        int scale = (int)Math.Pow(2, j);
-                        int w = PadTo(width / scale, padDimensions);
-                        int h = PadTo(height / scale, padDimensions);
-                        int blocks = (int)Math.Max(1, w / 4f) * (int)Math.Max(1, h / 4f);
-                        image.MipLevels.Add(br.ReadBytes(blocks * bytesPerBlock));
-                    }
-                    images.Add(image);
-                }
-                return images;
             }
         }
     }
