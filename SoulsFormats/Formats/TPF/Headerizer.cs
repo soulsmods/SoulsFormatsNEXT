@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using static SoulsFormats.DDS;
 using static SoulsFormats.TPF;
@@ -153,7 +152,7 @@ namespace SoulsFormats
         /// <summary>
         /// By default, we'll assume no swizzling, PC type. Bear in mind Demon's Souls and Dark Souls 1 do NOT use PS3 swizzling and should be assigned 'PC'!
         /// </summary>
-        public static byte[] Headerize(TPF.Texture texture)
+        public static byte[] Headerize(Texture texture)
         {
             if (SFEncoding.ASCII.GetString(texture.Bytes, 0, 4) == "DDS ")
                 return texture.Bytes;
@@ -163,7 +162,7 @@ namespace SoulsFormats
             short width = texture.Header.Width;
             short height = texture.Header.Height;
             int mipCount = texture.Mipmaps;
-            TPF.TexType type = texture.Type;
+            TexType type = texture.Type;
             int depth;
             if (texture.Header.TextureCount > 0)
             {
@@ -173,15 +172,16 @@ namespace SoulsFormats
             {
                 switch (type)
                 {
-                    case TPF.TexType.Texture:
+                    case TexType.Texture:
                         depth = 1;
                         break;
-                    case TPF.TexType.Cubemap:
+                    case TexType.Cubemap:
                         depth = 6;
                         break;
-                    case TPF.TexType.Volume:
+                    case TexType.Volume:
+                    case TexType.TextureArray:
                     default:
-                        //Volume should REALLY be defined hopefully because its count is arbitrary.
+                        //Volume should REALLY be defined hopefully because its count is arbitrary. For a TextureArray it should REALLY REALLY be defined
                         depth = 1;
                         break;
                 }
@@ -201,7 +201,7 @@ namespace SoulsFormats
             else if (UncompressedBPP.ContainsKey(format))
                 dds.dwPitchOrLinearSize = (width * UncompressedBPP[format] + 7) / 8;
 
-            dds.dwDepth = type == TPF.TexType.Volume ? depth : 0;
+            dds.dwDepth = type == TexType.Volume || type == TexType.TextureArray ? depth : 0;
 
             if (mipCount == 0)
                 mipCount = DetermineMipCount(width, height);
