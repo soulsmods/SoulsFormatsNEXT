@@ -162,7 +162,6 @@ namespace SoulsFormats
             byte format = texture.Format;
             short width = texture.Header.Width;
             short height = texture.Header.Height;
-            int depth = texture.Header.TextureCount;
             int mipCount = texture.Mipmaps;
             TPF.TexType type = texture.Type;
             int depth;
