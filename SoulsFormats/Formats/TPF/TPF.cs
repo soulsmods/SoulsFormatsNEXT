@@ -190,6 +190,8 @@ namespace SoulsFormats
                     Type = TexType.Cubemap;
                 else if (dds.dwCaps2.HasFlag(DDS.DDSCAPS2.VOLUME))
                     Type = TexType.Volume;
+                else if (dds.dwDepth > 1)
+                    Type = TexType.TextureArray;
                 else
                     Type = TexType.Texture;
                 Mipmaps = (byte)dds.dwMipMapCount;
@@ -214,6 +216,7 @@ namespace SoulsFormats
                         Header.TextureCount = 6;
                         break;
                     case TexType.Volume:
+                    case TexType.TextureArray:
                         Header.TextureCount = dds.dwDepth;
                         break;
                 }
@@ -453,6 +456,11 @@ namespace SoulsFormats
             /// One 3D texture.
             /// </summary>
             Volume = 2,
+
+            /// <summary>
+            /// Multiple standard Textures in sequence
+            /// </summary>
+            TextureArray = 3,
         }
 
         /// <summary>
