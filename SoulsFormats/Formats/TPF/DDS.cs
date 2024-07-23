@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace SoulsFormats
@@ -24,6 +23,8 @@ namespace SoulsFormats
         public int dwCaps4;
         public int dwReserved2;
         public HEADER_DXT10 header10;
+
+        public static byte[] DX10DXGI = { 29, 72, 75, 78, 86, 91, 93, 94, 95, 96, 97, 98, 99, };
 
         public int DataOffset => ddspf.dwFourCC == "DX10" ? 0x94 : 0x80;
 
@@ -76,8 +77,8 @@ namespace SoulsFormats
                     case "t\0\0\0": //116
                         return DXGI_FORMAT.R32G32B32A32_FLOAT;
                     default:
-                        Debug.WriteLine("Unrecognized FourCC, defaulting to DXT1");
-                        return DXGI_FORMAT.BC1_UNORM;
+                        Debug.WriteLine("Unrecognized FourCC, defaulting to R8G8B8A8");
+                        return DXGI_FORMAT.R8G8B8A8_UNORM;
                 }
             }
         }
