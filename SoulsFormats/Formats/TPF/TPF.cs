@@ -214,7 +214,7 @@ namespace SoulsFormats
                         Bytes = Headerizer.WritePS3Images(images);
                         break;
                     case TPFPlatform.PS4:
-                        Bytes = Headerizer.WritePS4Images(images, Type);
+                        Bytes = Headerizer.WritePS4Images(images, dds, Type);
                         break;
                     case TPFPlatform.PS5:
                         //Bytes = WritePS5Images(images);
@@ -272,7 +272,6 @@ namespace SoulsFormats
                     if (type != DCX.Type.DCP_EDGE)
                         throw new NotImplementedException($"TPF compression is expected to be DCP_EDGE, but it was {type}");
                 }
-
                 //Cubemap fix
                 //Check if this is a DX10 FourCC, check if it's a cubemap
                 //FromSoft erroneously sets the image count for DX10 cubemaps to 6, which causes editors to think there's
@@ -282,7 +281,6 @@ namespace SoulsFormats
                 {
                     Bytes[0x8C] = 0x1;
                 }
-
                 if (encoding == 1)
                     Name = br.GetUTF16(nameOffset);
                 else if (encoding == 0 || encoding == 2)

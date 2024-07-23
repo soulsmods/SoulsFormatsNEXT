@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using static SoulsFormats.DDS;
 using static SoulsFormats.TPF;
@@ -15,7 +16,11 @@ namespace SoulsFormats
     BC6 - 16
     BC7 - 16
     */
-    internal static class Headerizer
+
+    /// <summary>
+    /// Class for handling image format conversion for platforms
+    /// </summary>
+    public static class Headerizer
     {
         /* Known TPF texture formats
           0 - DXT1
@@ -147,7 +152,7 @@ namespace SoulsFormats
         /// <summary>
         /// DX10+ dds pixel formats
         /// </summary>
-        private static byte[] DX10Formats = { 6, 100, 102, 106, 107, 112, 113 };
+        private static byte[] DX10Formats = { 6, 100, 102, 106, 107, 112, 113, 115 };
 
         /// <summary>
         /// By default, we'll assume no swizzling, PC type. Bear in mind Demon's Souls and Dark Souls 1 do NOT use PS3 swizzling and should be assigned 'PC'!
@@ -512,7 +517,7 @@ namespace SoulsFormats
         }
 
 
-        public static byte[] WritePS4Images(List<Image> images, TPF.TexType type)
+        public static byte[] WritePS4Images(List<Image> images, DDS ddsHeader, TPF.TexType type)
         {
             AddEmptyImagePadding(images, type);
             int maxMipCount = 0;
@@ -523,13 +528,17 @@ namespace SoulsFormats
             }
 
             var bw = new BinaryWriterEx(false);
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)ddsHeader.GetDXGIFormat();
+            int width = ddsHeader.dwWidth;
+            int height = ddsHeader.dwHeight;
             for (int m = 0; m < maxMipCount; m++)
             {
                 foreach (var img in images)
                 {
                     if (img.subImages.Count > m)
                     {
-                        bw.WriteBytes(img.subImages[m]);
+                        var buffer = DrSwizzler.Swizzler.PS4Swizzle(img.subImages[m], width, height, pixelFormat);
+                        bw.WriteBytes(buffer);
 
                         //Pad out mipmap buffers as needed
                         if (img.subImages[m].Length < minBufferSize)
@@ -538,6 +547,9 @@ namespace SoulsFormats
                         }
                     }
                 }
+
+                width /= 2;
+                height /= 2;
             }
 
             return bw.FinishBytes();
@@ -650,14 +662,6 @@ namespace SoulsFormats
             }
 
             return imageList;
-        }
-
-        public static byte[] WritePS5Images(List<Image> images)
-        {
-            List<byte> outBytes = new List<byte>();
-
-
-            return outBytes.ToArray();
         }
 
         private static long GetDeswizzleSize(long dataLength, int formatBpp, int width, int height, out int deSwizzWidth, out int deSwizzHeight)
