@@ -201,6 +201,23 @@ namespace SoulsFormats
                     return;
                 }
 
+                Header = new TexHeader();
+                Header.DXGIFormat = (int)dds.GetDXGIFormat();
+                Header.Width = (short)dds.dwWidth;
+                Header.Height = (short)dds.dwHeight;
+                switch (Type)
+                {
+                    case TexType.Texture:
+                        Header.TextureCount = 1;
+                        break;
+                    case TexType.Cubemap:
+                        Header.TextureCount = 6;
+                        break;
+                    case TexType.Volume:
+                        Header.TextureCount = dds.dwDepth;
+                        break;
+                }
+
                 var images = Headerizer.GetDDSTextureBuffers(dds, bytes);
                 switch (Platform)
                 {
@@ -215,6 +232,7 @@ namespace SoulsFormats
                         break;
                     case TPFPlatform.PS4:
                         Bytes = Headerizer.WritePS4Images(images, dds, Type);
+                        Header.Unk2 = 0xD;
                         break;
                     case TPFPlatform.PS5:
                         //Bytes = WritePS5Images(images);
@@ -238,6 +256,7 @@ namespace SoulsFormats
                     Header = new TexHeader();
                     Header.Width = br.ReadInt16();
                     Header.Height = br.ReadInt16();
+                    Header.DXGIFormat = (int)Headerizer.textureFormatMap[Format];
 
                     if (platform == TPFPlatform.Xbox360)
                     {

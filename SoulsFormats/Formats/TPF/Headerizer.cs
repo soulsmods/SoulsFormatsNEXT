@@ -16,10 +16,6 @@ namespace SoulsFormats
     BC6 - 16
     BC7 - 16
     */
-
-    /// <summary>
-    /// Class for handling image format conversion for platforms
-    /// </summary>
     public static class Headerizer
     {
         /* Known TPF texture formats
@@ -53,7 +49,7 @@ namespace SoulsFormats
         /// <summary>
         /// Map to DXGI format
         /// </summary>
-        private static Dictionary<int, DXGI_FORMAT> textureFormatMap = new Dictionary<int, DXGI_FORMAT>()
+        public static Dictionary<int, DXGI_FORMAT> textureFormatMap = new Dictionary<int, DXGI_FORMAT>()
         {
             [0] = DXGI_FORMAT.BC1_UNORM,
             [1] = DXGI_FORMAT.BC1_UNORM,
@@ -150,7 +146,7 @@ namespace SoulsFormats
         };
 
         /// <summary>
-        /// DX10+ dds pixel formats
+        /// DX10+ dds pixel formats from the Texture.Format field
         /// </summary>
         private static byte[] DX10Formats = { 6, 100, 102, 106, 107, 112, 113, 115 };
 
@@ -203,7 +199,7 @@ namespace SoulsFormats
 
             PIXELFORMAT ddspf = dds.ddspf;
 
-            if (FourCC.ContainsKey(format) || DX10Formats.Contains(format))
+            if (FourCC.ContainsKey(format) || DX10DXGI.Contains((byte)texture.Header.DXGIFormat))
                 ddspf.dwFlags = DDPF.FOURCC;
             if (format == 6)
                 ddspf.dwFlags |= DDPF.ALPHAPIXELS | DDPF.RGB;
@@ -218,10 +214,10 @@ namespace SoulsFormats
             else if (format == 105)
                 ddspf.dwFlags |= DDPF.ALPHAPIXELS | DDPF.RGB;
 
-            if (FourCC.ContainsKey(format))
-                ddspf.dwFourCC = FourCC[format];
-            else if (DX10Formats.Contains(format))
+            if (DX10DXGI.Contains((byte)texture.Header.DXGIFormat))
                 ddspf.dwFourCC = "DX10";
+            else if (FourCC.ContainsKey(format))
+                ddspf.dwFourCC = FourCC[format];
 
             if (format == 6)
             {
@@ -268,7 +264,7 @@ namespace SoulsFormats
                 ddspf.dwABitMask = 0xFF000000;
             }
 
-            if (DX10Formats.Contains(format))
+            if (DX10DXGI.Contains((byte)texture.Header.DXGIFormat))
             {
                 dds.header10 = new HEADER_DXT10();
                 dds.header10.dxgiFormat = (DXGI_FORMAT)texture.Header.DXGIFormat;
@@ -452,6 +448,11 @@ namespace SoulsFormats
                 sliceBufferMin = 0x200;
             }
 
+            if (bufferLength < sliceBufferMin)
+            {
+                bufferLength = sliceBufferMin;
+            }
+
             //PS4 textures seem to lay out slices at the same level sequentially rather than having slices go through each mip in their set before proceeding to the next slice
             for (int i = 0; i < mipCount; i++)
             {
@@ -537,13 +538,13 @@ namespace SoulsFormats
                 {
                     if (img.subImages.Count > m)
                     {
-                        var buffer = DrSwizzler.Swizzler.PS4Swizzle(img.subImages[m], width, height, pixelFormat);
+                        var buffer = DrSwizzler.Swizzler.PS4Swizzle(img.subImages[m], width, height, pixelFormat, minBufferSize);
                         bw.WriteBytes(buffer);
 
                         //Pad out mipmap buffers as needed
-                        if (img.subImages[m].Length < minBufferSize)
+                        if (buffer.Length < minBufferSize)
                         {
-                            bw.WritePattern(minBufferSize - img.subImages[m].Length, 0);
+                            bw.WritePattern(minBufferSize - buffer.Length, 0);
                         }
                     }
                 }
@@ -730,7 +731,12 @@ namespace SoulsFormats
             else //We can read CubeMaps and standard textures together
             {
                 int depth = 1;
-                if (ddsHeader.dwDepth > 1)
+                //If someone tries to put in a screwy cubemap with less than 6 textures, user error.
+                if (ddsHeader.dwCaps2.HasFlag(DDS.DDSCAPS2.CUBEMAP))
+                {
+                    depth = 6;
+                }
+                else if (ddsHeader.dwDepth > 1)
                 {
                     depth = ddsHeader.dwDepth;
                 }
