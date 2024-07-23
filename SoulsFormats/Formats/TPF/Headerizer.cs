@@ -111,6 +111,28 @@ BC7 - 16
             short height = texture.Header.Height;
             int mipCount = texture.Mipmaps;
             TPF.TexType type = texture.Type;
+            int depth;
+            if (texture.Header.TextureCount > 0)
+            {
+                depth = texture.Header.TextureCount;
+            }
+            else
+            {
+                switch (type)
+                {
+                    case TPF.TexType.Texture:
+                        depth = 1;
+                        break;
+                    case TPF.TexType.Cubemap:
+                        depth = 6;
+                        break;
+                    case TPF.TexType.Volume:
+                    default:
+                        //Volume should REALLY be defined hopefully because its count is arbitrary.
+                        depth = 1;
+                        break;
+                }
+            }
 
             dds.dwFlags = DDSD.CAPS | DDSD.HEIGHT | DDSD.WIDTH | DDSD.PIXELFORMAT | DDSD.MIPMAPCOUNT;
             if (CompressedBPB.ContainsKey(format))
