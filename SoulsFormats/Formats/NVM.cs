@@ -10,6 +10,11 @@ namespace SoulsFormats
     public class NVM : SoulsFile<NVM>
     {
         /// <summary>
+        /// Filename. The exact name is decidedly important for the game.
+        /// </summary>
+        public string fileName;
+
+        /// <summary>
         /// True for DeS format, false for DS1.
         /// </summary>
         public bool BigEndian;
