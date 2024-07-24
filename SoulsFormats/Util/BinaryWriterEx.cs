@@ -138,12 +138,28 @@ namespace SoulsFormats
         }
 
         /// <summary>
+        /// Writes specified bytes until the stream position meets the specified alignment.
+        /// </summary>
+        public void Pad(int align, byte custom)
+        {
+            while (Stream.Position % align > 0)
+                WriteByte(custom);
+        }
+
+        /// <summary>
         /// Writes 0x00 bytes until the stream position meets the specified alignment.
         /// </summary>
         public void Pad(int align)
         {
-            while (Stream.Position % align > 0)
-                WriteByte(0);
+            Pad(align, 0);
+        }
+
+        /// <summary>
+        /// Writes 0xFF bytes until the stream position meets the specified alignment. BluePoint files do this.
+        /// </summary>
+        public void PadFF(int align)
+        {
+            Pad(align, 0xFF);
         }
 
         /// <summary>
