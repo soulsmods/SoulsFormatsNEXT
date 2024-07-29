@@ -259,6 +259,8 @@ namespace SoulsFormats
                     Header = new TexHeader();
                     Header.Width = br.ReadInt16();
                     Header.Height = br.ReadInt16();
+
+                    //Set it here for use later so we have it one consistent place
                     Header.DXGIFormat = (int)Headerizer.textureFormatMap[Format];
 
                     if (platform == TPFPlatform.Xbox360)
@@ -274,7 +276,7 @@ namespace SoulsFormats
                     else if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone || platform == TPFPlatform.PS5)
                     {
                         Header.TextureCount = br.ReadInt32();
-                        Header.Unk2 = br.AssertInt32(0x9, 0xD);
+                        Header.Unk2 = br.AssertInt32(0, 0x9, 0xD);
                     }
                 }
 

@@ -38,9 +38,9 @@ namespace SoulsFormats
         105 - A8B8G8R8
         106 - BC7_UNORM
         107 - BC7_UNORM
-        108 - DXT1
-        109 - DXT1
-        110 - DXT5
+        108 - DXT1 SRGB
+        109 - DXT1 SRGB
+        110 - DXT5 SRGB
         112 - BC7_UNORM_SRGB
         113 - BC6H_UF16
         115 - BC6H_UF16
@@ -292,7 +292,7 @@ namespace SoulsFormats
                 if (type == TPF.TexType.Cubemap)
                     dds.header10.miscFlag = RESOURCE_MISC.TEXTURECUBE;
             }
-            var images = RebuildPixelData(texture.Bytes, format, width, height, depth, mipCount, type, texture.Platform);
+            var images = RebuildPixelData(texture.Bytes, (DXGI_FORMAT)texture.Header.DXGIFormat, width, height, depth, mipCount, type, texture.Platform);
 
             //Failsafe for if whatever reason we don't read all of the mipmaps
             if (images.Count > 0)
@@ -316,9 +316,9 @@ namespace SoulsFormats
             return (int)Math.Ceiling(Math.Log(Math.Max(width, height), 2)) + 1;
         }
 
-        private static List<Image> RebuildPixelData(byte[] bytes, byte format, short width, short height, int depth, int mipCount, TPF.TexType type, TPFPlatform platform)
+        private static List<Image> RebuildPixelData(byte[] bytes, DXGI_FORMAT dxgiFormat, short width, short height, int depth, int mipCount, TPF.TexType type, TPFPlatform platform)
         {
-            List<Image> images = ReadImages(platform, bytes, width, height, depth, mipCount, format, type);
+            List<Image> images = ReadImages(platform, bytes, width, height, depth, mipCount, dxgiFormat, type);
 
             return images;
         }
@@ -328,31 +328,30 @@ namespace SoulsFormats
             return (int)Math.Ceiling(value / (float)pad) * pad;
         }
 
-        private static List<Image> ReadImages(TPFPlatform platform, byte[] bytes, int width, int height, int depth, int mipCount, int format, TPF.TexType type)
+        private static List<Image> ReadImages(TPFPlatform platform, byte[] bytes, int width, int height, int depth, int mipCount, DXGI_FORMAT dxgiFormat, TPF.TexType type)
         {
             switch (platform)
             {
                 case TPFPlatform.Xbox360:
-                    return Read360Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format);
+                    return Read360Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat);
                 case TPFPlatform.Xbone:
                     throw new NotImplementedException();
                 case TPFPlatform.PS3:
-                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format);
+                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat);
                 case TPFPlatform.PS4:
-                    return ReadPS4Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format, type);
+                    return ReadPS4Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat, type);
                 case TPFPlatform.PS5:
-                    return ReadPS5Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format);
+                    return ReadPS5Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat);
                 case TPFPlatform.PC:
                 default:
                     //Similar to original SF behavior, probably not necessary.
-                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, format);
+                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat);
             }
         }
 
-        private static List<Image> Read360Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, int format)
+        private static List<Image> Read360Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, DXGI_FORMAT dxgiFormat)
         {
-            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)textureFormatMap[format];
-
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)dxgiFormat;
             DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
             var images = new List<Image>(depth);
 
@@ -390,9 +389,9 @@ namespace SoulsFormats
             return images;
         }
 
-        private static List<Image> ReadPS3Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, int format)
+        private static List<Image> ReadPS3Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, DXGI_FORMAT dxgiFormat)
         {
-            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)textureFormatMap[format];
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)dxgiFormat;
             DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
             var images = new List<Image>(depth);
 
@@ -413,7 +412,7 @@ namespace SoulsFormats
                     }
 
                     byte[] mip = br.ReadBytes((int)calculatedBufferLength);
-                    if (format == 10)
+                    if (dxgiFormat == DXGI_FORMAT.R8G8B8A8_UNORM)
                     {
                         mip = DrSwizzler.Deswizzler.PS3Deswizzle(mip, w, h, pixelFormat);
                     }
@@ -439,10 +438,12 @@ namespace SoulsFormats
             return bw.FinishBytes();
         }
 
-        private static List<Image> ReadPS4Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, int format, TPF.TexType type)
+        private static List<Image> ReadPS4Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, DXGI_FORMAT dxgiFormat, TPF.TexType type)
         {
-            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)textureFormatMap[format];
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)dxgiFormat;
             DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
+            int minBLockDimension = 8 * pixelBlockSize;
+            int minDimension = pixelBlockSize; 
 
             long sliceBufferLength = br.Length / depth;
             List<Image> imageList = new List<Image>();
@@ -489,17 +490,19 @@ namespace SoulsFormats
                     }
                 }
 
+                //Make sure that we have enough bytes to actually deswizzle
+                var bufferLengthMin = GetDeswizzleSize(formatBpp, mipWidth, mipHeight, minBLockDimension, out int deSwizzWidth, out int deSwizzHeight);
+                if (bufferLengthMin > bufferLength)
+                {
+                    bufferLength = bufferLengthMin;
+                }
+
                 for (int s = 0; s < depth; s++)
                 {
                     var mipOffset = bufferUsed;
                     br.Position = mipOffset;
                     var mipFull = br.ReadBytes((int)bufferLength);
                     bufferUsed += bufferLength;
-
-                    //Make sure that we have enough bytes to actually deswizzle
-                    var deSwizzChunkSize = GetDeswizzleSize(mipFull.Length, formatBpp, mipWidth, mipHeight, out int deSwizzWidth, out int deSwizzHeight);
-                    int swizzleBlockWidth = deSwizzWidth < 8 ? 8 : deSwizzWidth;
-                    int swizzleBlockHeight = deSwizzHeight < 8 ? 8 : deSwizzHeight;
 
                     //If it's too small, we don't need to deswizzle
                     if ((formatBpp * mipWidth * mipHeight / 8) <= sourceBytesPerPixelSet)
@@ -514,19 +517,18 @@ namespace SoulsFormats
                     }
                     else
                     {
-                        mipFull = DrSwizzler.Deswizzler.PS4Deswizzle(mipFull, swizzleBlockWidth, swizzleBlockHeight, pixelFormat);
+                        mipFull = DrSwizzler.Deswizzler.PS4Deswizzle(mipFull, deSwizzWidth, deSwizzHeight, pixelFormat);
 
                         //Extract as a tile from the pixels if we haven't done that at the deswizzle step
-                        if (swizzleBlockWidth != mipWidth || swizzleBlockHeight != mipHeight)
+                        if (deSwizzWidth != mipWidth || deSwizzHeight != mipHeight)
                         {
-                            mipFull = DrSwizzler.Util.ExtractTile(mipFull, pixelFormat, swizzleBlockWidth, 0, 0, mipWidth, mipHeight);
+                            mipFull = DrSwizzler.Util.ExtractTile(mipFull, pixelFormat, deSwizzWidth, 0, 0, mipWidth, mipHeight);
                         }
                     }
 
                     imageList[s].subImages.Add(mipFull);
                 }
-                mipWidth /= 2;
-                mipHeight /= 2;
+                GetNextMipDimensions(minDimension, ref mipWidth, ref mipHeight);
 
                 //Cubemaps seem to pad to the size of 8 textures
                 if (type == TexType.Cubemap)
@@ -538,16 +540,30 @@ namespace SoulsFormats
             return imageList;
         }
 
+        private static void GetNextMipDimensions(int minDimension, ref int mipWidth, ref int mipHeight)
+        {
+            if (mipWidth > minDimension)
+                mipWidth /= 2;
+            else
+                mipWidth = minDimension;
+            if (mipHeight > minDimension)
+                mipHeight /= 2;
+            else
+                mipHeight = minDimension;
+        }
 
         public static byte[] WritePS4Images(List<Image> images, DDS ddsHeader, TPF.TexType type)
         {
             AddEmptyImagePadding(images, type);
             int maxMipCount = 0;
-            int minBufferSize = images.Count > 1 ? 0x400 : 0x200;
             foreach (var img in images)
             {
                 maxMipCount = Math.Max(img.subImages.Count, maxMipCount);
             }
+
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize((DrSwizzler.DDS.DXEnums.DXGIFormat)ddsHeader.GetDXGIFormat(), out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
+            int minBLockDimension = 8 * pixelBlockSize;
+            int minDimension = pixelBlockSize;
 
             var bw = new BinaryWriterEx(false);
             var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)ddsHeader.GetDXGIFormat();
@@ -555,23 +571,23 @@ namespace SoulsFormats
             int height = ddsHeader.dwHeight;
             for (int m = 0; m < maxMipCount; m++)
             {
+                var bufferLengthMin = GetDeswizzleSize(formatBpp, width, height, minBLockDimension, out int deSwizzWidth, out int deSwizzHeight);
                 foreach (var img in images)
                 {
                     if (img.subImages.Count > m)
                     {
-                        var buffer = DrSwizzler.Swizzler.PS4Swizzle(img.subImages[m], width, height, pixelFormat, minBufferSize);
+                        var buffer = DrSwizzler.Swizzler.PS4Swizzle(img.subImages[m], width, height, pixelFormat, (int)bufferLengthMin);
                         bw.WriteBytes(buffer);
 
                         //Pad out mipmap buffers as needed
-                        if (buffer.Length < minBufferSize)
+                        if (buffer.Length < bufferLengthMin)
                         {
-                            bw.WritePattern(minBufferSize - buffer.Length, 0);
+                            bw.WritePattern((int)bufferLengthMin - buffer.Length, 0);
                         }
                     }
                 }
 
-                width /= 2;
-                height /= 2;
+                GetNextMipDimensions(minDimension, ref width, ref height);
             }
 
             return bw.FinishBytes();
@@ -602,11 +618,14 @@ namespace SoulsFormats
         /// All mipmap buffers after this will be 0x100 regardless of true size.
         /// While the buffers are larger than the actual texture size, the swizzling happens at the BUFFER level and thus reading the full buffer for deswizzling is paramount
         /// </summary>
-        private static List<Image> ReadPS5Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, int format)
+        private static List<Image> ReadPS5Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, DXGI_FORMAT dxgiFormat)
         {
-            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)textureFormatMap[format];
+            var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)dxgiFormat;
             DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
             List<Image> imageList = new List<Image>();
+            int minBLockDimension = 8;
+            minBLockDimension *= pixelBlockSize > 1 ? 1 : 1; 
+            int minDimension = pixelBlockSize;
 
             //Prepare mip set lists
             for (int i = 0; i < depth; i++)
@@ -649,15 +668,18 @@ namespace SoulsFormats
                             }
                         }
                     }
+
+                    //Make sure that we have enough bytes to actually deswizzle
+                    var bufferLengthMin = GetDeswizzleSize(formatBpp, mipWidth, mipHeight, minBLockDimension, out int deSwizzWidth, out int deSwizzHeight);
+                    if (bufferLengthMin > bufferLength)
+                    {
+                        bufferLength = bufferLengthMin;
+                    }
+
                     bufferUsed += bufferLength;
                     var mipOffset = ((sliceBufferLength * depth) - (sliceBufferLength * s)) - bufferUsed;
                     br.Position = mipOffset;
                     var mipFull = br.ReadBytes((int)bufferLength);
-
-                    //Make sure that we have enough bytes to actually deswizzle
-                    var deSwizzChunkSize = GetDeswizzleSize(mipFull.Length, formatBpp, mipWidth, mipHeight, out int deSwizzWidth, out int deSwizzHeight);
-                    int swizzleBlockWidth = deSwizzWidth < 8 ? 8 : deSwizzWidth;
-                    int swizzleBlockHeight = deSwizzHeight < 8 ? 8 : deSwizzHeight;
 
                     //If it's too small, we don't need to deswizzle
                     if ((formatBpp * mipWidth * mipHeight / 8) <= sourceBytesPerPixelSet)
@@ -668,47 +690,30 @@ namespace SoulsFormats
                     }
                     else
                     {
-                        mipFull = DrSwizzler.Deswizzler.PS5Deswizzle(mipFull, swizzleBlockWidth, swizzleBlockHeight, pixelFormat);
+                        mipFull = DrSwizzler.Deswizzler.PS5Deswizzle(mipFull, deSwizzWidth, deSwizzHeight, pixelFormat);
 
                         //Extract as a tile from the pixels if we haven't done that at the deswizzle step
-                        if (swizzleBlockWidth != mipWidth || swizzleBlockHeight != mipHeight)
+                        if (deSwizzWidth != mipWidth || deSwizzHeight != mipHeight)
                         {
-                            mipFull = DrSwizzler.Util.ExtractTile(mipFull, pixelFormat, swizzleBlockWidth, 0, 0, mipWidth, mipHeight);
+                            mipFull = DrSwizzler.Util.ExtractTile(mipFull, pixelFormat, deSwizzWidth, 0, 0, mipWidth, mipHeight);
                         }
                     }
 
                     imageList[s].subImages.Add(mipFull);
-                    mipWidth /= 2;
-                    mipHeight /= 2;
+                    GetNextMipDimensions(minDimension, ref mipWidth, ref mipHeight);
                 }
             }
 
             return imageList;
         }
 
-        private static long GetDeswizzleSize(long dataLength, int formatBpp, int width, int height, out int deSwizzWidth, out int deSwizzHeight)
+        private static long GetDeswizzleSize(int formatBpp, int width, int height, int minBLockDimension, out int deSwizzWidth, out int deSwizzHeight)
         {
-            if (((width * height * formatBpp) / 8) < dataLength)
-            {
-                if (width > height)
-                {
-                    deSwizzWidth = width;
-                    deSwizzHeight = width;
-                    return (deSwizzWidth * deSwizzHeight * formatBpp) / 8;
-                }
-                else
-                {
-                    deSwizzWidth = height;
-                    deSwizzHeight = height;
-                    return (deSwizzWidth * deSwizzHeight * formatBpp) / 8;
-                }
-            }
-            else
-            {
-                deSwizzWidth = width;
-                deSwizzHeight = height;
-                return dataLength;
-            }
+            deSwizzWidth = width < minBLockDimension ? minBLockDimension : width;
+            deSwizzHeight = height < minBLockDimension ? minBLockDimension : height;
+            int bufferLengthMin = (formatBpp * deSwizzWidth * deSwizzHeight / 8);
+
+            return bufferLengthMin;
         }
 
         /// <summary>
