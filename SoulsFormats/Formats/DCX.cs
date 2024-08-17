@@ -711,7 +711,7 @@ namespace SoulsFormats
             bw.Pad(0x10);
         }
 
-        private static void CompressDCXZSTD(byte[] data, BinaryWriterEx bw, int compressionLevel = 5)
+        private static void CompressDCXZSTD(byte[] data, BinaryWriterEx bw, int compressionLevel = 15)
         {
             byte[] compressed = SFUtil.WriteZstd(data, compressionLevel);
 
