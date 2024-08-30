@@ -96,6 +96,9 @@ namespace SoulsFormats
             for (int i = 0; i < Textures.Count; i++)
                 Textures[i].WriteName(bw, i, Encoding);
 
+            if (Platform == TPFPlatform.PS3)
+                bw.Pad(0x100);
+
             long dataStart = bw.Position;
             for (int i = 0; i < Textures.Count; i++)
             {
