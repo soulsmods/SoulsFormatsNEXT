@@ -630,5 +630,15 @@ namespace SoulsFormats
                 return compressor.Wrap(data).ToArray();
             }
         }
+
+        internal static int Align(int value, int alignment)
+        {
+            var remainder = value % alignment;
+            if (remainder > 0)
+            {
+                return value + (alignment - remainder);
+            }
+            return value;
+        }
     }
 }
