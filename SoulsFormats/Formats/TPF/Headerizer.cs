@@ -709,8 +709,14 @@ namespace SoulsFormats
 
         private static long GetDeswizzleSize(int formatBpp, int width, int height, int minBLockDimension, out int deSwizzWidth, out int deSwizzHeight)
         {
-            width += width % minBLockDimension;
-            height += height % minBLockDimension;
+            if(minBLockDimension % width != 0)
+            {
+                width += minBLockDimension - width % minBLockDimension;
+            }
+            if (minBLockDimension % height != 0)
+            {
+                height += minBLockDimension - height % minBLockDimension;
+            }
             deSwizzWidth = width < minBLockDimension ? minBLockDimension : width;
             deSwizzHeight = height < minBLockDimension ? minBLockDimension : height;
             int bufferLengthMin = (formatBpp * deSwizzWidth * deSwizzHeight / 8);
