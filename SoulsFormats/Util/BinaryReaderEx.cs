@@ -11,7 +11,7 @@ namespace SoulsFormats
     /// <summary>
     /// An extended reader for binary data supporting big and little endianness, value assertions, and arrays.
     /// </summary>
-    public class BinaryReaderEx
+    public class BinaryReaderEx : IDisposable
     {
         /// <summary>
         /// Skips various assertions in order to load a file despite potential mismatches.
@@ -23,6 +23,11 @@ namespace SoulsFormats
 
         private BinaryReader br;
         private Stack<long> steps;
+
+        /// <summary>
+        /// Whether or not the <see cref="BinaryReaderEx"/> has been disposed.
+        /// </summary>
+        public bool IsDisposed { get; private set; }
 
         /// <summary>
         /// Interpret values as big-endian if set, or little-endian if not.
@@ -59,19 +64,24 @@ namespace SoulsFormats
         public long Length => Stream.Length;
 
         /// <summary>
+        /// Initializes a new BinaryReaderEx reading from the specified file.
+        /// </summary>
+        public BinaryReaderEx(bool bigEndian, string path) : this(bigEndian, File.OpenRead(path), false) { }
+
+        /// <summary>
         /// Initializes a new BinaryReaderEx reading from the specified byte array.
         /// </summary>
-        public BinaryReaderEx(bool bigEndian, byte[] input) : this(bigEndian, new MemoryStream(input)) { }
+        public BinaryReaderEx(bool bigEndian, byte[] input) : this(bigEndian, new MemoryStream(input), false) { }
 
         /// <summary>
         /// Initializes a new BinaryReaderEx reading from the specified stream.
         /// </summary>
-        public BinaryReaderEx(bool bigEndian, Stream stream)
+        public BinaryReaderEx(bool bigEndian, Stream stream, bool leaveOpen = false)
         {
             BigEndian = bigEndian;
             steps = new Stack<long>();
             Stream = stream;
-            br = new BinaryReader(stream);
+            br = new BinaryReader(stream, Encoding.UTF8, leaveOpen);
         }
 
         /// <summary>
@@ -1173,6 +1183,36 @@ namespace SoulsFormats
             byte a = br.ReadByte();
             return Color.FromArgb(a, r, g, b);
         }
+        #endregion
+
+        #region IDisposable Support
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!IsDisposed)
+            {
+                if (disposing)
+                {
+                    br.Dispose();
+                    steps.Clear();
+                }
+
+                IsDisposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
         #endregion
     }
 }
