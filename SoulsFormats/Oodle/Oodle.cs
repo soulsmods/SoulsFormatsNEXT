@@ -20,24 +20,21 @@ namespace SoulsFormats
                 return new Oodle28();
             }
 
-            IntPtr oodle6Ptr = Kernel32.LoadLibrary("oo2core_6_win64.dll");
+            IntPtr oodle6Ptr = NativeLibrary.LoadLibrary("oo2core_6_win64");
             if (oodle6Ptr != IntPtr.Zero)
             {
                 Oodle6Ptr = oodle6Ptr;
                 return new Oodle26();
             }
-            int oodle6Error = Kernel32.GetLastError();
+            string oodle6ErrorMessage = NativeLibrary.GetLastError();
 
-            IntPtr oodle8Ptr = Kernel32.LoadLibrary("oo2core_8_win64.dll");
+            IntPtr oodle8Ptr = NativeLibrary.LoadLibrary("oo2core_8_win64");
             if (oodle8Ptr != IntPtr.Zero)
             {
                 Oodle8Ptr = oodle8Ptr;
                 return new Oodle28();
             }
-            int oodle8Error = Kernel32.GetLastError();
-
-            string oodle6ErrorMessage = new Win32Exception(oodle6Error).Message;
-            string oodle8ErrorMessage = new Win32Exception(oodle8Error).Message;
+            string oodle8ErrorMessage = NativeLibrary.GetLastError();
 
             throw new NoOodleFoundException($"Could not find a supported version of oo2core.\n"
                                             + $"Please copy oo2core_6_win64.dll or oo2core_8_win64.dll into the program directory\n"
