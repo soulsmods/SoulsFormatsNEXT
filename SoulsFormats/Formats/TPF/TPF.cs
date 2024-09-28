@@ -281,6 +281,7 @@ namespace SoulsFormats
                 }
 
                 uint nameOffset = br.ReadUInt32();
+                //Formerly 'Flags2', as seen in Yabber
                 bool hasFloatStruct = br.AssertInt32(0, 1) == 1;
 
                 if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone || platform == TPFPlatform.PS5)
@@ -356,6 +357,7 @@ namespace SoulsFormats
                 }
 
                 bw.ReserveUInt32($"FileName{index}");
+                //Formerly 'Flags2', as seen in Yabber
                 bw.WriteInt32(FloatStruct == null ? 0 : 1);
 
                 if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone)
