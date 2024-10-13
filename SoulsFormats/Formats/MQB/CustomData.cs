@@ -148,6 +148,8 @@ namespace SoulsFormats
                     default: throw new NotImplementedException($"Unimplemented custom data type: {Type}");
                 }
 
+                long valueEndOffset = br.Position;
+
                 if (Type == DataType.Bool || Type == DataType.SByte || Type == DataType.Byte)
                 {
                     br.AssertByte(0);
@@ -188,6 +190,7 @@ namespace SoulsFormats
 
                         valueOffset = br.Position;
                         Value = Color.FromArgb(br.ReadByte(), br.ReadByte(), br.ReadByte());
+                        valueEndOffset = br.Position;
                         br.AssertByte(0);
                     }
                     else if (Type == DataType.IntColor)
@@ -203,6 +206,7 @@ namespace SoulsFormats
                         int b = br.ReadInt32();
                         int a = br.ReadInt32();
                         Value = Color.FromArgb(a, r, g, b);
+                        valueEndOffset = br.Position;
                         br.AssertInt32(0);
                     }
                     else if (Type == DataType.Vector)
@@ -210,6 +214,7 @@ namespace SoulsFormats
                         if (length != (MemberCount * 4) + 4)
                             throw new InvalidDataException($"Unexpected custom {nameof(DataType.Vector)} {nameof(length)}: {length}");
 
+                        valueOffset = br.Position;
                         switch (MemberCount)
                         {
                             case 2:
@@ -224,7 +229,8 @@ namespace SoulsFormats
                             default:
                                 throw new NotImplementedException($"{nameof(MemberCount)} {MemberCount} not implemented for: {nameof(DataType.Vector)}");
                         }
-                        
+
+                        valueEndOffset = br.Position;
                         br.AssertInt32(0);
                     }
                 }
@@ -235,7 +241,7 @@ namespace SoulsFormats
                     br.StepIn(sequencesOffset);
                     {
                         for (int i = 0; i < sequenceCount; i++)
-                            Sequences.Add(new Sequence(br, valueOffset));
+                            Sequences.Add(new Sequence(br, valueOffset, valueEndOffset));
                     }
                     br.StepOut();
                 }
@@ -287,7 +293,7 @@ namespace SoulsFormats
                     case DataType.Custom:
                     case DataType.Color:
                     case DataType.IntColor:
-                    case DataType.Vector:bw.WriteInt32(length); break;
+                    case DataType.Vector: bw.WriteInt32(length); break;
                     default: throw new NotImplementedException($"Unimplemented custom {nameof(DataType)}: {Type}");
                 }
 
@@ -363,7 +369,7 @@ namespace SoulsFormats
                         default:
                             throw new NotImplementedException($"{nameof(MemberCount)} {MemberCount} not implemented for: {nameof(DataType.Vector)}");
                     }
-                    
+
                     // Vector padding
                     bw.WriteInt32(0);
                 }
@@ -409,7 +415,7 @@ namespace SoulsFormats
                     Points = new List<Point>();
                 }
 
-                internal Sequence(BinaryReaderEx br, long parentValueOffset)
+                internal Sequence(BinaryReaderEx br, long parentValueOffset, long parentValueEndOffset)
                 {
                     br.AssertInt32(0x1C); // Sequence size
                     int pointCount = br.ReadInt32();
@@ -419,17 +425,11 @@ namespace SoulsFormats
                     int pointsOffset = br.ReadInt32();
                     int valueOffset = br.ReadInt32();
 
-                    if (ValueType == DataType.Byte)
+                    if (ValueType == DataType.Byte || ValueType == DataType.Float || ValueType == DataType.UInt)
                     {
-                        if (valueOffset < parentValueOffset || valueOffset > parentValueOffset + 2)
+                        if (valueOffset < parentValueOffset && valueOffset >= parentValueEndOffset)
                             throw new InvalidDataException($"Unexpected value offset {valueOffset:X}/{parentValueOffset:X} for value type {ValueType}.");
                         ValueIndex = valueOffset - (int)parentValueOffset;
-                    }
-                    else if (ValueType == DataType.Float)
-                    {
-                        if (valueOffset != parentValueOffset)
-                            throw new InvalidDataException($"Unexpected value offset {valueOffset:X}/{parentValueOffset:X} for value type {ValueType}.");
-                        ValueIndex = 0;
                     }
                     else
                     {
@@ -453,10 +453,8 @@ namespace SoulsFormats
                     bw.WriteInt32(PointType);
                     bw.WriteInt32(PointType == 1 ? 0x10 : 0x18);
                     bw.ReserveInt32($"PointsOffset[{customDataIndex}:{sequenceIndex}]");
-                    if (ValueType == DataType.Byte)
+                    if (ValueType == DataType.Byte || ValueType == DataType.Float || ValueType == DataType.UInt)
                         bw.WriteInt32((int)parentValueOffset + ValueIndex);
-                    else if (ValueType == DataType.Float)
-                        bw.WriteInt32((int)parentValueOffset);
                 }
 
                 internal void WritePoints(BinaryWriterEx bw, int customDataIndex, int sequenceIndex)
@@ -487,6 +485,7 @@ namespace SoulsFormats
                         {
                             case DataType.Byte: Value = br.ReadByte(); break;
                             case DataType.Float: Value = br.ReadSingle(); break;
+                            case DataType.UInt: Value = br.ReadUInt32(); break;
                             default: throw new NotSupportedException($"Unsupported sequence value type: {valueType}");
                         }
 
@@ -515,6 +514,7 @@ namespace SoulsFormats
                         {
                             case DataType.Byte: bw.WriteByte((byte)Value); break;
                             case DataType.Float: bw.WriteSingle((float)Value); break;
+                            case DataType.UInt: bw.WriteUInt32((uint)Value); break;
                             default: throw new NotSupportedException($"Unsupported sequence value type: {valueType}");
                         }
 
