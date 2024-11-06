@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace SoulsFormats
 {
@@ -139,6 +140,8 @@ namespace SoulsFormats
             {
                 return $"0x{Step:X4} 0x{Index:X4}";
             }
+
+            public Struct1() {}
         }
 
         /// <summary>
@@ -168,6 +171,7 @@ namespace SoulsFormats
             {
                 return $"0x{Unk1:X16}";
             }
+            public Struct2() {}
         }
     }
 }

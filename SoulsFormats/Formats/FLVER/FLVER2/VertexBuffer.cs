@@ -26,6 +26,10 @@ namespace SoulsFormats
             public VertexBuffer(int layoutIndex)
             {
                 LayoutIndex = layoutIndex;
+                VertexSize = -1;
+                BufferIndex = -1;
+                VertexCount = -1;
+                BufferOffset = -1;
             }
 
             internal VertexBuffer(BinaryReaderEx br)

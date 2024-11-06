@@ -5,6 +5,10 @@ VisualStudioVersion = 16.0.29403.142
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoulsFormats", "SoulsFormats\SoulsFormats.csproj", "{1EDCD50B-E89A-47F9-9B53-8B627CBF4E8C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoulsAssetPipeline", "SoulsAssetPipeline\SoulsAssetPipeline.csproj", "{303DB4F0-6BA7-4107-A102-FF281CD0AC80}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Havoc", "Havoc\Havoc.csproj", "{FFBA8F5B-33B3-407E-9BF4-E8032ED46E85}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{1EDCD50B-E89A-47F9-9B53-8B627CBF4E8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1EDCD50B-E89A-47F9-9B53-8B627CBF4E8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1EDCD50B-E89A-47F9-9B53-8B627CBF4E8C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{303DB4F0-6BA7-4107-A102-FF281CD0AC80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{303DB4F0-6BA7-4107-A102-FF281CD0AC80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{303DB4F0-6BA7-4107-A102-FF281CD0AC80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{303DB4F0-6BA7-4107-A102-FF281CD0AC80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFBA8F5B-33B3-407E-9BF4-E8032ED46E85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFBA8F5B-33B3-407E-9BF4-E8032ED46E85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFBA8F5B-33B3-407E-9BF4-E8032ED46E85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFBA8F5B-33B3-407E-9BF4-E8032ED46E85}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

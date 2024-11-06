@@ -109,8 +109,11 @@ namespace SoulsFormats
         /// <summary>
         /// Format of a vertex property.
         /// </summary>
+        [Flags]
         public enum LayoutType : uint
         {
+            // FloatScalar 0x00
+            
             /// <summary>
             /// Two single-precision floats.
             /// </summary>
@@ -126,6 +129,12 @@ namespace SoulsFormats
             /// </summary>
             Float4 = 0x03,
 
+            // FloatMatrix2 = 0x04
+            
+            // FloatMatrix3 = 0x05
+            
+            // FloatMatrix4 = 0x06
+                
             /// <summary>
             /// Unknown.
             /// </summary>

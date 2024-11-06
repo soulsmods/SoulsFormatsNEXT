@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -67,20 +67,6 @@ namespace SoulsFormats
         /// </summary>
         public NVA()
         {
-            Version = NVAVersion.DarkSouls3;
-            Navmeshes = new NavmeshSection(2);
-            Entries1 = new Section1();
-            Entries2 = new Section2();
-            Connectors = new ConnectorSection();
-            Entries7 = new Section7();
-        }
-        
-        /// <summary>
-        /// Creates an empty NVA formatted for DS3 with compression.
-        /// </summary>
-        public NVA(DCX.Type compression)
-        {
-            Compression = DCX.Type.DCX_DFLT_10000_44_9;
             Version = NVAVersion.DarkSouls3;
             Navmeshes = new NavmeshSection(2);
             Entries1 = new Section1();
@@ -278,9 +264,9 @@ namespace SoulsFormats
             public int Unk38 { get; set; }
 
             /// <summary>
-            /// Should equal number of triangles in the model file.
+            /// Should equal number of vertices in the model file.
             /// </summary>
-            public int TriangleCount { get; set; }
+            public int VertexCount { get; set; }
 
             /// <summary>
             /// Unknown.
@@ -297,8 +283,8 @@ namespace SoulsFormats
             /// </summary>
             public bool Unk4C { get; set; }
 
-            public short MapNodesIndex;
-            public short MapNodeCount;
+            private short MapNodesIndex;
+            private short MapNodeCount;
 
             /// <summary>
             /// Creates a Navmesh with default values.
@@ -322,7 +308,7 @@ namespace SoulsFormats
                 ModelID = br.ReadInt32();
                 Unk38 = br.ReadInt32();
                 br.AssertInt32(0);
-                TriangleCount = br.ReadInt32();
+                VertexCount = br.ReadInt32();
                 int nameRefCount = br.ReadInt32();
                 MapNodesIndex = br.ReadInt16();
                 MapNodeCount = br.ReadInt16();
@@ -372,7 +358,7 @@ namespace SoulsFormats
                 bw.WriteInt32(ModelID);
                 bw.WriteInt32(Unk38);
                 bw.WriteInt32(0);
-                bw.WriteInt32(TriangleCount);
+                bw.WriteInt32(VertexCount);
                 bw.WriteInt32(NameReferenceIDs.Count);
                 bw.WriteInt16(MapNodesIndex);
                 bw.WriteInt16((short)MapNodes.Count);
@@ -701,10 +687,10 @@ namespace SoulsFormats
             /// </summary>
             public List<ConnectorCondition> Conditions { get; set; }
 
-            public int PointCount;
-            public int ConditionCount;
-            public int PointsIndex;
-            public int ConditionsIndex;
+            private int PointCount;
+            private int ConditionCount;
+            private int PointsIndex;
+            private int ConditionsIndex;
 
             /// <summary>
             /// Creates a Connector with default values.

@@ -13,6 +13,14 @@ namespace SoulsFormats
     /// </summary>
     public class BinaryReaderEx
     {
+        /// <summary>
+        /// Skips various assertions in order to load a file despite potential mismatches.
+        /// This is mainly a tool to circumvent malicious format hacking by modders who try to
+        /// "obfuscate" their files. This should not be set to TRUE for most purposes unless
+        /// you are extremely sure what you are doing.
+        /// </summary>
+        public static bool IsFlexible { get; set; }
+
         private BinaryReader br;
         private Stack<long> steps;
 
@@ -103,6 +111,8 @@ namespace SoulsFormats
         /// </summary>
         private T AssertValue<T>(T value, string typeName, string valueFormat, T[] options) where T : IEquatable<T>
         {
+            if (IsFlexible) return value;
+
             foreach (T option in options)
                 if (value.Equals(option))
                     return value;
@@ -1077,6 +1087,30 @@ namespace SoulsFormats
             float z = ReadSingle();
             float w = ReadSingle();
             return new Vector4(x, y, z, w);
+        }
+
+        /// <summary>
+        /// Reads a Quaternion of floating point numbers in XYZW order.
+        /// </summary>
+        public Quaternion ReadQuaternion()
+        {
+            float x = ReadSingle();
+            float y = ReadSingle();
+            float z = ReadSingle();
+            float w = ReadSingle();
+            return new Quaternion(x, y, z, w);
+        }
+
+        /// <summary>
+        /// Reads a Vector3 from an int. Expects a Vector3 of floating points compressed to 11, 11, and 10 bits per float.
+        /// </summary>
+        public Vector3 Read11_11_10Vector3()
+        {
+            int vector = ReadInt32();
+            int x = vector << 21 >> 21;
+            int y = vector << 10 >> 21;
+            int z = vector << 0 >> 22;
+            return new Vector3(x / (float)0b11_1111_1111, y / (float)0b11_1111_1111, z / (float)0b1_1111_1111);
         }
 
         /// <summary>
