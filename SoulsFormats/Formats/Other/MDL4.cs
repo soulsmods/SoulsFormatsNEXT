@@ -194,6 +194,15 @@ namespace SoulsFormats.Other
             public short NextSiblingIndex;
             public short PreviousSiblingIndex;
             public short[] UnkIndices;
+            public Node()
+            {
+                Name = "";
+                ParentIndex = -1;
+                ChildIndex = -1;
+                NextSiblingIndex = -1;
+                PreviousSiblingIndex = -1;
+                Scale = Vector3.One;
+            }
 
             internal Node(BinaryReaderEx br)
             {
