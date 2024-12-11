@@ -71,7 +71,7 @@ namespace SoulsFormats.Formats.TAE
         /// <summary>
         /// Unknown flags.
         /// </summary>
-        public byte[] Flags { get; private set; }
+        public byte[] Flags { get; set; }
 
         /// <summary>
         /// Unknown .hkt file.
