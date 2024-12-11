@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
+
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace SoulsFormats.Formats.TAE
@@ -98,11 +100,13 @@ namespace SoulsFormats.Formats.TAE
         /// <summary>
         /// The template currently applied. Set by ApplyTemplate method.
         /// </summary>
+        [JsonIgnore]
         public TAE.Template AppliedTemplate { get; private set; }
 
         /// <summary>
         /// Gets the current bank being used in the currently applied template, if a template is applied.
         /// </summary>
+        [JsonIgnore]
         public TAE.Template.BankTemplate BankTemplate => AppliedTemplate?[EventBank];
 
         /// <summary>
