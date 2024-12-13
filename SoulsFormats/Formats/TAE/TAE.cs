@@ -625,7 +625,7 @@ namespace SoulsFormats.Formats.TAE
 
             
 
-            Animations.Sort((a1, a2) => a1.ID.CompareTo(a2.ID));
+            //Animations.Sort((a1, a2) => a1.ID.CompareTo(a2.ID));
 
             var animOffsets = new List<long>(Animations.Count);
             if (Animations.Count == 0)
