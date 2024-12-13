@@ -504,12 +504,13 @@ namespace SoulsFormats.Formats.TAE
             {
                 bw.FillVarint($"AnimationOffset{i}", bw.Position);
 
-                EventGroups.Clear();
+                // redoing the event groups causes unnecessary diffing
+                /*EventGroups.Clear();
                 foreach (var ev in Events)
                 {
                     if (ev.Group != null && !EventGroups.Contains(ev.Group))
                         EventGroups.Add(ev.Group);
-                }
+                }*/
 
                 if (format is TAEFormat.DS1 or TAEFormat.DES)
                 {

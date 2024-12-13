@@ -624,7 +624,7 @@ namespace SoulsFormats.Formats.TAE
 
 
             
-
+            // Commented this out cause it caused unnecessary file differences
             //Animations.Sort((a1, a2) => a1.ID.CompareTo(a2.ID));
 
             var animOffsets = new List<long>(Animations.Count);
