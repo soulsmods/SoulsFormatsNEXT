@@ -362,8 +362,8 @@ namespace SoulsFormats
                 for (int j = 0; j < mipCount; j++)
                 {
                     int scale = (int)Math.Pow(2, j);
-                    int w = PadTo(finalWidth / scale, 1);
-                    int h = PadTo(finalHeight / scale, 1);
+                    int w = PadTo(finalWidth / scale, pixelBlockSize);
+                    int h = PadTo(finalHeight / scale, pixelBlockSize);
                     long calculatedBufferLength = formatBpp * w * h / 8;
 
                     if (calculatedBufferLength < sourceBytesPerPixelSet)
@@ -402,8 +402,8 @@ namespace SoulsFormats
                 for (int j = 0; j < mipCount; j++)
                 {
                     int scale = (int)Math.Pow(2, j);
-                    int w = PadTo(finalWidth / scale, 1);
-                    int h = PadTo(finalHeight / scale, 1);
+                    int w = PadTo(finalWidth / scale, pixelBlockSize);
+                    int h = PadTo(finalHeight / scale, pixelBlockSize);
                     long calculatedBufferLength = formatBpp * w * h / 8;
 
                     if (calculatedBufferLength < sourceBytesPerPixelSet)
