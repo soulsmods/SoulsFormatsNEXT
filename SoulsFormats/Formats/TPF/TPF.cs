@@ -97,19 +97,44 @@ namespace SoulsFormats
                 Textures[i].WriteName(bw, i, Encoding);
 
             if (Platform == TPFPlatform.PS3)
-                bw.Pad(0x100);
-
-            long dataStart = bw.Position;
-            for (int i = 0; i < Textures.Count; i++)
             {
-                // Padding for texture data varies wildly across games,
-                // so don't worry about this too much
-                if (Textures[i].Bytes.Length > 0)
-                    bw.Pad(4);
+                bw.Pad(0x100);
+                /*
+                * Comments from Natsu:
+                * SoulsFormats (originally) was padding to 4
+                * The (console)textures pad to 0x80
+                * SoulsFormats(originally) also did not include the extra padding on the last file which the vanilla console TPFs do for some reason, so I added that
+                * SoulsFormats(originally) also includes padding in the data size value in the header
+                * The vanilla TPFs do not, so I skipped adding padding to it
+                */
+                int dataSize = 0;
+                for (int i = 0; i < Textures.Count; i++)
+                {
+                    if (Textures[i].Bytes.Length > 0)
+                        bw.Pad(0x80);
 
-                Textures[i].WriteData(bw, i);
+                    long textureStart = bw.Position;
+                    Textures[i].WriteData(bw, i);
+                    long textureEnd = bw.Position;
+                    dataSize += (int)(textureEnd - textureStart);
+                }
+                bw.Pad(0x80);
+                bw.FillInt32("DataSize", dataSize);
             }
-            bw.FillInt32("DataSize", (int)(bw.Position - dataStart));
+            else
+            {
+                long dataStart = bw.Position;
+                for (int i = 0; i < Textures.Count; i++)
+                {
+                    // Padding for texture data varies wildly across games,
+                    // so don't worry about this too much
+                    if (Textures[i].Bytes.Length > 0)
+                        bw.Pad(4);
+
+                    Textures[i].WriteData(bw, i);
+                }
+                bw.FillInt32("DataSize", (int)(bw.Position - dataStart));
+            }
         }
 
         /// <summary>
