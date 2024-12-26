@@ -326,7 +326,7 @@ namespace SoulsFormats
                 //Check if this is a DX10 FourCC, check if it's a cubemap
                 //FromSoft erroneously sets the image count for DX10 cubemaps to 6, which causes editors to think there's
                 //an array of cubemaps instead of just 6 images and break. 
-                if (platform == TPFPlatform.PC && Bytes[0x56] == 0x31 && Bytes[0x57] == 0x30 && Bytes[0x54] == 0x44 && Bytes[0x55] == 0x58
+                if (platform == TPFPlatform.PC && Bytes.Length > 0x8C && Bytes[0x56] == 0x31 && Bytes[0x57] == 0x30 && Bytes[0x54] == 0x44 && Bytes[0x55] == 0x58
                     && Bytes[0x88] == (int)DDS.RESOURCE_MISC.TEXTURECUBE && Bytes[0x8C] == 0x6)
                 {
                     Bytes[0x8C] = 0x1;
