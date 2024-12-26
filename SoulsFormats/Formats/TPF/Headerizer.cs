@@ -325,7 +325,7 @@ namespace SoulsFormats
 
         private static int PadTo(int value, int pad)
         {
-            return (int)Math.Ceiling(value / (float)pad) * pad;
+            return Math.Max((int)Math.Ceiling(value / (float)pad) * pad, pad);
         }
 
         private static List<Image> ReadImages(TPFPlatform platform, byte[] bytes, int width, int height, int depth, int mipCount, DXGI_FORMAT dxgiFormat, TPF.TexType type)
