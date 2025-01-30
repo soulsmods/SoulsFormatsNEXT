@@ -1,10 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.IO;
-using System.Xml.Linq;
 
 namespace SoulsFormats
 {
@@ -127,7 +124,8 @@ namespace SoulsFormats
             {
                 bw.Pad(texturePaddingSize);
                 bw.FillInt32("DataSize", (int)textureDataSize);
-            } else
+            }
+            else
             {
                 bw.FillInt32("DataSize", (int)(bw.Position - dataStart));
             }
