@@ -63,6 +63,39 @@ namespace SoulsFormats.Other
             }
 
             /// <summary>
+            /// Retrieves a dictionary containing the texture names used in a material with the names of the associated material parameters as the keys
+            /// </summary>
+            public Dictionary<string, string> GetTexDict()
+            {
+                Dictionary<string, string> parameters = new Dictionary<string, string>();
+                for (int i = 0; i < Params.Count; i++)
+                {
+                    if (Params[i].Name.ToLower().Contains("texture"))
+                    {
+                        parameters.Add(Params[i].Name.ToLower(), (string)Params[i].Value + ".dds");
+                    }
+                }
+                return parameters;
+            }
+
+
+            /// <summary>
+            /// Retrieves a list containing the texture names used in a material
+            /// </summary>
+            public List<string> GetTexList()
+            {
+                List<string> parameters = new List<string>();
+                for (int i = 0; i < Params.Count; i++)
+                {
+                    if (Params[i].Name.ToLower().Contains("texture"))
+                    {
+                        parameters.Add((string)Params[i].Value + ".dds");
+                    }
+                }
+                return parameters;
+            }
+
+            /// <summary>
             /// Writes a material to an MDL4.
             /// </summary>
             internal void Write(BinaryWriterEx bw)
