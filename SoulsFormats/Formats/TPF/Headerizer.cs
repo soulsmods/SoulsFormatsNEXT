@@ -443,7 +443,7 @@ namespace SoulsFormats
             var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)dxgiFormat;
             DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
             int minBLockDimension = 8 * pixelBlockSize;
-            int minDimension = pixelBlockSize; 
+            int minDimension = pixelBlockSize;
 
             long sliceBufferLength = br.Length / depth;
             List<Image> imageList = new List<Image>();
@@ -467,7 +467,7 @@ namespace SoulsFormats
             }
             else
             {
-                sliceBufferMin = 0x200;
+                sliceBufferMin = sourceBytesPerPixelSet * 0x40;
             }
 
             if (bufferLength < sliceBufferMin)
@@ -624,7 +624,7 @@ namespace SoulsFormats
             DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
             List<Image> imageList = new List<Image>();
             int minBLockDimension = 8;
-            minBLockDimension *= pixelBlockSize > 1 ? 1 : 1; 
+            minBLockDimension *= pixelBlockSize > 1 ? 1 : 1;
             int minDimension = pixelBlockSize;
 
             //Prepare mip set lists
@@ -709,7 +709,7 @@ namespace SoulsFormats
 
         private static long GetDeswizzleSize(int formatBpp, int width, int height, int minBLockDimension, out int deSwizzWidth, out int deSwizzHeight)
         {
-            if(width % minBLockDimension != 0)
+            if (width % minBLockDimension != 0)
             {
                 width += minBLockDimension - width % minBLockDimension;
             }
