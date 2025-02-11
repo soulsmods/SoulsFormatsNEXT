@@ -139,7 +139,8 @@ namespace SoulsFormats
 
             br.AssertInt32(0);
             br.AssertInt32(0);
-            Header.Unk68 = br.AssertInt32(0, 1, 2, 3, 4);
+            Header.Unk68 = br.ReadInt16();
+            Header.Unk6A = br.AssertInt16(0, 1, 2, 3, 4, 5);
             br.AssertInt32(0);
             br.AssertInt32(0);
             Header.Unk74 = br.AssertInt32(0, 0x10);
@@ -482,7 +483,12 @@ namespace SoulsFormats
             /// <summary>
             /// Unknown.
             /// </summary>
-            public int Unk68 { get; set; }
+            public short Unk68 { get; set; }
+            
+            /// <summary>
+            /// Unknown.
+            /// </summary>
+            public short Unk6A { get; set; }
 
             /// <summary>
             /// Unknown

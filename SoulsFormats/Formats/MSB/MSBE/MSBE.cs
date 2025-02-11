@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
-using SoulsFormats;
 
 namespace SoulsFormats
 {
     /// <summary>
-    /// A map layout file used in Sekiro. Extension: .msb
+    /// A map layout file used in Elden Ring. Extension: .msb
     /// </summary>
     public partial class MSBE : SoulsFile<MSBE>, IMsb
     {
