@@ -26,6 +26,11 @@ namespace SoulsFormats
         /// Actual geometry of the model.
         /// </summary>
         IReadOnlyList<IFlverMesh> Meshes { get; }
+
+        /// <summary>
+        /// Checks if the model is a Speedtree model
+        /// </summary>
+        bool IsSpeedtree();
     }
 
     /// <summary>

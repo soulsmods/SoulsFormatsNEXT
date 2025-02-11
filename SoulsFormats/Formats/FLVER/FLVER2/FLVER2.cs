@@ -139,8 +139,8 @@ namespace SoulsFormats
 
             br.AssertInt32(0);
             br.AssertInt32(0);
-            Header.Unk68 = br.ReadInt16();
-            Header.Unk6A = br.AssertInt16(0, 1, 2, 3, 4, 5);
+            Header.Unk68 = br.AssertInt16(0, 1, 2, 3, 4, 5);
+            Header.SpecialModifier = br.AssertInt16(0, -32768);
             br.AssertInt32(0);
             br.AssertInt32(0);
             Header.Unk74 = br.AssertInt32(0, 0x10);
@@ -486,9 +486,9 @@ namespace SoulsFormats
             public short Unk68 { get; set; }
             
             /// <summary>
-            /// Unknown.
+            /// Used to denote Speedtree if -32768. Doesn't seem to be used for anything else currently.
             /// </summary>
-            public short Unk6A { get; set; }
+            public short SpecialModifier { get; set; }
 
             /// <summary>
             /// Unknown
@@ -504,6 +504,11 @@ namespace SoulsFormats
                 Version = 0x20014;
                 Unicode = true;
             }
+        }
+
+        public bool IsSpeedtree()
+        {
+            return Header.SpecialModifier == -32768;
         }
     }
 }

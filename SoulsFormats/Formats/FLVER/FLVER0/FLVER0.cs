@@ -197,6 +197,11 @@ namespace SoulsFormats
 
             bw.FillInt32("DataSize", (int)bw.Position - dataOffset);
         }
+
+        public bool IsSpeedtree()
+        {
+            return false;
+        }
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
 }
