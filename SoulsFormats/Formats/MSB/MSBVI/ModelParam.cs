@@ -5,15 +5,21 @@ using System.Linq;
 
 namespace SoulsFormats
 {
-    public partial class MSBE
+    public partial class MSBVI
     {
         internal enum ModelType : uint
         {
             MapPiece = 0,
+            Object = 1, // NOT IMPLEMENTED
             Enemy = 2,
+            Item = 3, // NOT IMPLEMENTED
             Player = 4,
             Collision = 5,
-            Asset = 10,
+            Navmesh = 6, // NOT IMPLEMENTED
+            DummyObject = 7, // NOT IMPLEMENTED
+            DummyEnemy = 8, // NOT IMPLEMENTED
+            Invalid = 9, // NOT IMPLEMENTED
+            Asset = 10
         }
 
         /// <summary>
@@ -49,7 +55,7 @@ namespace SoulsFormats
             /// <summary>
             /// Creates an empty ModelParam with the default version.
             /// </summary>
-            public ModelParam() : base(73, "MODEL_PARAM_ST")
+            public ModelParam() : base(52, "MODEL_PARAM_ST")
             {
                 MapPieces = new List<Model.MapPiece>();
                 Enemies = new List<Model.Enemy>();
@@ -65,11 +71,21 @@ namespace SoulsFormats
             {
                 switch (model)
                 {
-                    case Model.MapPiece m: MapPieces.Add(m); break;
-                    case Model.Enemy m: Enemies.Add(m); break;
-                    case Model.Player m: Players.Add(m); break;
-                    case Model.Collision m: Collisions.Add(m); break;
-                    case Model.Asset m: Assets.Add(m); break;
+                    case Model.MapPiece m:
+                        MapPieces.Add(m);
+                        break;
+                    case Model.Enemy m:
+                        Enemies.Add(m);
+                        break;
+                    case Model.Player m:
+                        Players.Add(m);
+                        break;
+                    case Model.Collision m:
+                        Collisions.Add(m);
+                        break;
+                    case Model.Asset m:
+                        Assets.Add(m);
+                        break;
 
                     default:
                         throw new ArgumentException($"Unrecognized type {model.GetType()}.", nameof(model));
@@ -88,7 +104,7 @@ namespace SoulsFormats
             }
             IReadOnlyList<IMsbModel> IMsbParam<IMsbModel>.GetEntries() => GetEntries();
 
-            internal override Model ReadEntry(BinaryReaderEx br)
+            internal override Model ReadEntry(BinaryReaderEx br, long offsetLength)
             {
                 ModelType type = br.GetEnum32<ModelType>(br.Position + 8);
                 switch (type)
@@ -119,8 +135,9 @@ namespace SoulsFormats
         /// </summary>
         public abstract class Model : Entry, IMsbModel
         {
+            // Index among models of the same type
+            public int TypeIndex { get; set; }
             private protected abstract ModelType Type { get; }
-            private protected abstract bool HasTypeData { get; }
 
             /// <summary>
             /// A path to a .sib file, presumed to be some kind of editor placeholder.
@@ -152,32 +169,18 @@ namespace SoulsFormats
             private protected Model(BinaryReaderEx br)
             {
                 long start = br.Position;
+
                 long nameOffset = br.ReadInt64();
                 br.AssertUInt32((uint)Type);
-                br.ReadInt32(); // ID
-                long sibOffset = br.ReadInt64();
+                TypeIndex = br.ReadInt32();
+                long sourceOffset = br.ReadInt64();
                 InstanceCount = br.ReadInt32();
-                Unk1C = br.ReadInt32();
-                long typeDataOffset = br.ReadInt64();
+                br.AssertInt32(new int[1]);
+                br.AssertInt32(new int[1]);
+                br.AssertInt32(new int[1]);
 
-                if (nameOffset == 0)
-                    throw new InvalidDataException($"{nameof(nameOffset)} must not be 0 in type {GetType()}.");
-                if (sibOffset == 0)
-                    throw new InvalidDataException($"{nameof(sibOffset)} must not be 0 in type {GetType()}.");
-                if (HasTypeData ^ typeDataOffset != 0)
-                    throw new InvalidDataException($"Unexpected {nameof(typeDataOffset)} 0x{typeDataOffset:X} in type {GetType()}.");
-
-                br.Position = start + nameOffset;
-                Name = br.ReadUTF16();
-
-                br.Position = start + sibOffset;
-                SibPath = br.ReadUTF16();
-
-                if (HasTypeData)
-                {
-                    br.Position = start + typeDataOffset;
-                    ReadTypeData(br);
-                }
+                Name = br.GetUTF16(start + nameOffset);
+                SibPath = br.GetUTF16(start + sourceOffset);
             }
 
             private protected virtual void ReadTypeData(BinaryReaderEx br)
@@ -188,27 +191,18 @@ namespace SoulsFormats
                 long start = bw.Position;
                 bw.ReserveInt64("NameOffset");
                 bw.WriteUInt32((uint)Type);
-                bw.WriteInt32(id);
-                bw.ReserveInt64("SibOffset");
+                bw.WriteInt32(TypeIndex);
+                bw.ReserveInt64("SourceOffset");
                 bw.WriteInt32(InstanceCount);
-                bw.WriteInt32(Unk1C);
-                bw.ReserveInt64("TypeDataOffset");
+                bw.WriteInt32(0);
+                bw.WriteInt32(0);
+                bw.WriteInt32(0);
 
                 bw.FillInt64("NameOffset", bw.Position - start);
                 bw.WriteUTF16(MSB.ReambiguateName(Name), true);
-                bw.FillInt64("SibOffset", bw.Position - start);
+                bw.FillInt64("SourceOffset", bw.Position - start);
                 bw.WriteUTF16(SibPath, true);
                 bw.Pad(8);
-
-                if (HasTypeData)
-                {
-                    bw.FillInt64("TypeDataOffset", bw.Position - start);
-                    WriteTypeData(bw);
-                }
-                else
-                {
-                    bw.FillInt64("TypeDataOffset", 0);
-                }
             }
 
             private protected virtual void WriteTypeData(BinaryWriterEx bw)
@@ -233,7 +227,6 @@ namespace SoulsFormats
             public class MapPiece : Model
             {
                 private protected override ModelType Type => ModelType.MapPiece;
-                private protected override bool HasTypeData => false;
 
                 /// <summary>
                 /// Creates a MapPiece with default values.
@@ -249,7 +242,6 @@ namespace SoulsFormats
             public class Asset : Model
             {
                 private protected override ModelType Type => ModelType.Asset;
-                private protected override bool HasTypeData => false;
 
                 /// <summary>
                 /// Creates an Object with default values.
@@ -265,7 +257,6 @@ namespace SoulsFormats
             public class Enemy : Model
             {
                 private protected override ModelType Type => ModelType.Enemy;
-                private protected override bool HasTypeData => false;
 
                 /// <summary>
                 /// Creates an Enemy with default values.
@@ -281,7 +272,6 @@ namespace SoulsFormats
             public class Player : Model
             {
                 private protected override ModelType Type => ModelType.Player;
-                private protected override bool HasTypeData => false;
 
                 /// <summary>
                 /// Creates a Player with default values.
@@ -297,7 +287,6 @@ namespace SoulsFormats
             public class Collision : Model
             {
                 private protected override ModelType Type => ModelType.Collision;
-                private protected override bool HasTypeData => false;
 
                 /// <summary>
                 /// Creates a Collision with default values.

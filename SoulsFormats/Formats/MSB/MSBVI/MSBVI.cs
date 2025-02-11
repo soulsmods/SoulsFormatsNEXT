@@ -1,15 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization;
 
 namespace SoulsFormats
 {
     /// <summary>
-    /// A map layout file used in Elden Ring. Extension: .msb
+    /// A map layout file used in Armored Core VI. Extension: .msb
+    /// Credit to vawser for their implementation for DSMS and Smithbox which has been brought over fairly faithfully from here:
+    /// https://github.com/vawser/Smithbox/tree/main/src/Andre/SoulsFormats/SoulsFormats/Formats/MSB/MSB-AC6
     /// </summary>
-    public partial class MSBE : SoulsFile<MSBE>, IMsb
+    public partial class MSBVI : SoulsFile<MSBVI>, IMsb
     {
+        /// <summary>
+        /// Holds the current header version so it can be checked against.
+        /// </summary>
+        public static int CurrentVersion = -1;
+
         /// <summary>
         /// Model files that are available for parts to use.
         /// </summary>
@@ -22,7 +28,7 @@ namespace SoulsFormats
         public EventParam Events { get; set; }
         IMsbParam<IMsbEvent> IMsb.Events => Events;
 
-        /// <summary>
+        // <summary>
         /// Points or areas of space that trigger some sort of behavior.
         /// </summary>
         public PointParam Regions { get; set; }
@@ -34,27 +40,27 @@ namespace SoulsFormats
         public RouteParam Routes { get; set; }
 
         /// <summary>
+        /// Layers in this MSB.
+        /// </summary>
+        public LayerParam Layers { get; set; }
+
+        /// <summary>
         /// Instances of actual things in the map.
         /// </summary>
         public PartsParam Parts { get; set; }
         IMsbParam<IMsbPart> IMsb.Parts => Parts;
 
         /// <summary>
-        /// Unknown and unused.
-        /// </summary>
-        public EmptyParam Layers { get; set; }
-
-        /// <summary>
         /// Creates an MSBS with nothing in it.
         /// </summary>
-        public MSBE()
+        public MSBVI()
         {
             Models = new ModelParam();
             Events = new EventParam();
             Regions = new PointParam();
             Routes = new RouteParam();
+            Layers = new LayerParam();
             Parts = new PartsParam();
-            Layers = new EmptyParam(0x23, "LAYER_PARAM_ST");
         }
 
         /// <summary>
@@ -86,25 +92,38 @@ namespace SoulsFormats
             entries.Regions = Regions.Read(br);
             Routes = new RouteParam();
             entries.Routes = Routes.Read(br);
-            Layers = new EmptyParam(0x49, "LAYER_PARAM_ST");
-            Layers.Read(br);
+            Layers = new LayerParam();
+            entries.Layers = Layers.Read(br);
             Parts = new PartsParam();
             entries.Parts = Parts.Read(br);
 
             if (br.Position != 0)
                 throw new InvalidDataException("The next param offset of the final param should be 0, but it wasn't.");
 
-            MSB.DisambiguateNames(entries.Models);
-            MSB.DisambiguateNames(entries.Regions);
-            MSB.DisambiguateNames(entries.Parts);
-            MSB.DisambiguateNames(entries.Events);
+            // Added className prefix for AC6 since by default the maps
+            // do not contain names for non-Part entries.
+            // This fixes an issue where the Reference Map wouldn't find the right
+            // map object since Event and Region would share the same disambugated name (e.g. {1}).
+
+            MSB.DisambiguateNames(entries.Models, "Model");
+            MSB.DisambiguateNames(entries.Events, "Event");
+            MSB.DisambiguateNames(entries.Regions, "Region");
+            MSB.DisambiguateNames(entries.Parts, "Part");
 
             foreach (Event evt in entries.Events)
+            {
                 evt.GetNames(this, entries);
+            }
+
             foreach (Region region in entries.Regions)
+            {
                 region.GetNames(entries);
+            }
+
             foreach (Part part in entries.Parts)
+            {
                 part.GetNames(this, entries);
+            }
         }
 
         /// <summary>
@@ -117,16 +136,28 @@ namespace SoulsFormats
             entries.Events = Events.GetEntries();
             entries.Regions = Regions.GetEntries();
             entries.Routes = Routes.GetEntries();
+            entries.Layers = Layers.GetEntries();
             entries.Parts = Parts.GetEntries();
 
             foreach (Model model in entries.Models)
+            {
                 model.CountInstances(entries.Parts);
+            }
+
             foreach (Event evt in entries.Events)
+            {
                 evt.GetIndices(this, entries);
+            }
+
             foreach (Region region in entries.Regions)
+            {
                 region.GetIndices(entries);
+            }
+
             foreach (Part part in entries.Parts)
+            {
                 part.GetIndices(this, entries);
+            }
 
             bw.BigEndian = false;
             MSB.WriteHeader(bw);
@@ -139,7 +170,7 @@ namespace SoulsFormats
             bw.FillInt64("NextParamOffset", bw.Position);
             Routes.Write(bw, entries.Routes);
             bw.FillInt64("NextParamOffset", bw.Position);
-            Layers.Write(bw, Layers.GetEntries());
+            Layers.Write(bw, entries.Layers);
             bw.FillInt64("NextParamOffset", bw.Position);
             Parts.Write(bw, entries.Parts);
             bw.FillInt64("NextParamOffset", 0);
@@ -151,6 +182,7 @@ namespace SoulsFormats
             public List<Event> Events;
             public List<Region> Regions;
             public List<Route> Routes;
+            public List<Layer> Layers;
             public List<Part> Parts;
         }
 
@@ -175,6 +207,9 @@ namespace SoulsFormats
             internal List<T> Read(BinaryReaderEx br)
             {
                 Version = br.ReadInt32();
+
+                CurrentVersion = Version;
+
                 int offsetCount = br.ReadInt32();
                 long nameOffset = br.ReadInt64();
                 long[] entryOffsets = br.ReadInt64s(offsetCount - 1);
@@ -188,17 +223,19 @@ namespace SoulsFormats
                 foreach (long offset in entryOffsets)
                 {
                     br.Position = offset;
-                    entries.Add(ReadEntry(br));
+
+                    entries.Add(ReadEntry(br, offset));
                 }
                 br.Position = nextParamOffset;
                 return entries;
             }
 
-            internal abstract T ReadEntry(BinaryReaderEx br);
+            internal abstract T ReadEntry(BinaryReaderEx br, long offsetLength);
 
             internal virtual void Write(BinaryWriterEx bw, List<T> entries)
             {
                 bw.WriteInt32(Version);
+
                 bw.WriteInt32(entries.Count + 1);
                 bw.ReserveInt64("ParamNameOffset");
                 for (int i = 0; i < entries.Count; i++)
@@ -242,40 +279,25 @@ namespace SoulsFormats
         /// <summary>
         /// A generic entry in an MSB param.
         /// </summary>
-        [DataContract]
         public abstract class Entry : IMsbEntry
         {
             /// <summary>
             /// The name of this entry.
             /// </summary>
-            [DataMember]
             public string Name { get; set; }
 
             internal abstract void Write(BinaryWriterEx bw, int id);
         }
 
         /// <summary>
-        /// Used to represent unused params that should never have any entries in them.
+        /// A generic entry in an MSB param that has a name.
         /// </summary>
-        public class EmptyParam : Param<Entry>
+        public abstract class NamedEntry : Entry, IMsbEntry
         {
             /// <summary>
-            /// Creates an EmptyParam with the given values.
+            /// The name of this entry; should generally be unique.
             /// </summary>
-            public EmptyParam(int version, string name) : base(version, name) { }
-
-            internal override Entry ReadEntry(BinaryReaderEx br)
-            {
-                throw new InvalidDataException($"Expected param \"{Name}\" to be empty, but it wasn't.");
-            }
-
-            /// <summary>
-            /// Returns an empty list.
-            /// </summary>
-            public override List<Entry> GetEntries()
-            {
-                return new List<Entry>();
-            }
+            public abstract string Name { get; set; }
         }
     }
 }
