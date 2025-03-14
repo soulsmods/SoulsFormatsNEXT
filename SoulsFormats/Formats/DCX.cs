@@ -583,8 +583,9 @@ namespace SoulsFormats
                     chunkSize = data.Length % 0x10000;
 
                 byte[] chunk;
+                int chunkOffset = i * 0x10000;
                 using (MemoryStream cmpStream = new MemoryStream())
-                using (MemoryStream dcmpStream = new MemoryStream(data, i * 0x10000, chunkSize))
+                using (MemoryStream dcmpStream = new MemoryStream(data, chunkOffset, chunkSize))
                 {
                     DeflateStream dfltStream = new DeflateStream(cmpStream, CompressionMode.Compress);
                     dcmpStream.CopyTo(dfltStream);
@@ -596,8 +597,10 @@ namespace SoulsFormats
                     bw.FillInt32($"ChunkCompressed{i}", 1);
                 else
                 {
+                    // If the compressed chunk is not any smaller than the original, just go with the uncompressed data
                     bw.FillInt32($"ChunkCompressed{i}", 0);
-                    chunk = data;
+                    chunk = new byte[chunkSize];
+                    Array.Copy(data, chunkOffset, chunk, 0, chunkSize);
                 }
 
                 compressedSize += chunk.Length;
