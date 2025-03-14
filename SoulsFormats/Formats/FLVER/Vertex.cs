@@ -152,7 +152,18 @@ namespace SoulsFormats
                         else if (member.Type == LayoutType.UVPair)
                         {
                             for (int i = 0; i < 4; i++)
-                                BoneWeights[i] = br.ReadInt16() / 32767f;
+                            {
+                                int weight = br.ReadUInt16();
+                                if (weight >= 0x8000)
+                                {
+                                    weight -= 0x8000;
+                                }
+                                else
+                                {
+                                    weight += 0x8000;
+                                }
+                                BoneWeights[i] = weight / 65535f;
+                            }
                         }
                         else if (member.Type == LayoutType.Short4toFloat4A)
                         {
@@ -401,7 +412,7 @@ namespace SoulsFormats
 
             private static Vector3 ReadUShortNormXYZ(BinaryReaderEx br)
                 => new Vector3(ReadUShortNorm(br), ReadUShortNorm(br), ReadUShortNorm(br));
-            
+
             // credit to Shadowth117
             private static float ReadShortNormAC6(BinaryReaderEx br)
                 => (br.ReadInt16() / 127f) - 1;
@@ -443,7 +454,18 @@ namespace SoulsFormats
                         else if (member.Type == LayoutType.UVPair)
                         {
                             for (int i = 0; i < 4; i++)
-                                bw.WriteInt16((short)Math.Round(BoneWeights[i] * 32767));
+                            {
+                                double weight = Math.Round(BoneWeights[i] * 65535);
+                                if (weight > 0x8000)
+                                {
+                                    weight -= 0x8000;
+                                }
+                                else
+                                {
+                                    weight += 0x8000;
+                                }
+                                bw.WriteUInt16((ushort)weight);
+                            }
                         }
                         else if (member.Type == LayoutType.Short4toFloat4A)
                         {
@@ -733,7 +755,7 @@ namespace SoulsFormats
                 WriteUShortNorm(bw, value.Y);
                 WriteUShortNorm(bw, value.Z);
             }
-            
+
             private static void WriteShortNormAC6(BinaryWriterEx bw, float value)
                 => bw.WriteInt16((short)Math.Round((value + 1) * 127));
 
