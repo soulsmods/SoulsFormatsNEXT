@@ -103,19 +103,19 @@ namespace SoulsFormats
             public override List<Model> GetEntries() => SFUtil.ConcatAll<Model>(MapPieces, Objects, Enemies, Dummies);
             IReadOnlyList<IMsbModel> IMsbParam<IMsbModel>.GetEntries() => GetEntries();
 
-            internal override Model ReadEntry(BinaryReaderEx br)
+            internal override Model ReadEntry(BinaryReaderEx br, int version)
             {
                 ModelType type = br.GetEnum32<ModelType>(br.Position + 4);
                 switch (type)
                 {
                     case ModelType.MapPiece:
-                        return MapPieces.EchoAdd(new Model.MapPiece(br));
+                        return MapPieces.EchoAdd(new Model.MapPiece(br, version));
                     case ModelType.Object:
-                        return Objects.EchoAdd(new Model.Object(br));
+                        return Objects.EchoAdd(new Model.Object(br, version));
                     case ModelType.Enemy:
-                        return Enemies.EchoAdd(new Model.Enemy(br));
+                        return Enemies.EchoAdd(new Model.Enemy(br, version));
                     case ModelType.Dummy:
-                        return Dummies.EchoAdd(new Model.Dummy(br));
+                        return Dummies.EchoAdd(new Model.Dummy(br, version));
                     default:
                         throw new NotImplementedException($"Unimplemented model type: {type}");
                 }
@@ -132,11 +132,6 @@ namespace SoulsFormats
             /// The type of an overridden type.
             /// </summary>
             private protected abstract ModelType Type { get; }
-
-            /// <summary>
-            /// Whether or not an overridden type has a row reference.
-            /// </summary>
-            private protected abstract bool HasRowReference { get; }
 
             /// <summary>
             /// The path to a resource that presumably used to contain this model during development. Usually a path to an SIB file.
@@ -156,7 +151,7 @@ namespace SoulsFormats
             /// <summary>
             /// Creates a new Model entry with default values. This is to be used as a base for overriding types.
             /// </summary>
-            /// <param name="name"></param>
+            /// <param name="name">The name of the model entry.</param>
             private protected Model(string name)
             {
                 Name = name;
@@ -176,7 +171,7 @@ namespace SoulsFormats
             /// <summary>
             /// Reads a Model entry from a stream.
             /// </summary>
-            private protected Model(BinaryReaderEx br)
+            private protected Model(BinaryReaderEx br, int version)
             {
                 long start = br.Position;
                 int nameOffset = br.ReadInt32();
@@ -196,8 +191,10 @@ namespace SoulsFormats
                 br.Position = start + offsetRender;
                 Render = new RenderConfig(br);
 
-                if (HasRowReference)
+                // model_param.msb in AC4 gives one to map pieces, but other MSB do not.
+                if (HasRowReference(version))
                 {
+                    Debug.Assert(rowReferenceOffset > 0);
                     br.Position = start + rowReferenceOffset;
                     ReadRowReferenceConfig(br);
                 }
@@ -206,7 +203,7 @@ namespace SoulsFormats
             private protected virtual void ReadRowReferenceConfig(BinaryReaderEx br)
                 => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(ReadRowReferenceConfig)}.");
 
-            internal override void Write(BinaryWriterEx bw, int id)
+            internal override void Write(BinaryWriterEx bw, int version, int id)
             {
                 long start = bw.Position;
                 bw.ReserveInt32("NameOffset");
@@ -226,7 +223,7 @@ namespace SoulsFormats
                 bw.FillInt32("OffsetRender", (int)(bw.Position - start));
                 Render.Write(bw);
 
-                if (HasRowReference)
+                if (HasRowReference(version))
                 {
                     bw.FillInt32("TypeDataOffset", (int)(bw.Position - start));
                     WriteRowReferenceConfig(bw);
@@ -236,6 +233,9 @@ namespace SoulsFormats
                     bw.FillInt32("TypeDataOffset", 0);
                 }
             }
+
+            private protected virtual bool HasRowReference(int version)
+                => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(HasRowReference)}.");
 
             private protected virtual void WriteRowReferenceConfig(BinaryWriterEx bw)
                 => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(WriteRowReferenceConfig)}.");
@@ -304,7 +304,16 @@ namespace SoulsFormats
             public class MapPiece : Model
             {
                 private protected override ModelType Type => ModelType.MapPiece;
-                private protected override bool HasRowReference => false;
+
+                /// <summary>
+                /// Unknown; Only present on version 20051027 MSB.
+                /// </summary>
+                public short RowID { get; set; }
+
+                /// <summary>
+                /// Unknown; Only present on version 20051027 MSB.
+                /// </summary>
+                public short UnkT02 { get; set; }
 
                 /// <summary>
                 /// Creates a <see cref="MapPiece"/> with default values.
@@ -312,9 +321,31 @@ namespace SoulsFormats
                 public MapPiece() : base("mXXXX") { }
 
                 /// <summary>
+                /// Creates a <see cref="MapPiece"/> with the specified version.
+                /// </summary>
+                public MapPiece(int version) : base("mXXXX") { }
+
+                /// <summary>
                 /// Reads a <see cref="MapPiece"/> from a stream.
                 /// </summary>
-                internal MapPiece(BinaryReaderEx br) : base(br) { }
+                internal MapPiece(BinaryReaderEx br, int version) : base(br, version)
+                {
+                }
+
+                private protected override bool HasRowReference(int version)
+                    => version == 20051027;
+
+                private protected override void ReadRowReferenceConfig(BinaryReaderEx br)
+                {
+                    RowID = br.ReadInt16();
+                    UnkT02 = br.ReadInt16();
+                }
+
+                private protected override void WriteRowReferenceConfig(BinaryWriterEx bw)
+                {
+                    bw.WriteInt16(RowID);
+                    bw.WriteInt16(UnkT02);
+                }
             }
 
             /// <summary>
@@ -323,7 +354,6 @@ namespace SoulsFormats
             public class Object : Model
             {
                 private protected override ModelType Type => ModelType.Object;
-                private protected override bool HasRowReference => true;
 
                 /// <summary>
                 /// The destroy ID of this object for the DestroyAP param.
@@ -332,7 +362,7 @@ namespace SoulsFormats
                 public short DestroyAPID { get; set; }
 
                 /// <summary>
-                /// Unknown. 0 on objects.
+                /// Unknown; 0 on objects.
                 /// </summary>
                 public short UnkT02 { get; set; }
 
@@ -344,7 +374,10 @@ namespace SoulsFormats
                 /// <summary>
                 /// Reads an <see cref="Object"/> from a stream.
                 /// </summary>
-                internal Object(BinaryReaderEx br) : base(br) { }
+                internal Object(BinaryReaderEx br, int version) : base(br, version) { }
+
+                private protected override bool HasRowReference(int version)
+                    => true;
 
                 private protected override void ReadRowReferenceConfig(BinaryReaderEx br)
                 {
@@ -365,7 +398,6 @@ namespace SoulsFormats
             public class Enemy : Model
             {
                 private protected override ModelType Type => ModelType.Enemy;
-                private protected override bool HasRowReference => false;
 
                 /// <summary>
                 /// Creates an <see cref="Enemy"/> with default values.
@@ -375,7 +407,10 @@ namespace SoulsFormats
                 /// <summary>
                 /// Reads an <see cref="Enemy"/> from a stream.
                 /// </summary>
-                internal Enemy(BinaryReaderEx br) : base(br) { }
+                internal Enemy(BinaryReaderEx br, int version) : base(br, version) { }
+
+                private protected override bool HasRowReference(int version)
+                    => false;
             }
 
             /// <summary>
@@ -384,7 +419,6 @@ namespace SoulsFormats
             public class Dummy : Model
             {
                 private protected override ModelType Type => ModelType.Dummy;
-                private protected override bool HasRowReference => true;
 
                 /// <summary>
                 /// The design ID of this dummy for the AcAssemblyDrawing param.
@@ -405,7 +439,10 @@ namespace SoulsFormats
                 /// <summary>
                 /// Reads a <see cref="Dummy"/> from a stream.
                 /// </summary>
-                internal Dummy(BinaryReaderEx br) : base(br) { }
+                internal Dummy(BinaryReaderEx br, int version) : base(br, version) { }
+
+                private protected override bool HasRowReference(int version)
+                    => true;
 
                 private protected override void ReadRowReferenceConfig(BinaryReaderEx br)
                 {

@@ -88,7 +88,7 @@ namespace SoulsFormats
             public override List<Part> GetEntries() => SFUtil.ConcatAll<Part>(MapPieces, Objects, Enemies, Unused);
             IReadOnlyList<IMsbPart> IMsbParam<IMsbPart>.GetEntries() => GetEntries();
 
-            internal override Part ReadEntry(BinaryReaderEx br)
+            internal override Part ReadEntry(BinaryReaderEx br, int version)
             {
                 PartType type = br.GetEnum32<PartType>(br.Position + 4);
                 switch (type)
@@ -363,7 +363,18 @@ namespace SoulsFormats
                 if (offsetCharaEventDataConfig > 0)
                 {
                     br.Position = start + offsetCharaEventDataConfig;
-                    CharaEventData = new CharaEventDataConfig(br);
+
+                    bool isShort;
+                    if (HasObjectConfig)
+                    {
+                        isShort = (offsetObjectConfig - offsetCharaEventDataConfig) == 4;
+                    }
+                    else
+                    {
+                        isShort = (offsetLayerConfig - offsetCharaEventDataConfig) == 4;
+                    }
+
+                    CharaEventData = new CharaEventDataConfig(br, isShort);
                 }
                 else
                 {
@@ -387,7 +398,7 @@ namespace SoulsFormats
             private protected virtual void ReadEnemyConfig(BinaryReaderEx br) => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(ReadEnemyConfig)}.");
             private protected virtual void ReadObjectConfig(BinaryReaderEx br) => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(ReadObjectConfig)}.");
 
-            internal override void Write(BinaryWriterEx bw, int id)
+            internal override void Write(BinaryWriterEx bw, int version, int id)
             {
                 long start = bw.Position;
 
@@ -1122,18 +1133,19 @@ namespace SoulsFormats
                 /// <summary>
                 /// Unknown.
                 /// </summary>
-                public short Unk04 { get; set; }
+                // m040_hasem_test.msb's last two enemy part entries are missing this field.
+                public int Unk04 { get; set; }
 
                 /// <summary>
-                /// Unknown.
+                /// Whether or not <see cref="CharaEventDataID"/> was the only field detected when reading, leaving no fields after.
                 /// </summary>
-                public short Unk06 { get; set; }
+                public bool IsShort { get; set; }
 
                 public CharaEventDataConfig()
                 {
                     CharaEventDataID = 0;
                     Unk04 = 0;
-                    Unk06 = 0;
+                    IsShort = false;
                 }
 
                 /// <summary>
@@ -1144,18 +1156,25 @@ namespace SoulsFormats
                     return (CharaEventDataConfig)MemberwiseClone();
                 }
 
-                internal CharaEventDataConfig(BinaryReaderEx br)
+                internal CharaEventDataConfig(BinaryReaderEx br, bool isShort)
                 {
                     CharaEventDataID = br.ReadInt32();
-                    Unk04 = br.ReadInt16();
-                    Unk06 = br.ReadInt16();
+
+                    IsShort = isShort;
+                    if (!isShort)
+                    {
+                        Unk04 = br.ReadInt32();
+                    }
                 }
 
                 internal void Write(BinaryWriterEx bw)
                 {
                     bw.WriteInt32(CharaEventDataID);
-                    bw.WriteInt16(Unk04);
-                    bw.WriteInt16(Unk06);
+
+                    if (!IsShort)
+                    {
+                        bw.WriteInt32(Unk04);
+                    }
                 }
             }
 

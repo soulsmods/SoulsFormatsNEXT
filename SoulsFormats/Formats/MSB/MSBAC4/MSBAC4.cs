@@ -8,7 +8,7 @@ namespace SoulsFormats
     /// A map layout file used in Armored Core V.<br/>
     /// Extension: .msb
     /// </summary>
-    public partial class MSBAC4 : SoulsFile<MSBFA>, IMsbBound<MSBAC4.MapStudioTree>
+    public partial class MSBAC4 : SoulsFile<MSBAC4>, IMsbBound<MSBAC4.MapStudioTree>
     {
         /// <summary>
         /// Model files that are available for parts to use.
@@ -251,7 +251,7 @@ namespace SoulsFormats
                 foreach (int offset in entryOffsets)
                 {
                     br.Position = offset;
-                    entries.Add(ReadEntry(br));
+                    entries.Add(ReadEntry(br, Version));
                 }
 
                 IsLastParam = nextParamOffset == 0;
@@ -262,7 +262,7 @@ namespace SoulsFormats
             /// <summary>
             /// Reads an entry for a Param.
             /// </summary>
-            internal abstract T ReadEntry(BinaryReaderEx br);
+            internal abstract T ReadEntry(BinaryReaderEx br, int version);
 
             /// <summary>
             /// Writes the entries for a Param.
@@ -293,7 +293,7 @@ namespace SoulsFormats
                     }
 
                     bw.FillInt32($"EntryOffset{i}", (int)bw.Position);
-                    entries[i].Write(bw, id);
+                    entries[i].Write(bw, Version, id);
                     id++;
                 }
             }
@@ -326,8 +326,9 @@ namespace SoulsFormats
             /// Writes an entry to a stream.
             /// </summary>
             /// <param name="bw">The stream.</param>
+            /// <param name="version">The version of the entry.</param>
             /// <param name="id">The ID of the entry.</param>
-            internal abstract void Write(BinaryWriterEx bw, int id);
+            internal abstract void Write(BinaryWriterEx bw, int version, int id);
         }
 
         internal struct Entries

@@ -45,7 +45,7 @@ namespace SoulsFormats
             /// <summary>
             /// An area that forces death.
             /// </summary>
-            DeathArea = 150,
+            DeathField = 150,
 
             /// <summary>
             /// A spawn point.
@@ -106,7 +106,7 @@ namespace SoulsFormats
             /// <summary>
             /// Bounds that will kill the player if they enter them.
             /// </summary>
-            public List<Region.DeathArea> DeathAreas { get; set; }
+            public List<Region.DeathField> DeathFields { get; set; }
 
             /// <summary>
             /// Spawn points; Usually for the player.
@@ -139,7 +139,7 @@ namespace SoulsFormats
                 OperationalAreas = new List<Region.OperationalArea>();
                 WarningAreas = new List<Region.WarningArea>();
                 AttentionAreas = new List<Region.AttentionArea>();
-                DeathAreas = new List<Region.DeathArea>();
+                DeathFields = new List<Region.DeathField>();
                 SpawnPoints = new List<Region.SpawnPoint>();
                 CameraPoints = new List<Region.CameraPoint>();
                 SFXRegions = new List<Region.SFXRegion>();
@@ -159,7 +159,7 @@ namespace SoulsFormats
                     case Region.OperationalArea r: OperationalAreas.Add(r); break;
                     case Region.WarningArea r: WarningAreas.Add(r); break;
                     case Region.AttentionArea r: AttentionAreas.Add(r); break;
-                    case Region.DeathArea r: DeathAreas.Add(r); break;
+                    case Region.DeathField r: DeathFields.Add(r); break;
                     case Region.SpawnPoint r: SpawnPoints.Add(r); break;
                     case Region.CameraPoint r: CameraPoints.Add(r); break;
                     case Region.SFXRegion r: SFXRegions.Add(r); break;
@@ -174,10 +174,10 @@ namespace SoulsFormats
             /// Returns every region in the order they'll be written.
             /// </summary>
             public override List<Region> GetEntries() => SFUtil.ConcatAll<Region>(DistanceRegions, RoutePoints, Actions, OperationalAreas, WarningAreas,
-                                                                                  AttentionAreas, DeathAreas, SpawnPoints, CameraPoints, SFXRegions, NoTurretAreas);
+                                                                                  AttentionAreas, DeathFields, SpawnPoints, CameraPoints, SFXRegions, NoTurretAreas);
             IReadOnlyList<IMsbRegion> IMsbParam<IMsbRegion>.GetEntries() => GetEntries();
 
-            internal override Region ReadEntry(BinaryReaderEx br)
+            internal override Region ReadEntry(BinaryReaderEx br, int version)
             {
                 RegionType type = br.GetEnum32<RegionType>(br.Position + 8);
                 switch (type)
@@ -194,8 +194,8 @@ namespace SoulsFormats
                         return WarningAreas.EchoAdd(new Region.WarningArea(br));
                     case RegionType.AttentionArea:
                         return AttentionAreas.EchoAdd(new Region.AttentionArea(br));
-                    case RegionType.DeathArea:
-                        return DeathAreas.EchoAdd(new Region.DeathArea(br));
+                    case RegionType.DeathField:
+                        return DeathFields.EchoAdd(new Region.DeathField(br));
                     case RegionType.Spawn:
                         return SpawnPoints.EchoAdd(new Region.SpawnPoint(br));
                     case RegionType.Camera:
@@ -373,8 +373,7 @@ namespace SoulsFormats
                 {
                     if (Type != RegionType.OperationalArea &&
                         Type != RegionType.WarningArea &&
-                        Type != RegionType.AttentionArea &&
-                        Type != RegionType.DeathArea)
+                        Type != RegionType.AttentionArea)
                         throw new InvalidDataException($"{nameof(offsetArea)} must be 0 for type {GetType()}");
 
                     br.Position = start + offsetArea;
@@ -424,7 +423,7 @@ namespace SoulsFormats
             private protected virtual void ReadTypeData(BinaryReaderEx br)
                 => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(ReadTypeData)}.");
 
-            internal override void Write(BinaryWriterEx bw, int id)
+            internal override void Write(BinaryWriterEx bw, int version, int id)
             {
                 long start = bw.Position;
 
@@ -481,7 +480,7 @@ namespace SoulsFormats
                     bw.FillInt32("ShapeDataOffset", 0);
                 }
 
-                FillTypeDataOffset(bw, start, "OffsetArea", Type == RegionType.OperationalArea || Type == RegionType.WarningArea || Type == RegionType.AttentionArea || Type == RegionType.DeathArea);
+                FillTypeDataOffset(bw, start, "OffsetArea", Type == RegionType.OperationalArea || Type == RegionType.WarningArea || Type == RegionType.AttentionArea);
                 FillTypeDataOffset(bw, start, "OffsetSpawn", Type == RegionType.Spawn);
                 FillTypeDataOffset(bw, start, "OffsetCamera", Type == RegionType.Camera);
                 // Probably unknown type
@@ -1178,27 +1177,15 @@ namespace SoulsFormats
             /// <summary>
             /// An area that forces death.
             /// </summary>
-            public class DeathArea : Region
+            public class DeathField : Region
             {
-                private protected override RegionType Type => RegionType.DeathArea;
+                private protected override RegionType Type => RegionType.DeathField;
 
-                public AreaConfig Area { get; set; }
+                public DeathField() : base("forced death field") { }
 
-                public DeathArea() : base("death area")
-                {
-                    Area = new AreaConfig();
-                }
+                private protected override void DeepCopyTo(Region region) { }
 
-                private protected override void DeepCopyTo(Region region)
-                {
-                    var attentionArea = (AttentionArea)region;
-                    attentionArea.Area = Area.DeepCopy();
-                }
-
-                internal DeathArea(BinaryReaderEx br) : base(br) { }
-
-                private protected override void ReadTypeData(BinaryReaderEx br) => Area = new AreaConfig(br);
-                private protected override void WriteTypeData(BinaryWriterEx bw) => Area.Write(bw);
+                internal DeathField(BinaryReaderEx br) : base(br) { }
             }
 
             /// <summary>

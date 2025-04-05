@@ -70,7 +70,7 @@ namespace SoulsFormats
             /// </summary>
             public override List<Route> GetEntries() => SFUtil.ConcatAll<Route>(DefaultRoutes, AIRoutes);
 
-            internal override Route ReadEntry(BinaryReaderEx br)
+            internal override Route ReadEntry(BinaryReaderEx br, int version)
             {
                 RouteType type = br.GetEnum32<RouteType>(br.Position + 12);
                 switch (type)
@@ -143,7 +143,7 @@ namespace SoulsFormats
                 Name = br.ReadShiftJIS();
             }
 
-            internal override void Write(BinaryWriterEx bw, int id)
+            internal override void Write(BinaryWriterEx bw, int version, int id)
             {
                 long start = bw.Position;
 

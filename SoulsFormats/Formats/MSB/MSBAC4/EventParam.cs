@@ -128,7 +128,7 @@ namespace SoulsFormats
             public override List<Event> GetEntries() => SFUtil.ConcatAll<Event>(Scripts, Effects, Scenes, DummyLeaders, BGMs, Revs, SFXs);
             IReadOnlyList<IMsbEvent> IMsbParam<IMsbEvent>.GetEntries() => GetEntries();
 
-            internal override Event ReadEntry(BinaryReaderEx br)
+            internal override Event ReadEntry(BinaryReaderEx br, int version)
             {
                 EventType type = br.GetEnum32<EventType>(br.Position + 8);
                 switch (type)
@@ -212,7 +212,7 @@ namespace SoulsFormats
             private protected virtual void ReadTypeData(BinaryReaderEx br)
                 => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(ReadTypeData)}.");
 
-            internal override void Write(BinaryWriterEx bw, int id)
+            internal override void Write(BinaryWriterEx bw, int version, int id)
             {
                 long start = bw.Position;
 
