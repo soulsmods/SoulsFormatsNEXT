@@ -28,11 +28,6 @@ namespace SoulsFormats
             Action = 50,
 
             /// <summary>
-            /// Enemy drone spawns from Arms Fort?
-            /// </summary>
-            SkirtRoom = 60,
-
-            /// <summary>
             /// A bounding area that, if left, causes the player to fail or die.
             /// </summary>
             OperationalArea = 100,
@@ -48,19 +43,9 @@ namespace SoulsFormats
             AttentionArea = 102,
 
             /// <summary>
-            /// An area that once entered will purge VOB.
+            /// An area that forces death.
             /// </summary>
-            VOBPurgeArea = 103,
-
-            /// <summary>
-            /// Unknown; An area for AA?
-            /// </summary>
-            AntiAirArea = 160,
-
-            /// <summary>
-            /// Unknown; A camera for AA?
-            /// </summary>
-            AntiAirCamera = 161,
+            DeathArea = 150,
 
             /// <summary>
             /// A spawn point.
@@ -78,24 +63,9 @@ namespace SoulsFormats
             SFX = 500,
 
             /// <summary>
-            /// Unknown; The point a ship slows down?
-            /// </summary>
-            Slowdown = 600,
-
-            /// <summary>
             /// An area turrets cannot fire into.
             /// </summary>
-            NoTurretArea = 700,
-
-            /// <summary>
-            /// Unknown; A herding point?
-            /// </summary>
-            Herd = 820,
-
-            /// <summary>
-            /// An area herds are prohibited from.
-            /// </summary>
-            NoHerdArea = 822
+            NoTurretArea = 700
         }
 
         /// <summary>
@@ -119,11 +89,6 @@ namespace SoulsFormats
             public List<Region.Action> Actions { get; set; }
 
             /// <summary>
-            /// Unknown; Enemy drone spawns from Arms Fort?
-            /// </summary>
-            public List<Region.SkirtRoomArea> SkirtRoomAreas { get; set; }
-
-            /// <summary>
             /// Bounds the player must be in or they will fail.
             /// </summary>
             public List<Region.OperationalArea> OperationalAreas { get; set; }
@@ -139,19 +104,9 @@ namespace SoulsFormats
             public List<Region.AttentionArea> AttentionAreas { get; set; }
 
             /// <summary>
-            /// Bounds that will purge VOB once entered.
+            /// Bounds that will kill the player if they enter them.
             /// </summary>
-            public List<Region.VOBPurgeArea> VOBPurgeAreas { get; set; }
-
-            /// <summary>
-            /// Unknown; Areas for AA?
-            /// </summary>
-            public List<Region.AntiAirAreaRegion> AntiAirAreas { get; set; }
-
-            /// <summary>
-            /// Unknown; Cameras for AA?
-            /// </summary>
-            public List<Region.AntiAirCameraRegion> AntiAirCameras { get; set; }
+            public List<Region.DeathArea> DeathAreas { get; set; }
 
             /// <summary>
             /// Spawn points; Usually for the player.
@@ -169,24 +124,9 @@ namespace SoulsFormats
             public List<Region.SFXRegion> SFXRegions { get; set; }
 
             /// <summary>
-            /// Unknown; Ship slowdown points?
-            /// </summary>
-            public List<Region.SlowdownPoint> SlowdownPoints { get; set; }
-
-            /// <summary>
             /// Areas that turrets cannot fire into.
             /// </summary>
             public List<Region.NoTurretAreaRegion> NoTurretAreas { get; set; }
-
-            /// <summary>
-            /// Unknown; Herding points?
-            /// </summary>
-            public List<Region.HerdRegion> HerdRegions { get; set; }
-
-            /// <summary>
-            /// Areas herds are prohibited from.
-            /// </summary>
-            public List<Region.NoHerdAreaRegion> NoHerdAreas { get; set; }
 
             /// <summary>
             /// Creates a new, empty PointParam with default values.
@@ -196,20 +136,14 @@ namespace SoulsFormats
                 DistanceRegions = new List<Region.DistanceRegion>();
                 RoutePoints = new List<Region.RoutePoint>();
                 Actions = new List<Region.Action>();
-                SkirtRoomAreas = new List<Region.SkirtRoomArea>();
                 OperationalAreas = new List<Region.OperationalArea>();
                 WarningAreas = new List<Region.WarningArea>();
                 AttentionAreas = new List<Region.AttentionArea>();
-                VOBPurgeAreas = new List<Region.VOBPurgeArea>();
-                AntiAirAreas = new List<Region.AntiAirAreaRegion>();
-                AntiAirCameras = new List<Region.AntiAirCameraRegion>();
+                DeathAreas = new List<Region.DeathArea>();
                 SpawnPoints = new List<Region.SpawnPoint>();
                 CameraPoints = new List<Region.CameraPoint>();
                 SFXRegions = new List<Region.SFXRegion>();
-                SlowdownPoints = new List<Region.SlowdownPoint>();
                 NoTurretAreas = new List<Region.NoTurretAreaRegion>();
-                HerdRegions = new List<Region.HerdRegion>();
-                NoHerdAreas = new List<Region.NoHerdAreaRegion>();
             }
 
             /// <summary>
@@ -222,20 +156,14 @@ namespace SoulsFormats
                     case Region.DistanceRegion r: DistanceRegions.Add(r); break;
                     case Region.RoutePoint r: RoutePoints.Add(r); break;
                     case Region.Action r: Actions.Add(r); break;
-                    case Region.SkirtRoomArea r: SkirtRoomAreas.Add(r); break;
                     case Region.OperationalArea r: OperationalAreas.Add(r); break;
                     case Region.WarningArea r: WarningAreas.Add(r); break;
                     case Region.AttentionArea r: AttentionAreas.Add(r); break;
-                    case Region.VOBPurgeArea r: VOBPurgeAreas.Add(r); break;
-                    case Region.AntiAirAreaRegion r: AntiAirAreas.Add(r); break;
-                    case Region.AntiAirCameraRegion r: AntiAirCameras.Add(r); break;
+                    case Region.DeathArea r: DeathAreas.Add(r); break;
                     case Region.SpawnPoint r: SpawnPoints.Add(r); break;
                     case Region.CameraPoint r: CameraPoints.Add(r); break;
                     case Region.SFXRegion r: SFXRegions.Add(r); break;
-                    case Region.SlowdownPoint r: SlowdownPoints.Add(r); break;
                     case Region.NoTurretAreaRegion r: NoTurretAreas.Add(r); break;
-                    case Region.HerdRegion r: HerdRegions.Add(r); break;
-                    case Region.NoHerdAreaRegion r: NoHerdAreas.Add(r); break;
                     default: throw new ArgumentException($"Unrecognized type {region.GetType()}.", nameof(region));
                 }
                 return region;
@@ -245,9 +173,8 @@ namespace SoulsFormats
             /// <summary>
             /// Returns every region in the order they'll be written.
             /// </summary>
-            public override List<Region> GetEntries() => SFUtil.ConcatAll<Region>(DistanceRegions, RoutePoints, Actions, SkirtRoomAreas, OperationalAreas, WarningAreas, AttentionAreas,
-                                                                                  VOBPurgeAreas, AntiAirAreas, AntiAirCameras, SpawnPoints, CameraPoints, SFXRegions, SlowdownPoints,
-                                                                                  NoTurretAreas, HerdRegions, NoHerdAreas);
+            public override List<Region> GetEntries() => SFUtil.ConcatAll<Region>(DistanceRegions, RoutePoints, Actions, OperationalAreas, WarningAreas,
+                                                                                  AttentionAreas, DeathAreas, SpawnPoints, CameraPoints, SFXRegions, NoTurretAreas);
             IReadOnlyList<IMsbRegion> IMsbParam<IMsbRegion>.GetEntries() => GetEntries();
 
             internal override Region ReadEntry(BinaryReaderEx br)
@@ -261,34 +188,22 @@ namespace SoulsFormats
                         return RoutePoints.EchoAdd(new Region.RoutePoint(br));
                     case RegionType.Action:
                         return Actions.EchoAdd(new Region.Action(br));
-                    case RegionType.SkirtRoom:
-                        return SkirtRoomAreas.EchoAdd(new Region.SkirtRoomArea(br));
                     case RegionType.OperationalArea:
                         return OperationalAreas.EchoAdd(new Region.OperationalArea(br));
                     case RegionType.WarningArea:
                         return WarningAreas.EchoAdd(new Region.WarningArea(br));
                     case RegionType.AttentionArea:
                         return AttentionAreas.EchoAdd(new Region.AttentionArea(br));
-                    case RegionType.VOBPurgeArea:
-                        return VOBPurgeAreas.EchoAdd(new Region.VOBPurgeArea(br));
-                    case RegionType.AntiAirArea:
-                        return AntiAirAreas.EchoAdd(new Region.AntiAirAreaRegion(br));
-                    case RegionType.AntiAirCamera:
-                        return AntiAirCameras.EchoAdd(new Region.AntiAirCameraRegion(br));
+                    case RegionType.DeathArea:
+                        return DeathAreas.EchoAdd(new Region.DeathArea(br));
                     case RegionType.Spawn:
                         return SpawnPoints.EchoAdd(new Region.SpawnPoint(br));
                     case RegionType.Camera:
                         return CameraPoints.EchoAdd(new Region.CameraPoint(br));
                     case RegionType.SFX:
                         return SFXRegions.EchoAdd(new Region.SFXRegion(br));
-                    case RegionType.Slowdown:
-                        return SlowdownPoints.EchoAdd(new Region.SlowdownPoint(br));
                     case RegionType.NoTurretArea:
                         return NoTurretAreas.EchoAdd(new Region.NoTurretAreaRegion(br));
-                    case RegionType.Herd:
-                        return HerdRegions.EchoAdd(new Region.HerdRegion(br));
-                    case RegionType.NoHerdArea:
-                        return NoHerdAreas.EchoAdd(new Region.NoHerdAreaRegion(br));
                     default:
                         throw new NotImplementedException($"Unimplemented region type: {type}");
                 }
@@ -361,11 +276,6 @@ namespace SoulsFormats
             /// </summary>
             public UnkConfig3 Config3 { get; set; }
 
-            /// <summary>
-            /// Unknown.
-            /// </summary>
-            public UnkConfig4 Config4 { get; set; }
-
             private protected Region(string name)
             {
                 Name = name;
@@ -375,7 +285,6 @@ namespace SoulsFormats
                 PreviousPointNames = new List<string>();
                 NextPointNames = new List<string>();
                 Config3 = new UnkConfig3();
-                Config4 = new UnkConfig4();
             }
 
             /// <summary>
@@ -388,7 +297,6 @@ namespace SoulsFormats
                 region.PreviousPointNames = new List<string>(PreviousPointNames);
                 region.NextPointNames = new List<string>(NextPointNames);
                 region.Config3 = Config3.DeepCopy();
-                region.Config4 = Config4.DeepCopy();
                 DeepCopyTo(region);
                 return region;
             }
@@ -416,15 +324,15 @@ namespace SoulsFormats
                 int offsetCamera = br.ReadInt32();
                 br.AssertInt32(0); // Probably unknown and unused type offset
                 int offsetSFX = br.ReadInt32();
-                int offsetSlowdown = br.ReadInt32();
+                br.AssertInt32(0); // Probably unknown and unused type offset, offsetSlowdown?
                 int offsetNoTurretArea = br.ReadInt32();
                 br.AssertInt32(0); // Probably unknown and unused type offset
                 int offsetUnkConfig3 = br.ReadInt32();
-                int offsetAntiAirArea = br.ReadInt32();
-                int offsetAntiAirCamera = br.ReadInt32();
-                int offsetUnkConfig4 = br.ReadInt32();
-                int offsetHerd = br.ReadInt32();
-                int offsetSkirtRoom = br.ReadInt32();
+                br.AssertInt32(0); // Probably unknown and unused type offset, offsetAntiAirArea?
+                br.AssertInt32(0); // Probably unknown and unused type offset, offsetAntiAirCamera?
+                br.AssertInt32(0); // Probably unknown and unused data offset, offsetUnkConfig4?
+                br.AssertInt32(0); // Probably unknown and unused type offset, offsetHerd?
+                br.AssertInt32(0); // Probably unknown and unused type offset, offsetSkirtRoom?
                 br.AssertInt32(0); // Probably unknown and unused type offset
                 br.AssertInt32(0); // Probably unknown and unused type offset
                 br.AssertInt32(0); // Probably unknown and unused type offset
@@ -466,7 +374,7 @@ namespace SoulsFormats
                     if (Type != RegionType.OperationalArea &&
                         Type != RegionType.WarningArea &&
                         Type != RegionType.AttentionArea &&
-                        Type != RegionType.VOBPurgeArea)
+                        Type != RegionType.DeathArea)
                         throw new InvalidDataException($"{nameof(offsetArea)} must be 0 for type {GetType()}");
 
                     br.Position = start + offsetArea;
@@ -500,15 +408,6 @@ namespace SoulsFormats
                     ReadTypeData(br);
                 }
 
-                if (offsetSlowdown > 0)
-                {
-                    if (Type != RegionType.Slowdown)
-                        throw new InvalidDataException($"{nameof(offsetSlowdown)} must be 0 for type {GetType()}");
-
-                    br.Position = start + offsetSlowdown;
-                    ReadTypeData(br);
-                }
-
                 if (offsetNoTurretArea > 0)
                 {
                     if (Type != RegionType.NoTurretArea)
@@ -520,53 +419,6 @@ namespace SoulsFormats
 
                 br.Position = start + offsetUnkConfig3;
                 Config3 = new UnkConfig3(br);
-
-                if (offsetAntiAirArea > 0)
-                {
-                    if (Type != RegionType.AntiAirArea)
-                        throw new InvalidDataException($"{nameof(offsetAntiAirArea)} must be 0 for type {GetType()}");
-
-                    br.Position = start + offsetAntiAirArea;
-                    ReadTypeData(br);
-                }
-
-                if (offsetAntiAirCamera > 0)
-                {
-                    if (Type != RegionType.AntiAirCamera)
-                        throw new InvalidDataException($"{nameof(offsetAntiAirCamera)} must be 0 for type {GetType()}");
-
-                    br.Position = start + offsetAntiAirCamera;
-                    ReadTypeData(br);
-                }
-
-                // Checking for 0 because of m900_tae_test_env.msb
-                if (offsetUnkConfig4 > 0)
-                {
-                    br.Position = start + offsetUnkConfig4;
-                    Config4 = new UnkConfig4(br);
-                }
-                else
-                {
-                    Config4 = null;
-                }
-
-                if (offsetHerd > 0)
-                {
-                    if (Type != RegionType.Herd)
-                        throw new InvalidDataException($"{nameof(offsetHerd)} must be 0 for type {GetType()}");
-
-                    br.Position = start + offsetHerd;
-                    ReadTypeData(br);
-                }
-
-                if (offsetSkirtRoom > 0)
-                {
-                    if (Type != RegionType.SkirtRoom)
-                        throw new InvalidDataException($"{nameof(offsetSkirtRoom)} must be 0 for type {GetType()}");
-
-                    br.Position = start + offsetSkirtRoom;
-                    ReadTypeData(br);
-                }
             }
 
             private protected virtual void ReadTypeData(BinaryReaderEx br)
@@ -592,15 +444,15 @@ namespace SoulsFormats
                 bw.ReserveInt32("OffsetCamera");
                 bw.WriteInt32(0); // Probably unknown and unused type offset
                 bw.ReserveInt32("OffsetSFX");
-                bw.ReserveInt32("OffsetSlowdown");
+                bw.WriteInt32(0); // Probably unknown and unused data offset, OffsetSlowdown?
                 bw.ReserveInt32("OffsetNoTurretArea");
                 bw.WriteInt32(0); // Probably unknown and unused type offset
                 bw.ReserveInt32("OffsetUnkConfig3");
-                bw.ReserveInt32("OffsetAntiAirArea");
-                bw.ReserveInt32("OffsetAntiAirCamera");
-                bw.ReserveInt32("OffsetUnkConfig4");
-                bw.ReserveInt32("OffsetHerd");
-                bw.ReserveInt32("OffsetSkirtRoom");
+                bw.WriteInt32(0); // Probably unknown and unused data offset, OffsetAntiAirArea?
+                bw.WriteInt32(0); // Probably unknown and unused data offset, OffsetAntiAirCamera?
+                bw.WriteInt32(0); // Probably unknown and unused data offset, OffsetUnkConfig4?
+                bw.WriteInt32(0); // Probably unknown and unused type offset, OffsetHerd?
+                bw.WriteInt32(0); // Probably unknown and unused type offset, OffsetSkirtRoom?
                 bw.WriteInt32(0); // Probably unknown and unused type offset
                 bw.WriteInt32(0); // Probably unknown and unused type offset
                 bw.WriteInt32(0); // Probably unknown and unused type offset
@@ -629,34 +481,22 @@ namespace SoulsFormats
                     bw.FillInt32("ShapeDataOffset", 0);
                 }
 
-                FillTypeDataOffset(bw, start, "OffsetArea", Type == RegionType.OperationalArea || Type == RegionType.WarningArea || Type == RegionType.AttentionArea || Type == RegionType.VOBPurgeArea);
+                FillTypeDataOffset(bw, start, "OffsetArea", Type == RegionType.OperationalArea || Type == RegionType.WarningArea || Type == RegionType.AttentionArea || Type == RegionType.DeathArea);
                 FillTypeDataOffset(bw, start, "OffsetSpawn", Type == RegionType.Spawn);
                 FillTypeDataOffset(bw, start, "OffsetCamera", Type == RegionType.Camera);
                 // Probably unknown type
                 FillTypeDataOffset(bw, start, "OffsetSFX", Type == RegionType.SFX);
-                FillTypeDataOffset(bw, start, "OffsetSlowdown", Type == RegionType.Slowdown);
+                // Probably unknown type, OffsetSlowdown?
                 FillTypeDataOffset(bw, start, "OffsetNoTurretArea", Type == RegionType.NoTurretArea);
                 // Probably unknown type
                 bw.FillInt32("OffsetUnkConfig3", (int)(bw.Position - start));
                 Config3.Write(bw);
 
-                FillTypeDataOffset(bw, start, "OffsetAntiAirArea", Type == RegionType.AntiAirArea);
-                FillTypeDataOffset(bw, start, "OffsetAntiAirCamera", Type == RegionType.AntiAirCamera);
-
-                // Checking for null because of m900_tae_test_env.msb
-                // TODO: Investigate this just in case we can avoid a bunch of null objects.
-                if (Config4 != null)
-                {
-                    bw.FillInt32("OffsetUnkConfig4", (int)(bw.Position - start));
-                    Config4.Write(bw);
-                }
-                else
-                {
-                    bw.FillInt32("OffsetUnkConfig4", 0);
-                }
-
-                FillTypeDataOffset(bw, start, "OffsetHerd", Type == RegionType.Herd);
-                FillTypeDataOffset(bw, start, "OffsetSkirtRoom", Type == RegionType.SkirtRoom);
+                // Probably unknown type, OffsetAntiAirArea?
+                // Probably unknown type, OffsetAntiAirCamera?
+                // Probably unknown data, OffsetUnkConfig4?
+                // Probably unknown type, OffsetHerd?
+                // Probably unknown type, OffsetSkirtRoom?
                 // Probably unknown type
                 // Probably unknown type
                 // Probably unknown type
@@ -829,164 +669,6 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Unknown.
-            /// </summary>
-            public class UnkConfig4
-            {
-                public int Unk00 { get; set; }
-
-                internal UnkConfig4(){}
-
-                /// <summary>
-                /// Creates a deep copy of the struct.
-                /// </summary>
-                internal UnkConfig4 DeepCopy()
-                {
-                    return (UnkConfig4)MemberwiseClone();
-                }
-
-                internal UnkConfig4(BinaryReaderEx br)
-                {
-                    Unk00 = br.ReadInt32();
-                    br.AssertInt32(32);
-                    br.AssertInt32(0);
-                    br.AssertInt32(0);
-                    br.AssertInt32(0);
-                    br.AssertInt32(0);
-                    br.AssertInt32(0);
-                    br.AssertInt32(0);
-                    br.AssertInt32(0);
-                }
-
-                internal void Write(BinaryWriterEx bw)
-                {
-                    bw.WriteInt32(Unk00);
-                    bw.WriteInt32(32);
-                    bw.WriteInt32(0);
-                    bw.WriteInt32(0);
-                    bw.WriteInt32(0);
-                    bw.WriteInt32(0);
-                    bw.WriteInt32(0);
-                    bw.WriteInt32(0);
-                    bw.WriteInt32(0);
-                }
-            }
-
-            /// <summary>
-            /// Type data for skirt room points.
-            /// </summary>
-            public class SkirtRoomConfig
-            {
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public byte Unk00 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public byte Unk01 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public byte Unk02 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public byte Unk03 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk04 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk08 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk0C { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk10 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk14 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk18 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk1C { get; set; }
-
-                public SkirtRoomConfig()
-                {
-                    Unk00 = 0;
-                    Unk01 = 0;
-                    Unk02 = 0;
-                    Unk03 = 0;
-                    Unk04 = 0;
-                    Unk08 = 0;
-                    Unk0C = 0;
-                    Unk10 = 0;
-                    Unk14 = 0;
-                    Unk18 = 0;
-                    Unk1C = 0;
-                }
-
-                /// <summary>
-                /// Creates a deep copy of the struct.
-                /// </summary>
-                public SkirtRoomConfig DeepCopy()
-                {
-                    return (SkirtRoomConfig)MemberwiseClone();
-                }
-
-                internal SkirtRoomConfig(BinaryReaderEx br)
-                {
-                    Unk00 = br.ReadByte();
-                    Unk01 = br.ReadByte();
-                    Unk02 = br.ReadByte();
-                    Unk03 = br.ReadByte();
-                    Unk04 = br.ReadInt32();
-                    Unk08 = br.ReadInt32();
-                    Unk0C = br.ReadInt32();
-                    Unk10 = br.ReadInt32();
-                    Unk14 = br.ReadInt32();
-                    Unk18 = br.ReadInt32();
-                    Unk1C = br.ReadInt32();
-                }
-
-                internal void Write(BinaryWriterEx bw)
-                {
-                    bw.WriteByte(Unk00);
-                    bw.WriteByte(Unk01);
-                    bw.WriteByte(Unk02);
-                    bw.WriteByte(Unk03);
-                    bw.WriteInt32(Unk04);
-                    bw.WriteInt32(Unk08);
-                    bw.WriteInt32(Unk0C);
-                    bw.WriteInt32(Unk10);
-                    bw.WriteInt32(Unk14);
-                    bw.WriteInt32(Unk18);
-                    bw.WriteInt32(Unk1C);
-                }
-            }
-
-            /// <summary>
             /// Type data for area points.
             /// </summary>
             public class AreaConfig
@@ -1075,122 +757,6 @@ namespace SoulsFormats
                     bw.WriteByte(Unk06);
                     bw.WriteByte(Unk07);
                     bw.WritePattern(24, 0);
-                }
-            }
-
-            /// <summary>
-            /// Type data for anti air area points.
-            /// </summary>
-            public class AntiAirAreaConfig
-            {
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk00 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk04 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk08 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk0C { get; set; }
-
-                public AntiAirAreaConfig()
-                {
-                    Unk00 = 0;
-                    Unk04 = 0;
-                    Unk08 = 0;
-                    Unk0C = 0;
-                }
-
-                /// <summary>
-                /// Creates a deep copy of the struct.
-                /// </summary>
-                public AntiAirAreaConfig DeepCopy()
-                {
-                    return (AntiAirAreaConfig)MemberwiseClone();
-                }
-
-                internal AntiAirAreaConfig(BinaryReaderEx br)
-                {
-                    Unk00 = br.ReadInt32();
-                    Unk04 = br.ReadInt32();
-                    Unk08 = br.ReadInt32();
-                    Unk0C = br.ReadInt32();
-                }
-
-                internal void Write(BinaryWriterEx bw)
-                {
-                    bw.WriteInt32(Unk00);
-                    bw.WriteInt32(Unk04);
-                    bw.WriteInt32(Unk08);
-                    bw.WriteInt32(Unk0C);
-                }
-            }
-
-            /// <summary>
-            /// Type data for anti air camera points.
-            /// </summary>
-            public class AntiAirCameraConfig
-            {
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk00 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk04 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk08 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk0C { get; set; }
-
-                public AntiAirCameraConfig()
-                {
-                    Unk00 = 0;
-                    Unk04 = 0;
-                    Unk08 = 0;
-                    Unk0C = 0;
-                }
-
-                /// <summary>
-                /// Creates a deep copy of the struct.
-                /// </summary>
-                public AntiAirCameraConfig DeepCopy()
-                {
-                    return (AntiAirCameraConfig)MemberwiseClone();
-                }
-
-                internal AntiAirCameraConfig(BinaryReaderEx br)
-                {
-                    Unk00 = br.ReadInt32();
-                    Unk04 = br.ReadInt32();
-                    Unk08 = br.ReadInt32();
-                    Unk0C = br.ReadInt32();
-                }
-
-                internal void Write(BinaryWriterEx bw)
-                {
-                    bw.WriteInt32(Unk00);
-                    bw.WriteInt32(Unk04);
-                    bw.WriteInt32(Unk08);
-                    bw.WriteInt32(Unk0C);
                 }
             }
 
@@ -1412,64 +978,6 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Type data for slowdown points.
-            /// </summary>
-            public class SlowdownConfig
-            {
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk00 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk04 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk08 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk0C { get; set; }
-
-                public SlowdownConfig()
-                {
-                    Unk00 = 0;
-                    Unk04 = 0;
-                    Unk08 = 0;
-                    Unk0C = 0;
-                }
-
-                /// <summary>
-                /// Creates a deep copy of the struct.
-                /// </summary>
-                public SlowdownConfig DeepCopy()
-                {
-                    return (SlowdownConfig)MemberwiseClone();
-                }
-
-                internal SlowdownConfig(BinaryReaderEx br)
-                {
-                    Unk00 = br.ReadInt32();
-                    Unk04 = br.ReadInt32();
-                    Unk08 = br.ReadInt32();
-                    Unk0C = br.ReadInt32();
-                }
-
-                internal void Write(BinaryWriterEx bw)
-                {
-                    bw.WriteInt32(Unk00);
-                    bw.WriteInt32(Unk04);
-                    bw.WriteInt32(Unk08);
-                    bw.WriteInt32(Unk0C);
-                }
-            }
-
-            /// <summary>
             /// Type data for no turret area points.
             /// </summary>
             public class NoTurretAreaConfig
@@ -1543,96 +1051,6 @@ namespace SoulsFormats
                 }
             }
 
-            /// <summary>
-            /// Type data for herd points.
-            /// </summary>
-            public class HerdConfig
-            {
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk00 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk04 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk08 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk0C { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk10 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk14 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk18 { get; set; }
-
-                /// <summary>
-                /// Unknown.
-                /// </summary>
-                public int Unk1C { get; set; }
-
-                public HerdConfig()
-                {
-                    Unk00 = 0;
-                    Unk04 = 0;
-                    Unk08 = 0;
-                    Unk0C = 0;
-                    Unk10 = 0;
-                    Unk14 = 0;
-                    Unk18 = 0;
-                    Unk1C = 0;
-                }
-
-                /// <summary>
-                /// Creates a deep copy of the struct.
-                /// </summary>
-                public HerdConfig DeepCopy()
-                {
-                    return (HerdConfig)MemberwiseClone();
-                }
-
-                internal HerdConfig(BinaryReaderEx br)
-                {
-                    Unk00 = br.ReadInt32();
-                    Unk04 = br.ReadInt32();
-                    Unk08 = br.ReadInt32();
-                    Unk0C = br.ReadInt32();
-                    Unk10 = br.ReadInt32();
-                    Unk14 = br.ReadInt32();
-                    Unk18 = br.ReadInt32();
-                    Unk1C = br.ReadInt32();
-                }
-
-                internal void Write(BinaryWriterEx bw)
-                {
-                    bw.WriteInt32(Unk00);
-                    bw.WriteInt32(Unk04);
-                    bw.WriteInt32(Unk08);
-                    bw.WriteInt32(Unk0C);
-                    bw.WriteInt32(Unk10);
-                    bw.WriteInt32(Unk14);
-                    bw.WriteInt32(Unk18);
-                    bw.WriteInt32(Unk1C);
-                }
-            }
-
             #endregion
 
             #region RegionType Structs
@@ -1677,32 +1095,6 @@ namespace SoulsFormats
                 private protected override void DeepCopyTo(Region region) { }
 
                 internal Action(BinaryReaderEx br) : base(br) { }
-            }
-
-            /// <summary>
-            /// Unknown; Enemy drone spawns from Arms Fort?
-            /// </summary>
-            public class SkirtRoomArea : Region
-            {
-                private protected override RegionType Type => RegionType.SkirtRoom;
-
-                public SkirtRoomConfig SkirtRoom { get; set; }
-
-                public SkirtRoomArea() : base("skirt room")
-                {
-                    SkirtRoom = new SkirtRoomConfig();
-                }
-
-                private protected override void DeepCopyTo(Region region)
-                {
-                    var skirtRoom = (SkirtRoomArea)region;
-                    skirtRoom.SkirtRoom = SkirtRoom.DeepCopy();
-                }
-
-                internal SkirtRoomArea(BinaryReaderEx br) : base(br) { }
-
-                private protected override void ReadTypeData(BinaryReaderEx br) => SkirtRoom = new SkirtRoomConfig(br);
-                private protected override void WriteTypeData(BinaryWriterEx bw) => SkirtRoom.Write(bw);
             }
 
             /// <summary>
@@ -1784,81 +1176,29 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// An area that once entered will purge VOB.
+            /// An area that forces death.
             /// </summary>
-            public class VOBPurgeArea : Region
+            public class DeathArea : Region
             {
-                private protected override RegionType Type => RegionType.VOBPurgeArea;
+                private protected override RegionType Type => RegionType.DeathArea;
 
                 public AreaConfig Area { get; set; }
 
-                public VOBPurgeArea() : base("vob purge area")
+                public DeathArea() : base("death area")
                 {
                     Area = new AreaConfig();
                 }
 
                 private protected override void DeepCopyTo(Region region)
                 {
-                    var vobPurgeArea = (VOBPurgeArea)region;
-                    vobPurgeArea.Area = Area.DeepCopy();
+                    var attentionArea = (AttentionArea)region;
+                    attentionArea.Area = Area.DeepCopy();
                 }
 
-                internal VOBPurgeArea(BinaryReaderEx br) : base(br) { }
+                internal DeathArea(BinaryReaderEx br) : base(br) { }
 
                 private protected override void ReadTypeData(BinaryReaderEx br) => Area = new AreaConfig(br);
                 private protected override void WriteTypeData(BinaryWriterEx bw) => Area.Write(bw);
-            }
-
-            /// <summary>
-            /// Unknown; An area for AA?
-            /// </summary>
-            public class AntiAirAreaRegion : Region
-            {
-                private protected override RegionType Type => RegionType.AntiAirArea;
-
-                public AntiAirAreaConfig AntiAirArea { get; set; }
-
-                public AntiAirAreaRegion() : base("anti air area")
-                {
-                    AntiAirArea = new AntiAirAreaConfig();
-                }
-
-                private protected override void DeepCopyTo(Region region)
-                {
-                    var antiAirArea = (AntiAirAreaRegion)region;
-                    antiAirArea.AntiAirArea = AntiAirArea.DeepCopy();
-                }
-
-                internal AntiAirAreaRegion(BinaryReaderEx br) : base(br) { }
-
-                private protected override void ReadTypeData(BinaryReaderEx br) => AntiAirArea = new AntiAirAreaConfig(br);
-                private protected override void WriteTypeData(BinaryWriterEx bw) => AntiAirArea.Write(bw);
-            }
-
-            /// <summary>
-            /// Unknown; A camera for AA?
-            /// </summary>
-            public class AntiAirCameraRegion : Region
-            {
-                private protected override RegionType Type => RegionType.AntiAirCamera;
-
-                public AntiAirCameraConfig AntiAirCamera { get; set; }
-
-                public AntiAirCameraRegion() : base("anti air camera")
-                {
-                    AntiAirCamera = new AntiAirCameraConfig();
-                }
-
-                private protected override void DeepCopyTo(Region region)
-                {
-                    var antiAirCamera = (AntiAirCameraRegion)region;
-                    antiAirCamera.AntiAirCamera = AntiAirCamera.DeepCopy();
-                }
-
-                internal AntiAirCameraRegion(BinaryReaderEx br) : base(br) { }
-
-                private protected override void ReadTypeData(BinaryReaderEx br) => AntiAirCamera = new AntiAirCameraConfig(br);
-                private protected override void WriteTypeData(BinaryWriterEx bw) => AntiAirCamera.Write(bw);
             }
 
             /// <summary>
@@ -1940,32 +1280,6 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Unknown; The point a ship slows down?
-            /// </summary>
-            public class SlowdownPoint : Region
-            {
-                private protected override RegionType Type => RegionType.Slowdown;
-
-                public SlowdownConfig Slowdown { get; set; }
-
-                public SlowdownPoint() : base("slowdown")
-                {
-                    Slowdown = new SlowdownConfig();
-                }
-
-                private protected override void DeepCopyTo(Region region)
-                {
-                    var slowdown = (SlowdownPoint)region;
-                    slowdown.Slowdown = Slowdown.DeepCopy();
-                }
-
-                internal SlowdownPoint(BinaryReaderEx br) : base(br) { }
-
-                private protected override void ReadTypeData(BinaryReaderEx br) => Slowdown = new SlowdownConfig(br);
-                private protected override void WriteTypeData(BinaryWriterEx bw) => Slowdown.Write(bw);
-            }
-
-            /// <summary>
             /// An area turrets cannot fire into.
             /// </summary>
             public class NoTurretAreaRegion : Region
@@ -1989,46 +1303,6 @@ namespace SoulsFormats
 
                 private protected override void ReadTypeData(BinaryReaderEx br) => NoTurretArea = new NoTurretAreaConfig(br);
                 private protected override void WriteTypeData(BinaryWriterEx bw) => NoTurretArea.Write(bw);
-            }
-
-            /// <summary>
-            /// Unknown; A herding point?
-            /// </summary>
-            public class HerdRegion : Region
-            {
-                private protected override RegionType Type => RegionType.Herd;
-
-                public HerdConfig Herd { get; set; }
-
-                public HerdRegion() : base("herd")
-                {
-                    Herd = new HerdConfig();
-                }
-
-                private protected override void DeepCopyTo(Region region)
-                {
-                    var herd = (HerdRegion)region;
-                    herd.Herd = Herd.DeepCopy();
-                }
-
-                internal HerdRegion(BinaryReaderEx br) : base(br) { }
-
-                private protected override void ReadTypeData(BinaryReaderEx br) => Herd = new HerdConfig(br);
-                private protected override void WriteTypeData(BinaryWriterEx bw) => Herd.Write(bw);
-            }
-
-            /// <summary>
-            /// An area herds are prohibited from.
-            /// </summary>
-            public class NoHerdAreaRegion : Region
-            {
-                private protected override RegionType Type => RegionType.NoHerdArea;
-
-                public NoHerdAreaRegion() : base("no herd area") { }
-
-                private protected override void DeepCopyTo(Region region) { }
-
-                internal NoHerdAreaRegion(BinaryReaderEx br) : base(br) { }
             }
 
             #endregion
