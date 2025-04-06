@@ -5,7 +5,7 @@ using System.IO;
 namespace SoulsFormats
 {
     /// <summary>
-    /// A map layout file used in Armored Core V.<br/>
+    /// A map layout file used in Armored Core 4.<br/>
     /// Extension: .msb
     /// </summary>
     public partial class MSBAC4 : SoulsFile<MSBAC4>, IMsbBound<MSBAC4.MapStudioTree>
@@ -196,7 +196,7 @@ namespace SoulsFormats
             }
             else
             {
-                throw new InvalidDataException("MSB in Armored Core For Answer is known to have two trees or four trees.");
+                throw new InvalidDataException("MSB in Armored Core 4 is known to have two trees or four trees.");
             }
         }
 
@@ -207,7 +207,7 @@ namespace SoulsFormats
         {
             /// <summary>
             /// Unknown; probably some kind of version number.<br/>
-            /// Usually either 10001002 or 20051027 in Armored Core For Answer.
+            /// Usually either 10001002 or 20051027 in Armored Core 4.
             /// </summary>
             public int Version { get; set; }
 
