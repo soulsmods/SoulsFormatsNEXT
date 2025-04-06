@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Diagnostics;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace SoulsFormats
 {
@@ -8,7 +8,7 @@ namespace SoulsFormats
         /// <summary>
         /// Layers which parts can selectively be enabled or disabled on.
         /// </summary>
-        public class LayerParam : Param<Layer>
+        public class LayerParam : Param<Layer>, IMsbParam<Layer>
         {
             /// <summary>
             /// The available layers to use.
@@ -23,7 +23,17 @@ namespace SoulsFormats
                 Layers = new List<Layer>();
             }
 
+            /// <summary>
+            /// Adds a <see cref="Layer"/> to the appropriate list for its type and returns it.
+            /// </summary>
+            public Layer Add(Layer layer)
+            {
+                Layers.Add(layer);
+                return layer;
+            }
+
             public override List<Layer> GetEntries() => Layers;
+            IReadOnlyList<Layer> IMsbParam<Layer>.GetEntries() => GetEntries();
 
             internal override Layer ReadEntry(BinaryReaderEx br, int version)
             {
@@ -34,7 +44,7 @@ namespace SoulsFormats
         /// <summary>
         /// A layer that parts can selectively be enabled or disabled on.
         /// </summary>
-        public class Layer : ParamEntry
+        public class Layer : ParamEntry, IMsbEntry
         {
             /// <summary>
             /// The ID of this layer to identify it.
@@ -152,6 +162,15 @@ namespace SoulsFormats
                 bw.FillInt32("NameOffset", (int)(bw.Position - start));
                 bw.WriteShiftJIS(MSB.ReambiguateName(Name), true);
                 bw.Pad(4);
+            }
+
+            /// <summary>
+            /// Creates a deep copy of the <see cref="Layer"/>.
+            /// </summary>
+            public Layer DeepCopy()
+            {
+                var layer = (Layer)MemberwiseClone();
+                return layer;
             }
         }
     }
