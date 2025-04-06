@@ -169,7 +169,9 @@ namespace SoulsFormats
             /// </summary>
             public Model DeepCopy()
             {
-                return (Model)MemberwiseClone();
+                var model = (Model)MemberwiseClone();
+                model.Render = Render.DeepCopy();
+                return model;
             }
             IMsbModel IMsbModel.DeepCopy() => DeepCopy();
 
@@ -291,6 +293,14 @@ namespace SoulsFormats
                     bw.WriteByte(Unk01);
                     bw.WriteByte(Unk02);
                     bw.WriteByte(Unk03);
+                }
+
+                /// <summary>
+                /// Creates a deep copy of the <see cref="RenderConfig"/>.
+                /// </summary>
+                public RenderConfig DeepCopy()
+                {
+                    return (RenderConfig)MemberwiseClone();
                 }
             }
 
