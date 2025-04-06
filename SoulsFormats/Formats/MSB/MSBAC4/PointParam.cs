@@ -1062,7 +1062,6 @@ namespace SoulsFormats
                 private protected override RegionType Type => RegionType.Distance;
 
                 public DistanceRegion(string name) : base(name) { }
-
                 public DistanceRegion() : this("default") { }
 
                 private protected override void DeepCopyTo(Region region){}

@@ -322,6 +322,11 @@ namespace SoulsFormats
                 public MapPiece() : base("mXXXX") { }
 
                 /// <summary>
+                /// Creates a <see cref="MapPiece"/> with the given name.
+                /// </summary>
+                public MapPiece(string name) : base(name) { }
+
+                /// <summary>
                 /// Reads a <see cref="MapPiece"/> from a stream.
                 /// </summary>
                 internal MapPiece(BinaryReaderEx br) : base(br) { }
@@ -350,6 +355,11 @@ namespace SoulsFormats
                 /// Creates an <see cref="Object"/> with default values.
                 /// </summary>
                 public Object() : base("oXXXX") { }
+
+                /// <summary>
+                /// Creates an <see cref="Object"/> with the given name.
+                /// </summary>
+                public Object(string name) : base(name) { }
 
                 /// <summary>
                 /// Reads an <see cref="Object"/> from a stream.
@@ -383,6 +393,11 @@ namespace SoulsFormats
                 public Enemy() : base("eXXXX") { }
 
                 /// <summary>
+                /// Creates an <see cref="Enemy"/> with the given name.
+                /// </summary>
+                public Enemy(string name) : base(name) { }
+
+                /// <summary>
                 /// Reads an <see cref="Enemy"/> from a stream.
                 /// </summary>
                 internal Enemy(BinaryReaderEx br) : base(br) { }
@@ -411,6 +426,11 @@ namespace SoulsFormats
                 /// Creates a <see cref="Dummy"/> with default values.
                 /// </summary>
                 public Dummy() : base("aXXXX") { }
+
+                /// <summary>
+                /// Creates a <see cref="Dummy"/> with the given name.
+                /// </summary>
+                public Dummy(string name) : base(name) { }
 
                 /// <summary>
                 /// Reads a <see cref="Dummy"/> from a stream.

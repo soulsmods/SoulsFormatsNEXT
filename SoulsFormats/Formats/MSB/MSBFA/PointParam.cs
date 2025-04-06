@@ -1644,7 +1644,8 @@ namespace SoulsFormats
             {
                 private protected override RegionType Type => RegionType.Distance;
 
-                public DistanceRegion() : base("default"){}
+                public DistanceRegion(string name) : base(name) { }
+                public DistanceRegion() : this("default") { }
 
                 private protected override void DeepCopyTo(Region region){}
 
@@ -1658,7 +1659,8 @@ namespace SoulsFormats
             {
                 private protected override RegionType Type => RegionType.RoutePoint;
 
-                public RoutePoint() : base("route") { }
+                public RoutePoint(string name) : base(name) { }
+                public RoutePoint() : this("route") { }
 
                 private protected override void DeepCopyTo(Region region) { }
 
@@ -1672,7 +1674,8 @@ namespace SoulsFormats
             {
                 private protected override RegionType Type => RegionType.Action;
 
-                public Action() : base("action") { }
+                public Action(string name) : base(name) { }
+                public Action() : this("action") { }
 
                 private protected override void DeepCopyTo(Region region) { }
 
@@ -1688,10 +1691,12 @@ namespace SoulsFormats
 
                 public SkirtRoomConfig SkirtRoom { get; set; }
 
-                public SkirtRoomArea() : base("skirt room")
+                public SkirtRoomArea(string name) : base(name)
                 {
                     SkirtRoom = new SkirtRoomConfig();
                 }
+
+                public SkirtRoomArea() : this("skirt room") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1714,10 +1719,12 @@ namespace SoulsFormats
 
                 public AreaConfig Area { get; set; }
 
-                public OperationalArea() : base("operational area")
+                public OperationalArea(string name) : base(name)
                 {
                     Area = new AreaConfig();
                 }
+
+                public OperationalArea() : this("operational area") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1740,10 +1747,12 @@ namespace SoulsFormats
 
                 public AreaConfig Area { get; set; }
 
-                public WarningArea() : base("warning area")
+                public WarningArea(string name) : base(name)
                 {
                     Area = new AreaConfig();
                 }
+
+                public WarningArea() : this("warning area") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1766,10 +1775,12 @@ namespace SoulsFormats
 
                 public AreaConfig Area { get; set; }
 
-                public AttentionArea() : base("attention area")
+                public AttentionArea(string name) : base(name)
                 {
                     Area = new AreaConfig();
                 }
+
+                public AttentionArea() : base("attention area") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1792,10 +1803,12 @@ namespace SoulsFormats
 
                 public AreaConfig Area { get; set; }
 
-                public VOBPurgeArea() : base("vob purge area")
+                public VOBPurgeArea(string name) : base(name)
                 {
                     Area = new AreaConfig();
                 }
+
+                public VOBPurgeArea() : base("vob purge area") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1818,10 +1831,12 @@ namespace SoulsFormats
 
                 public AntiAirAreaConfig AntiAirArea { get; set; }
 
-                public AntiAirAreaRegion() : base("anti air area")
+                public AntiAirAreaRegion(string name) : base(name)
                 {
                     AntiAirArea = new AntiAirAreaConfig();
                 }
+
+                public AntiAirAreaRegion() : base("anti air area") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1844,10 +1859,12 @@ namespace SoulsFormats
 
                 public AntiAirCameraConfig AntiAirCamera { get; set; }
 
-                public AntiAirCameraRegion() : base("anti air camera")
+                public AntiAirCameraRegion(string name) : base(name)
                 {
                     AntiAirCamera = new AntiAirCameraConfig();
                 }
+
+                public AntiAirCameraRegion() : base("anti air camera") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1870,10 +1887,12 @@ namespace SoulsFormats
 
                 public SpawnConfig Spawn { get; set; }
 
-                public SpawnPoint() : base("spawn point")
+                public SpawnPoint(string name) : base(name)
                 {
                     Spawn = new SpawnConfig();
                 }
+
+                public SpawnPoint() : base("spawn point") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1896,10 +1915,12 @@ namespace SoulsFormats
 
                 public CameraConfig Camera { get; set; }
 
-                public CameraPoint() : base("camera")
+                public CameraPoint(string name) : base(name)
                 {
                     Camera = new CameraConfig();
                 }
+
+                public CameraPoint() : this("camera") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1922,10 +1943,12 @@ namespace SoulsFormats
 
                 public SFXConfig SFX { get; set; }
 
-                public SFXRegion() : base("sfx")
+                public SFXRegion(string name) : base(name)
                 {
                     SFX = new SFXConfig();
                 }
+
+                public SFXRegion() : this("sfx") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1948,10 +1971,12 @@ namespace SoulsFormats
 
                 public SlowdownConfig Slowdown { get; set; }
 
-                public SlowdownPoint() : base("slowdown")
+                public SlowdownPoint(string name) : base(name)
                 {
                     Slowdown = new SlowdownConfig();
                 }
+
+                public SlowdownPoint() : this("slowdown") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -1974,10 +1999,12 @@ namespace SoulsFormats
 
                 public NoTurretAreaConfig NoTurretArea { get; set; }
 
-                public NoTurretAreaRegion() : base("no turret area")
+                public NoTurretAreaRegion(string name) : base(name)
                 {
                     NoTurretArea = new NoTurretAreaConfig();
                 }
+
+                public NoTurretAreaRegion() : base("no turret area") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -2000,10 +2027,12 @@ namespace SoulsFormats
 
                 public HerdConfig Herd { get; set; }
 
-                public HerdRegion() : base("herd")
+                public HerdRegion(string name) : base(name)
                 {
                     Herd = new HerdConfig();
                 }
+
+                public HerdRegion() : base("herd") { }
 
                 private protected override void DeepCopyTo(Region region)
                 {
@@ -2024,7 +2053,8 @@ namespace SoulsFormats
             {
                 private protected override RegionType Type => RegionType.NoHerdArea;
 
-                public NoHerdAreaRegion() : base("no herd area") { }
+                public NoHerdAreaRegion(string name) : base(name) { }
+                public NoHerdAreaRegion() : this("no herd area") { }
 
                 private protected override void DeepCopyTo(Region region) { }
 
