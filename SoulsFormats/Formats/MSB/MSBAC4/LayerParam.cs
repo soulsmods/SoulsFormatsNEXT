@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace SoulsFormats
 {
@@ -169,8 +168,7 @@ namespace SoulsFormats
             /// </summary>
             public Layer DeepCopy()
             {
-                var layer = (Layer)MemberwiseClone();
-                return layer;
+                return (Layer)MemberwiseClone();
             }
         }
     }
