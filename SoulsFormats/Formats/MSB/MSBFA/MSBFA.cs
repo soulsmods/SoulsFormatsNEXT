@@ -5,7 +5,7 @@ using System.IO;
 namespace SoulsFormats
 {
     /// <summary>
-    /// A map layout file used in Armored Core V.<br/>
+    /// A map layout file used in Armored Core For Answer.<br/>
     /// Extension: .msb
     /// </summary>
     public partial class MSBFA : SoulsFile<MSBFA>, IMsbBound<MSBFA.MapStudioTree>
