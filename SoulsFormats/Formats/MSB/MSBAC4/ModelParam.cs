@@ -331,11 +331,6 @@ namespace SoulsFormats
                 public MapPiece() : base("mXXXX") { }
 
                 /// <summary>
-                /// Creates a <see cref="MapPiece"/> with the specified version.
-                /// </summary>
-                public MapPiece(int version) : base("mXXXX") { }
-
-                /// <summary>
                 /// Creates a <see cref="MapPiece"/> with the given name.
                 /// </summary>
                 public MapPiece(string name) : base(name) { }
