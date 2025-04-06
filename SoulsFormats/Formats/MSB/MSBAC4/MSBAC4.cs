@@ -5,10 +5,10 @@ using System.IO;
 namespace SoulsFormats
 {
     /// <summary>
-    /// A map layout file used in Armored Core For Answer.<br/>
+    /// A map layout file used in Armored Core 4.<br/>
     /// Extension: .msb
     /// </summary>
-    public partial class MSBFA : SoulsFile<MSBFA>, IMsbBound<MSBFA.MapStudioTree>
+    public partial class MSBAC4 : SoulsFile<MSBAC4>, IMsbBound<MSBAC4.MapStudioTree>
     {
         /// <summary>
         /// Model files that are available for parts to use.
@@ -68,9 +68,9 @@ namespace SoulsFormats
         IReadOnlyList<IMsbTreeParam<MapStudioTree>> IMsbBound<MapStudioTree>.Trees => new List<IMsbTreeParam<MapStudioTree>> { DrawingTree, CollisionTree, Tree3, Tree4 };
 
         /// <summary>
-        /// Create a new <see cref="MSBFA"/>.
+        /// Create a new <see cref="MSBAC4"/>.
         /// </summary>
-        public MSBFA()
+        public MSBAC4()
         {
             Models = new ModelParam();
             Events = new EventParam();
@@ -196,7 +196,7 @@ namespace SoulsFormats
             }
             else
             {
-                throw new InvalidDataException("MSB in Armored Core For Answer is known to have two trees or four trees.");
+                throw new InvalidDataException("MSB in Armored Core 4 is known to have two trees or four trees.");
             }
         }
 
@@ -207,7 +207,7 @@ namespace SoulsFormats
         {
             /// <summary>
             /// Unknown; probably some kind of version number.<br/>
-            /// Usually either 10001002 or 20051027 in Armored Core For Answer.
+            /// Usually either 10001002 or 20051027 in Armored Core 4.
             /// </summary>
             public int Version { get; set; }
 
@@ -251,7 +251,7 @@ namespace SoulsFormats
                 foreach (int offset in entryOffsets)
                 {
                     br.Position = offset;
-                    entries.Add(ReadEntry(br));
+                    entries.Add(ReadEntry(br, Version));
                 }
 
                 IsLastParam = nextParamOffset == 0;
@@ -262,7 +262,7 @@ namespace SoulsFormats
             /// <summary>
             /// Reads an entry for a Param.
             /// </summary>
-            internal abstract T ReadEntry(BinaryReaderEx br);
+            internal abstract T ReadEntry(BinaryReaderEx br, int version);
 
             /// <summary>
             /// Writes the entries for a Param.
@@ -293,7 +293,7 @@ namespace SoulsFormats
                     }
 
                     bw.FillInt32($"EntryOffset{i}", (int)bw.Position);
-                    entries[i].Write(bw, id);
+                    entries[i].Write(bw, Version, id);
                     id++;
                 }
             }
@@ -326,8 +326,9 @@ namespace SoulsFormats
             /// Writes an entry to a stream.
             /// </summary>
             /// <param name="bw">The stream.</param>
+            /// <param name="version">The version of the entry.</param>
             /// <param name="id">The ID of the entry.</param>
-            internal abstract void Write(BinaryWriterEx bw, int id);
+            internal abstract void Write(BinaryWriterEx bw, int version, int id);
         }
 
         internal struct Entries

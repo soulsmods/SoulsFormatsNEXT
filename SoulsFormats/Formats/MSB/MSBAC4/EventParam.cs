@@ -4,7 +4,7 @@ using System.IO;
 
 namespace SoulsFormats
 {
-    public partial class MSBFA
+    public partial class MSBAC4
     {
         /// <summary>
         /// The different types of events.
@@ -26,6 +26,11 @@ namespace SoulsFormats
             /// Called "filter" a lot in ACFA.
             /// </summary>
             Scene = 101,
+
+            /// <summary>
+            /// Unknown; Was named dummy leader.
+            /// </summary>
+            DummyLeader = 200,
 
             /// <summary>
             /// An event referencing what background game music should be played.
@@ -66,6 +71,11 @@ namespace SoulsFormats
             public List<Event.Scene> Scenes { get; set; }
 
             /// <summary>
+            /// Unknown.
+            /// </summary>
+            public List<Event.DummyLeader> DummyLeaders { get; set; }
+
+            /// <summary>
             /// Background music events, should only be 1.
             /// </summary>
             public List<Event.BGM> BGMs { get; set; }
@@ -88,6 +98,7 @@ namespace SoulsFormats
                 Scripts = new List<Event.Script>();
                 Effects = new List<Event.Effect>();
                 Scenes = new List<Event.Scene>();
+                DummyLeaders = new List<Event.DummyLeader>();
                 BGMs = new List<Event.BGM>();
                 Revs = new List<Event.Rev>();
                 SFXs = new List<Event.SFX>();
@@ -100,6 +111,7 @@ namespace SoulsFormats
                     case Event.Script e: Scripts.Add(e); break;
                     case Event.Effect e: Effects.Add(e); break;
                     case Event.Scene e: Scenes.Add(e); break;
+                    case Event.DummyLeader e: DummyLeaders.Add(e); break;
                     case Event.BGM e: BGMs.Add(e); break;
                     case Event.Rev e: Revs.Add(e); break;
                     case Event.SFX e: SFXs.Add(e); break;
@@ -113,10 +125,10 @@ namespace SoulsFormats
             /// <summary>
             /// Returns every Event in the order they'll be written.
             /// </summary>
-            public override List<Event> GetEntries() => SFUtil.ConcatAll<Event>(Scripts, Effects, Scenes, BGMs, Revs, SFXs);
+            public override List<Event> GetEntries() => SFUtil.ConcatAll<Event>(Scripts, Effects, Scenes, DummyLeaders, BGMs, Revs, SFXs);
             IReadOnlyList<IMsbEvent> IMsbParam<IMsbEvent>.GetEntries() => GetEntries();
 
-            internal override Event ReadEntry(BinaryReaderEx br)
+            internal override Event ReadEntry(BinaryReaderEx br, int version)
             {
                 EventType type = br.GetEnum32<EventType>(br.Position + 8);
                 switch (type)
@@ -124,6 +136,7 @@ namespace SoulsFormats
                     case EventType.Script: return Scripts.EchoAdd(new Event.Script(br));
                     case EventType.Effect: return Effects.EchoAdd(new Event.Effect(br));
                     case EventType.Scene: return Scenes.EchoAdd(new Event.Scene(br));
+                    case EventType.DummyLeader: return DummyLeaders.EchoAdd(new Event.DummyLeader(br));
                     case EventType.BGM: return BGMs.EchoAdd(new Event.BGM(br));
                     case EventType.Rev: return Revs.EchoAdd(new Event.Rev(br));
                     case EventType.SFX: return SFXs.EchoAdd(new Event.SFX(br));
@@ -199,7 +212,7 @@ namespace SoulsFormats
             private protected virtual void ReadTypeData(BinaryReaderEx br)
                 => throw new NotImplementedException($"Type {GetType()} missing valid {nameof(ReadTypeData)}.");
 
-            internal override void Write(BinaryWriterEx bw, int id)
+            internal override void Write(BinaryWriterEx bw, int version, int id)
             {
                 long start = bw.Position;
 
@@ -360,8 +373,8 @@ namespace SoulsFormats
                     /// </summary>
                     public EffectConfig DeepCopy()
                     {
-                        var lightConfig = (EffectConfig)MemberwiseClone();
-                        return lightConfig;
+                        var config = (EffectConfig)MemberwiseClone();
+                        return config;
                     }
 
                     internal EffectConfig(BinaryReaderEx br)
@@ -450,6 +463,102 @@ namespace SoulsFormats
                         bw.WriteInt16(Unk4A);
                         bw.WriteInt16(Unk4C);
                         bw.WritePattern(434, 0);
+                    }
+                }
+
+                #endregion
+            }
+
+            public class DummyLeader : Event
+            {
+                private protected override EventType Type => EventType.DummyLeader;
+                private protected override bool HasTypeData => true;
+
+                public DummyLeaderConfig Config { get; set; }
+
+                public DummyLeader(string name) : base(name)
+                {
+                    Config = new DummyLeaderConfig();
+                }
+
+                public DummyLeader() : this("dummy leader") { }
+
+                private protected override void DeepCopyTo(Event evnt)
+                {
+                    var dummyLeader = (DummyLeader)evnt;
+                    dummyLeader.Config = Config.DeepCopy();
+                }
+
+                internal DummyLeader(BinaryReaderEx br) : base(br) { }
+
+                private protected override void ReadTypeData(BinaryReaderEx br) => Config = new DummyLeaderConfig(br);
+                private protected override void WriteTypeData(BinaryWriterEx bw) => Config.Write(bw);
+
+                #region Sub Structs
+
+                public class DummyLeaderConfig
+                {
+                    /// <summary>
+                    /// Unknown; Seen as "-1"
+                    /// </summary>
+                    public string Unk { get; set; }
+
+                    /// <summary>
+                    /// Unknown; Seen as "NoAction"
+                    /// </summary>
+                    public string Script { get; set; }
+
+                    /// <summary>
+                    /// Unknown; Count? Seen as 2
+                    /// </summary>
+                    public int Unk08 { get; set; }
+
+                    public DummyLeaderConfig()
+                    {
+                        Unk = "-1";
+                        Script = "NoAction";
+                        Unk08 = 2;
+                    }
+
+                    /// <summary>
+                    /// Creates a deep copy of the struct.
+                    /// </summary>
+                    public DummyLeaderConfig DeepCopy()
+                    {
+                        var config = (DummyLeaderConfig)MemberwiseClone();
+                        return config;
+                    }
+
+                    internal DummyLeaderConfig(BinaryReaderEx br)
+                    {
+                        long start = br.Position;
+                        int offsetUnk = br.ReadInt32();
+                        int offsetScript = br.ReadInt32();
+                        Unk08 = br.ReadInt32();
+                        br.AssertPattern(20, 0);
+
+                        br.Position = start + offsetUnk;
+                        Unk = br.ReadShiftJIS();
+
+                        br.Position = start + offsetScript;
+                        Script = br.ReadShiftJIS();
+                    }
+
+                    internal void Write(BinaryWriterEx bw)
+                    {
+                        long start = bw.Position;
+                        bw.ReserveInt32("DummyLeaderConfigOffsetUnk");
+                        bw.ReserveInt32("DummyLeaderConfigOffsetScript");
+                        bw.WriteInt32(Unk08);
+                        bw.WritePattern(20, 0);
+
+                        bw.FillInt32("DummyLeaderConfigOffsetUnk", (int)(bw.Position - start));
+                        bw.WriteShiftJIS(Unk, true);
+                        // Not padded between strings
+
+                        bw.FillInt32("DummyLeaderConfigOffsetScript", (int)(bw.Position - start));
+                        bw.WriteShiftJIS(Script, true);
+                        bw.Pad(4);
                     }
                 }
 

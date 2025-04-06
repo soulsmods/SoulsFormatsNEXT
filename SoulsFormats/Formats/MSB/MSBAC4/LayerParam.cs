@@ -2,7 +2,7 @@
 
 namespace SoulsFormats
 {
-    public partial class MSBFA
+    public partial class MSBAC4
     {
         /// <summary>
         /// Layers which parts can selectively be enabled or disabled on.
@@ -34,7 +34,7 @@ namespace SoulsFormats
             public override List<Layer> GetEntries() => Layers;
             IReadOnlyList<Layer> IMsbParam<Layer>.GetEntries() => GetEntries();
 
-            internal override Layer ReadEntry(BinaryReaderEx br)
+            internal override Layer ReadEntry(BinaryReaderEx br, int version)
             {
                 return Layers.EchoAdd(new Layer(br));
             }
@@ -145,7 +145,7 @@ namespace SoulsFormats
                 Name = br.ReadShiftJIS();
             }
 
-            internal override void Write(BinaryWriterEx bw, int id)
+            internal override void Write(BinaryWriterEx bw, int version, int id)
             {
                 long start = bw.Position;
 

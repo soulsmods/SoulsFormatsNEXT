@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using static SoulsFormats.MSBFA.Route;
+using static SoulsFormats.MSBAC4.Route;
 
 namespace SoulsFormats
 {
-    public partial class MSBFA
+    public partial class MSBAC4
     {
         /// <summary>
         /// Different route types.
@@ -71,7 +71,7 @@ namespace SoulsFormats
             public override List<Route> GetEntries() => SFUtil.ConcatAll<Route>(DefaultRoutes, AIRoutes);
             IReadOnlyList<Route> IMsbParam<Route>.GetEntries() => GetEntries();
 
-            internal override Route ReadEntry(BinaryReaderEx br)
+            internal override Route ReadEntry(BinaryReaderEx br, int version)
             {
                 RouteType type = br.GetEnum32<RouteType>(br.Position + 12);
                 switch (type)
@@ -144,7 +144,7 @@ namespace SoulsFormats
                 Name = br.ReadShiftJIS();
             }
 
-            internal override void Write(BinaryWriterEx bw, int id)
+            internal override void Write(BinaryWriterEx bw, int version, int id)
             {
                 long start = bw.Position;
 
