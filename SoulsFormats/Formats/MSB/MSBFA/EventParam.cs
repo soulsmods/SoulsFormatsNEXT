@@ -236,6 +236,8 @@ namespace SoulsFormats
 
                 public Script() : base("mXXX") { }
 
+                public Script(string name) : base(name) { }
+
                 private protected override void DeepCopyTo(Event evnt) { }
 
                 internal Script(BinaryReaderEx br) : base(br) { }
@@ -248,7 +250,9 @@ namespace SoulsFormats
 
                 public EffectConfig Config { get; set; }
 
-                public Effect() : base("effect")
+                public Effect() : this("effect") { }
+
+                public Effect(string name) : base(name)
                 {
                     Config = new EffectConfig();
                 }
@@ -459,10 +463,12 @@ namespace SoulsFormats
 
                 public SceneConfig Config { get; private set; }
 
-                public Scene() : base("filter")
+                public Scene(string name) : base(name)
                 {
                     Config = new SceneConfig();
                 }
+
+                public Scene() : this("filter") { }
 
                 private protected override void DeepCopyTo(Event evnt)
                 {
@@ -2351,10 +2357,12 @@ namespace SoulsFormats
 
                 public BGMConfig Config { get; private set; }
 
-                public BGM() : base("BGM")
+                public BGM(string name) : base(name)
                 {
                     Config = new BGMConfig();
                 }
+
+                public BGM() : this("BGM") { }
 
                 private protected override void DeepCopyTo(Event evnt)
                 {
@@ -2435,10 +2443,12 @@ namespace SoulsFormats
 
                 public RevConfig Config { get; set; }
 
-                public Rev() : base("Rev")
+                public Rev(string name) : base(name)
                 {
                     Config = new RevConfig();
                 }
+
+                public Rev() : this("Rev") { }
 
                 private protected override void DeepCopyTo(Event evnt)
                 {
@@ -2506,10 +2516,12 @@ namespace SoulsFormats
 
                 public SFXConfig Config { get; set; }
 
-                public SFX() : base("SFX")
+                public SFX(string name) : base(name)
                 {
                     Config = new SFXConfig();
                 }
+
+                public SFX() : this("SFX") { }
 
                 private protected override void DeepCopyTo(Event evnt)
                 {
