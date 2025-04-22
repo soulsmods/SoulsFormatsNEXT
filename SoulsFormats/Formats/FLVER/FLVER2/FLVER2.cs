@@ -96,8 +96,8 @@ namespace SoulsFormats
             br.BigEndian = Header.BigEndian;
 
             // Gundam Unicorn: 0x20005, 0x2000E
-            // ACVD: 
             // DS1: 2000B (PS3 o0700/1), 2000C, 2000D
+            // ACVD: 2000F
             // DS2 NT: 2000F, 20010
             // DS2: 20010, 20009 (armor 9320)
             // SFS: 20010
@@ -124,7 +124,7 @@ namespace SoulsFormats
             int vertexIndicesSize = br.AssertByte(0, 8, 16, 32);
             Header.Unicode = br.ReadBoolean();
             Header.Unk4A = br.ReadBoolean();
-            br.AssertByte(0);
+            Header.Unk4B = br.ReadBoolean();
 
             Header.Unk4C = br.ReadInt32();
 
@@ -147,6 +147,7 @@ namespace SoulsFormats
             br.AssertInt32(0);
             br.AssertInt32(0);
 
+            bool isSpeedTree = IsSpeedtree();
             Dummies = new List<FLVER.Dummy>(dummyCount);
             for (int i = 0; i < dummyCount; i++)
                 Dummies.Add(new FLVER.Dummy(br, Header.Version));
@@ -175,7 +176,7 @@ namespace SoulsFormats
 
             BufferLayouts = new List<BufferLayout>(bufferLayoutCount);
             for (int i = 0; i < bufferLayoutCount; i++)
-                BufferLayouts.Add(new BufferLayout(br));
+                BufferLayouts.Add(new BufferLayout(br, isSpeedTree));
 
             var textures = new List<Texture>(textureCount);
             for (int i = 0; i < textureCount; i++)
@@ -200,10 +201,12 @@ namespace SoulsFormats
                 mesh.TakeVertexBuffers(vertexBufferDict, BufferLayouts);
                 mesh.ReadVertices(br, dataOffset, BufferLayouts, Header);
             }
-            if (faceSetDict.Count != 0)
-                throw new NotSupportedException("Orphaned face sets found.");
-            if (vertexBufferDict.Count != 0)
-                throw new NotSupportedException("Orphaned vertex buffers found.");
+
+            // Removed for shared meshes support
+            //if (faceSetDict.Count != 0)
+            //    throw new NotSupportedException("Orphaned face sets found.");
+            //if (vertexBufferDict.Count != 0)
+            //    throw new NotSupportedException("Orphaned vertex buffers found.");
         }
 
         /// <summary>
@@ -255,7 +258,7 @@ namespace SoulsFormats
             bw.WriteByte(vertexIndicesSize);
             bw.WriteBoolean(Header.Unicode);
             bw.WriteBoolean(Header.Unk4A);
-            bw.WriteByte(0);
+            bw.WriteBoolean(Header.Unk4B);
 
             bw.WriteInt32(Header.Unk4C);
 
@@ -277,6 +280,7 @@ namespace SoulsFormats
             bw.WriteInt32(0);
             bw.WriteInt32(0);
 
+            bool isSpeedTree = IsSpeedtree();
             foreach (FLVER.Dummy dummy in Dummies)
                 dummy.Write(bw, Header.Version);
 
@@ -326,7 +330,7 @@ namespace SoulsFormats
 
             bw.Pad(0x10);
             for (int i = 0; i < BufferLayouts.Count; i++)
-                BufferLayouts[i].WriteMembers(bw, i);
+                BufferLayouts[i].WriteMembers(bw, i, isSpeedTree);
 
             bw.Pad(0x10);
             for (int i = 0; i < Meshes.Count; i++)
@@ -431,6 +435,15 @@ namespace SoulsFormats
         }
 
         /// <summary>
+        /// Check whether or not this <see cref="FLVER2"/> uses speedtree.
+        /// </summary>
+        /// <returns></returns>
+        public bool IsSpeedtree()
+        {
+            return Header.SpecialModifier == -32768;
+        }
+
+        /// <summary>
         /// General metadata about a FLVER.
         /// </summary>
         public class FLVERHeader
@@ -464,6 +477,11 @@ namespace SoulsFormats
             /// Unknown.
             /// </summary>
             public bool Unk4A { get; set; }
+
+            /// <summary>
+            /// Unknown.
+            /// </summary>
+            public bool Unk4B { get; set; }
 
             /// <summary>
             /// Unknown; I believe this is the primitive restart constant, but I'm not certain.
@@ -504,11 +522,6 @@ namespace SoulsFormats
                 Version = 0x20014;
                 Unicode = true;
             }
-        }
-
-        public bool IsSpeedtree()
-        {
-            return Header.SpecialModifier == -32768;
         }
     }
 }

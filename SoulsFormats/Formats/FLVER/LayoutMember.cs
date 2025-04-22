@@ -10,9 +10,11 @@ namespace SoulsFormats
         public class LayoutMember
         {
             /// <summary>
-            /// Unknown; 0, 1, or 2.
+            /// The index of this member into the current layout.<br/>
+            /// Used to combine members into a single layout.<br/>
+            /// Primarily used in edge-compressed PS3 models due to positions needing to be separate.
             /// </summary>
-            public short Unk00 { get; set; }
+            public int Stream { get; set; }
 
             /// <summary>
             /// Value of -32768 denotes this member isn't stored with the vertex buffer due to Speedtree.
@@ -50,6 +52,7 @@ namespace SoulsFormats
                         case LayoutType.Byte4B:
                         case LayoutType.Short2toFloat2:
                         case LayoutType.Byte4C:
+                        case LayoutType.Byte4D:
                         case LayoutType.UV:
                         case LayoutType.Byte4E:
                         case LayoutType.Short2ToFloat2B:
@@ -77,29 +80,45 @@ namespace SoulsFormats
             /// <summary>
             /// Creates a LayoutMember with the specified values.
             /// </summary>
-            public LayoutMember(LayoutType type, LayoutSemantic semantic, int index = 0, short unk00 = 0, short specialModifier = 0)
+            public LayoutMember(LayoutType type, LayoutSemantic semantic, int index = 0, short stream = 0, short specialModifier = 0)
             {
-                Unk00 = unk00;
+                Stream = stream;
                 SpecialModifier = specialModifier;
                 Type = type;
                 Semantic = semantic;
                 Index = index;
             }
 
-            internal LayoutMember(BinaryReaderEx br, int structOffset)
+            internal LayoutMember(BinaryReaderEx br, int structOffset, bool isSpeedTree)
             {
-                Unk00 = br.ReadInt16();
-                SpecialModifier = br.ReadInt16();
-                br.ReadInt32();
+                if (isSpeedTree)
+                {
+                    Stream = br.ReadInt16();
+                    SpecialModifier = br.ReadInt16();
+                }
+                else
+                {
+                    Stream = br.ReadInt32();
+                }
+
+                br.AssertInt32(structOffset);
                 Type = br.ReadEnum32<LayoutType>();
                 Semantic = br.ReadEnum32<LayoutSemantic>();
                 Index = br.ReadInt32();
             }
 
-            internal void Write(BinaryWriterEx bw, int structOffset)
+            internal void Write(BinaryWriterEx bw, int structOffset, bool isSpeedTree)
             {
-                bw.WriteInt16(Unk00);
-                bw.WriteInt16(SpecialModifier);
+                if (isSpeedTree)
+                {
+                    bw.WriteInt16((short)Stream);
+                    bw.WriteInt16(SpecialModifier);
+                }
+                else
+                {
+                    bw.WriteInt32(Stream);
+                }
+
                 bw.WriteInt32(structOffset);
                 bw.WriteUInt32((uint)Type);
                 bw.WriteUInt32((uint)Semantic);
@@ -156,6 +175,11 @@ namespace SoulsFormats
             Byte4C = 0x13,
 
             /// <summary>
+            /// Four bytes.
+            /// </summary>
+            Byte4D = 0x14,
+
+            /// <summary>
             /// Two shorts.
             /// </summary>
             UV = 0x15,
@@ -191,7 +215,7 @@ namespace SoulsFormats
             Byte4E = 0x2F,
 
             /// <summary>
-            /// Unknown but appears to be another form of edge compression; not actually supported.
+            /// Edge compression specified by edge members in face sets.
             /// </summary>
             EdgeCompressed = 0xF0,
         }

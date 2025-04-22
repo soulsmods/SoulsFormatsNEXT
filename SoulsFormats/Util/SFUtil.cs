@@ -640,5 +640,13 @@ namespace SoulsFormats
             }
             return value;
         }
+
+        internal static byte[] To4Bit(byte value)
+        {
+            byte[] values = new byte[2];
+            values[0] = (byte)((byte)(value & 0b1111_0000) >> 4);
+            values[1] = (byte)(value & 0b0000_1111);
+            return values;
+        }
     }
 }

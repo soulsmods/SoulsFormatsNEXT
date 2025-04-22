@@ -111,10 +111,12 @@ namespace SoulsFormats
                 foreach (int i in faceSetIndices)
                 {
                     if (!faceSetDict.ContainsKey(i))
-                        throw new NotSupportedException("Face set not found or already taken: " + i);
+                        throw new NotSupportedException("Face set not found: " + i);
 
                     FaceSets.Add(faceSetDict[i]);
-                    faceSetDict.Remove(i);
+
+                    // Removed for shared meshes support
+                    //faceSetDict.Remove(i);
                 }
                 faceSetIndices = null;
             }
@@ -125,10 +127,12 @@ namespace SoulsFormats
                 foreach (int i in vertexBufferIndices)
                 {
                     if (!vertexBufferDict.ContainsKey(i))
-                        throw new NotSupportedException("Vertex buffer not found or already taken: " + i);
+                        throw new NotSupportedException("Vertex buffer not found: " + i);
 
                     VertexBuffers.Add(vertexBufferDict[i]);
-                    vertexBufferDict.Remove(i);
+
+                    // Removed for shared meshes support
+                    //vertexBufferDict.Remove(i);
                 }
                 vertexBufferIndices = null;
 
@@ -166,6 +170,7 @@ namespace SoulsFormats
                 int uvCap = layoutMembers.Count(m => m.Semantic == FLVER.LayoutSemantic.UV);
                 int tanCap = layoutMembers.Count(m => m.Semantic == FLVER.LayoutSemantic.Tangent);
                 int colorCap = layoutMembers.Count(m => m.Semantic == FLVER.LayoutSemantic.VertexColor);
+                bool posfilled = layoutMembers.Any(m => m.Semantic == FLVER.LayoutSemantic.Position && m.Type != FLVER.LayoutType.EdgeCompressed);
 
                 int vertexCount = VertexBuffers.Count > 0 ? VertexBuffers[0].VertexCount : 0;
                 Vertices = new List<FLVER.Vertex>(vertexCount);
@@ -173,7 +178,19 @@ namespace SoulsFormats
                     Vertices.Add(new FLVER.Vertex(uvCap, tanCap, colorCap));
 
                 foreach (VertexBuffer buffer in VertexBuffers)
-                    buffer.ReadBuffer(br, layouts, Vertices, dataOffset, header);
+                {
+                    // TODO: EdgeGeom
+                    // The other facesets repeat the same edge vertex information so the first one may be all that is needed
+                    var edgeIndexGroups = FaceSets.Count > 0 ? FaceSets[0].EdgeIndexGroups : new List<EdgeIndexGroup>();
+                    buffer.ReadBuffer(br, layouts, Vertices, edgeIndexGroups, dataOffset, header.Version, posfilled);
+                }
+
+                // TODO: EdgeGeom
+                // Destroy unused edge index groups for now
+                foreach (var faceset in FaceSets)
+                {
+                    faceset.EdgeIndexGroups = null;
+                }
             }
 
             internal void Write(BinaryWriterEx bw, int index)

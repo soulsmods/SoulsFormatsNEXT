@@ -21,7 +21,7 @@ namespace SoulsFormats
             /// </summary>
             public BufferLayout() : base() { }
 
-            internal BufferLayout(BinaryReaderEx br) : base()
+            internal BufferLayout(BinaryReaderEx br, bool isSpeedTree) : base()
             {
                 int memberCount = br.ReadInt32();
                 br.AssertInt32(0);
@@ -34,7 +34,7 @@ namespace SoulsFormats
                     Capacity = memberCount;
                     for (int i = 0; i < memberCount; i++)
                     {
-                        var member = new FLVER.LayoutMember(br, structOffset);
+                        var member = new FLVER.LayoutMember(br, structOffset, isSpeedTree);
                         structOffset += member.Size;
                         Add(member);
                     }
@@ -50,13 +50,13 @@ namespace SoulsFormats
                 bw.ReserveInt32($"VertexStructLayout{index}");
             }
 
-            internal void WriteMembers(BinaryWriterEx bw, int index)
+            internal void WriteMembers(BinaryWriterEx bw, int index, bool isSpeedTree)
             {
                 bw.FillInt32($"VertexStructLayout{index}", (int)bw.Position);
                 int structOffset = 0;
                 foreach (FLVER.LayoutMember member in this)
                 {
-                    member.Write(bw, structOffset);
+                    member.Write(bw, structOffset, isSpeedTree);
                     structOffset += member.Size;
                 }
             }

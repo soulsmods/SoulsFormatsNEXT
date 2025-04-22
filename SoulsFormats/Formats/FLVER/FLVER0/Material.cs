@@ -163,7 +163,7 @@ namespace SoulsFormats
                     int vertOffset = 0;
                     foreach (var vertData in Layouts[i])
                     {
-                        vertData.Write(bw, vertOffset);
+                        vertData.Write(bw, vertOffset, false);
                         vertOffset += vertData.Size;
                     }
                 }

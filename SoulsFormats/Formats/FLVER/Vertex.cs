@@ -132,7 +132,7 @@ namespace SoulsFormats
                         }
                         else if (member.Type == LayoutType.EdgeCompressed)
                         {
-                            // Sit in a corner and cry
+                            throw new NotSupportedException("Edge vertex buffer decompression is not done here.");
                         }
                         else
                             throw new NotImplementedException($"Read not implemented for {member.Type} {member.Semantic}.");
@@ -186,6 +186,11 @@ namespace SoulsFormats
                                 BoneIndices[i] = br.ReadUInt16();
                         }
                         else if (member.Type == LayoutType.Byte4E)
+                        {
+                            for (int i = 0; i < 4; i++)
+                                BoneIndices[i] = br.ReadByte();
+                        }
+                        else if (member.Type == LayoutType.Short2toFloat2)
                         {
                             for (int i = 0; i < 4; i++)
                                 BoneIndices[i] = br.ReadByte();
@@ -321,6 +326,10 @@ namespace SoulsFormats
                         {
                             Tangents.Add(ReadByteNormXYZW(br));
                         }
+                        else if (member.Type == LayoutType.Byte4D)
+                        {
+                            Tangents.Add(ReadByteNormXYZW(br));
+                        }
                         else if (member.Type == LayoutType.Short4toFloat4A)
                         {
                             Tangents.Add(ReadShortNormXYZW(br));
@@ -436,6 +445,10 @@ namespace SoulsFormats
                             bw.WriteVector3(Position);
                             bw.WriteSingle(0);
                         }
+                        else if (member.Type == LayoutType.EdgeCompressed)
+                        {
+                            throw new NotSupportedException("Edge vertex compression is not supported.");
+                        }
                         else
                             throw new NotImplementedException($"Write not implemented for {member.Type} {member.Semantic}.");
                     }
@@ -488,6 +501,11 @@ namespace SoulsFormats
                                 bw.WriteUInt16((ushort)BoneIndices[i]);
                         }
                         else if (member.Type == LayoutType.Byte4E)
+                        {
+                            for (int i = 0; i < 4; i++)
+                                bw.WriteByte((byte)BoneIndices[i]);
+                        }
+                        else if (member.Type == LayoutType.Short2toFloat2)
                         {
                             for (int i = 0; i < 4; i++)
                                 bw.WriteByte((byte)BoneIndices[i]);
@@ -641,6 +659,10 @@ namespace SoulsFormats
                             WriteByteNormXYZW(bw, tangent);
                         }
                         else if (member.Type == LayoutType.Byte4C)
+                        {
+                            WriteByteNormXYZW(bw, tangent);
+                        }
+                        else if (member.Type == LayoutType.Byte4D)
                         {
                             WriteByteNormXYZW(bw, tangent);
                         }
