@@ -41,6 +41,7 @@ namespace SoulsFormats
             /// Index of the node representing this mesh in the <see cref="Nodes"/> list.
             /// </summary>
             public short NodeIndex { get; set; }
+            int IFlverMesh.NodeIndex => NodeIndex;
 
             /// <summary>
             /// Indexes of bones in the bone collection which may be used by vertices in this <see cref="Mesh"/>.
