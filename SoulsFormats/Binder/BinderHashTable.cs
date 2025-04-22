@@ -1,4 +1,4 @@
-﻿using SoulsFormats.Utilities.Cryptography;
+﻿using SoulsFormats.Cryptography;
 using System;
 using System.Collections.Generic;
 

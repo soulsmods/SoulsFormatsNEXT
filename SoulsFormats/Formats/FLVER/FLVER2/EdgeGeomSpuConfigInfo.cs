@@ -301,17 +301,17 @@ namespace SoulsFormats
                                          byte secondaryInputVertexFormatId, byte outputVertexFormatId, byte vertexDeltaFormatId,
                                          byte indexesFlavorAndSkinningFlavor, byte skinningMatrixFormat, ushort numVertexes, ushort numIndexes, int indexesOffset)
             {
-                byte[] flagsAndUniformTableCountValues = SFUtil.To4Bit(flagsAndUniformTableCount);
-                Flags = (GeomConfigFlags)flagsAndUniformTableCountValues[0];
-                UniformTableCount = (byte)(flagsAndUniformTableCountValues[1] + 1);
+                byte flagsAndUniformTableCountValues = flagsAndUniformTableCount;
+                Flags = (GeomConfigFlags)(flagsAndUniformTableCountValues >> 4);
+                UniformTableCount = (byte)((flagsAndUniformTableCountValues & 0b0000_1111) + 1);
                 CommandBufferHoleSize = commandBufferHoleSize;
                 InputVertexFormatId = (SpuVertexFormat)inputVertexFormatId;
                 SecondaryInputVertexFormatId = (SpuVertexFormat)secondaryInputVertexFormatId;
                 OutputVertexFormatId = (RsxVertexFormat)outputVertexFormatId;
                 VertexDeltaFormatId = vertexDeltaFormatId;
-                byte[] indexesFlavorAndSkinningFlavorValues = SFUtil.To4Bit(indexesFlavorAndSkinningFlavor);
-                IndexesFlavor = (EdgeGeomIndexes)indexesFlavorAndSkinningFlavorValues[0];
-                SkinningFlavor = (EdgeGeomSkin)indexesFlavorAndSkinningFlavorValues[1];
+                byte indexesFlavorAndSkinningFlavorValues = indexesFlavorAndSkinningFlavor;
+                IndexesFlavor = (EdgeGeomIndexes)(indexesFlavorAndSkinningFlavorValues >> 4);
+                SkinningFlavor = (EdgeGeomSkin)(indexesFlavorAndSkinningFlavorValues & 0b0000_1111);
                 SkinningMatrixFormat = (EdgeGeomSkinningMatrixFormat)skinningMatrixFormat;
                 NumVertexes = numVertexes;
                 NumIndexes = numIndexes;
@@ -330,17 +330,17 @@ namespace SoulsFormats
                     throw new InvalidDataException($"{nameof(EdgeGeomSpuConfigInfo)} must be 16 bytes in total.");
                 }
 
-                byte[] flagsAndUniformTableCountValues = SFUtil.To4Bit(edgeGeomSpuConfigInfoBytes[0]);
-                Flags = (GeomConfigFlags)flagsAndUniformTableCountValues[0];
-                UniformTableCount = (byte)(flagsAndUniformTableCountValues[1] + 1);
+                byte flagsAndUniformTableCountValues = edgeGeomSpuConfigInfoBytes[0];
+                Flags = (GeomConfigFlags)(flagsAndUniformTableCountValues >> 4);
+                UniformTableCount = (byte)((flagsAndUniformTableCountValues & 0b0000_1111) + 1);
                 CommandBufferHoleSize = edgeGeomSpuConfigInfoBytes[1];
                 InputVertexFormatId = (SpuVertexFormat)edgeGeomSpuConfigInfoBytes[2];
                 SecondaryInputVertexFormatId = (SpuVertexFormat)edgeGeomSpuConfigInfoBytes[3];
                 OutputVertexFormatId = (RsxVertexFormat)edgeGeomSpuConfigInfoBytes[4];
                 VertexDeltaFormatId = edgeGeomSpuConfigInfoBytes[5];
-                byte[] indexesFlavorAndSkinningFlavorValues = SFUtil.To4Bit(edgeGeomSpuConfigInfoBytes[6]);
-                IndexesFlavor = (EdgeGeomIndexes)indexesFlavorAndSkinningFlavorValues[0];
-                SkinningFlavor = (EdgeGeomSkin)indexesFlavorAndSkinningFlavorValues[1];
+                byte indexesFlavorAndSkinningFlavorValues = edgeGeomSpuConfigInfoBytes[6];
+                IndexesFlavor = (EdgeGeomIndexes)(indexesFlavorAndSkinningFlavorValues >> 4);
+                SkinningFlavor = (EdgeGeomSkin)(indexesFlavorAndSkinningFlavorValues & 0b0000_1111);
                 SkinningMatrixFormat = (EdgeGeomSkinningMatrixFormat)edgeGeomSpuConfigInfoBytes[7];
                 NumVertexes = BitConverterHelper.ToUInt16BigEndian(edgeGeomSpuConfigInfoBytes, 8);
                 NumIndexes = BitConverterHelper.ToUInt16BigEndian(edgeGeomSpuConfigInfoBytes, 10);
@@ -353,17 +353,17 @@ namespace SoulsFormats
             /// <param name="br">A <see cref="BinaryReaderEx"/>.</param>
             internal EdgeGeomSpuConfigInfo(BinaryReaderEx br)
             {
-                byte[] flagsAndUniformTableCountValues = SFUtil.To4Bit(br.ReadByte());
-                Flags = (GeomConfigFlags)flagsAndUniformTableCountValues[0];
-                UniformTableCount = (byte)(flagsAndUniformTableCountValues[1] + 1);
+                byte flagsAndUniformTableCountValues = br.ReadByte();
+                Flags = (GeomConfigFlags)(flagsAndUniformTableCountValues >> 4);
+                UniformTableCount = (byte)((flagsAndUniformTableCountValues & 0b0000_1111) + 1);
                 CommandBufferHoleSize = br.ReadByte();
                 InputVertexFormatId = (SpuVertexFormat)br.ReadByte();
                 SecondaryInputVertexFormatId = (SpuVertexFormat)br.ReadByte();
                 OutputVertexFormatId = (RsxVertexFormat)br.ReadByte();
                 VertexDeltaFormatId = br.ReadByte();
-                byte[] indexesFlavorAndSkinningFlavorValues = SFUtil.To4Bit(br.ReadByte());
-                IndexesFlavor = (EdgeGeomIndexes)indexesFlavorAndSkinningFlavorValues[0];
-                SkinningFlavor = (EdgeGeomSkin)indexesFlavorAndSkinningFlavorValues[1];
+                byte indexesFlavorAndSkinningFlavorValues = br.ReadByte();
+                IndexesFlavor = (EdgeGeomIndexes)(indexesFlavorAndSkinningFlavorValues >> 4);
+                SkinningFlavor = (EdgeGeomSkin)(indexesFlavorAndSkinningFlavorValues & 0b0000_1111);
                 SkinningMatrixFormat = (EdgeGeomSkinningMatrixFormat)br.ReadByte();
                 NumVertexes = br.ReadUInt16();
                 NumIndexes = br.ReadUInt16();

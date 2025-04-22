@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SoulsFormats.Compression;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -340,7 +341,7 @@ namespace SoulsFormats.Other
                 Compress = compressedLength > 0;
                 if (Compress)
                 {
-                    Bytes = SFUtil.DecompressZlib(dataStream, compressedLength);
+                    Bytes = ZlibHelper.DecompressZlib(dataStream, compressedLength);
                 }
                 else
                 {
@@ -364,7 +365,7 @@ namespace SoulsFormats.Other
 
                 if (Compress)
                 {
-                    int bytesWritten = SFUtil.WriteZlib(dataWriter, 0x9C, Bytes);
+                    int bytesWritten = ZlibHelper.WriteZlib(dataWriter, 0x9C, Bytes);
                     headerWriter.WriteInt32(bytesWritten);
                 }
                 else

@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 
-namespace SoulsFormats.Utilities.Cryptography
+namespace SoulsFormats.Cryptography
 {
     /// <summary>
     /// Helper methods for hashing.
