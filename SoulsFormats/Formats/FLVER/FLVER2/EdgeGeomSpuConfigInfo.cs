@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using SoulsFormats.Utilities;
+using System.IO;
 
 namespace SoulsFormats
 {

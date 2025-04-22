@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SoulsFormats.Utilities;
+using System;
 using System.Collections.Generic;
 using System.IO;
 

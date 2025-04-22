@@ -1,8 +1,11 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace SoulsFormats
+namespace SoulsFormats.Utilities
 {
+    /// <summary>
+    /// Helper methods for edge geometry.
+    /// </summary>
     internal static class EdgeGeom
     {
         #region Indices
