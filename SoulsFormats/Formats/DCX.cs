@@ -46,14 +46,6 @@ namespace SoulsFormats
         #region Decompress
 
         /// <summary>
-        /// Decompress a <see cref="DCX"/> file from a <see cref="Stream"/>.
-        /// </summary>
-        public static byte[] Decompress(Stream stream)
-        {
-            return Decompress(stream, out _);
-        }
-
-        /// <summary>
         /// Decompress a <see cref="DCX"/> file from an array of bytes and return the detected <see cref="DCX"/> type.
         /// </summary>
         public static byte[] Decompress(byte[] data, out Type type)

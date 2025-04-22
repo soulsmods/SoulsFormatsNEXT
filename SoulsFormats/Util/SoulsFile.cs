@@ -72,6 +72,22 @@ namespace SoulsFormats
         }
 
         /// <summary>
+        /// Loads a file from a <see cref="Stream"/>, automatically decompressing it if necessary.
+        /// </summary>
+        // Internal for now due to the possibility that jumping offsets will be incorrect with any starting position except 0.
+        internal static TFormat Read(Stream stream)
+        {
+            using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
+            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
+            {
+                TFormat file = new TFormat();
+                file.Compression = compression;
+                file.Read(dbr);
+                return file;
+            }
+        }
+
+        /// <summary>
         /// Loads a file from a byte array, automatically decompressing it if necessary.
         /// </summary>
         public static TFormat Read(byte[] bytes)
