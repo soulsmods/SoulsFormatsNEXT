@@ -7,55 +7,55 @@ namespace SoulsFormats
         /// <summary>
         /// A joint available for vertices to be attached to.
         /// </summary>
-        public class Bone
+        public class Node
         {
             /// <summary>
-            /// Corresponds to the name of a bone in the parent skeleton, if present.
+            /// The name of this <see cref="Node"/>.
             /// </summary>
             public string Name { get; set; }
 
             /// <summary>
-            /// Translation of this bone.
+            /// The translation of this <see cref="Node"/>.
             /// </summary>
             public Vector3 Translation { get; set; }
 
             /// <summary>
-            /// Rotation of this bone; euler radians in XZY order.
+            /// The rotation of this <see cref="Node"/>; euler radians in XZY order.
             /// </summary>
             public Vector3 Rotation { get; set; }
 
             /// <summary>
-            /// Scale of this bone.
+            /// The scale of this <see cref="Node"/>.
             /// </summary>
             public Vector3 Scale { get; set; }
 
             /// <summary>
-            /// Minimum extent of the vertices weighted to this bone.
+            /// The minimum extent of the vertices weighted to this <see cref="Node"/>.
             /// </summary>
             public Vector3 BoundingBoxMin { get; set; }
 
             /// <summary>
-            /// Maximum extent of the vertices weighted to this bone.
+            /// The maximum extent of the vertices weighted to this <see cref="Node"/>.
             /// </summary>
             public Vector3 BoundingBoxMax { get; set; }
 
             /// <summary>
-            /// Index of the parent in this FLVER's bone collection, or -1 for none.
+            /// The index of the parent of this <see cref="Node"/>, or -1 for none.
             /// </summary>
             public short ParentIndex { get; set; }
 
             /// <summary>
-            /// Index of the first child in this FLVER's bone collection, or -1 for none.
+            /// The index of the first child of this <see cref="Node"/>, or -1 for none.
             /// </summary>
-            public short ChildIndex { get; set; }
+            public short FirstChildIndex { get; set; }
 
             /// <summary>
-            /// Index of the next child of this bone's parent, or -1 for none.
+            /// The index of the next child of the parent of this <see cref="Node"/>, or -1 for none.
             /// </summary>
             public short NextSiblingIndex { get; set; }
 
             /// <summary>
-            /// Index of the previous child of this bone's parent, or -1 for none.
+            /// The index of the previous child of the parent of this <see cref="Node"/>, or -1 for none.
             /// </summary>
             public short PreviousSiblingIndex { get; set; }
 
@@ -80,14 +80,14 @@ namespace SoulsFormats
             public int[] Unk70 { get; private set; }
 
             /// <summary>
-            /// Create a new Bone with default values.
+            /// Create a new <see cref="Node"/> with default values.
             /// </summary>
-            public Bone()
+            public Node()
             {
-                Name = "";
+                Name = string.Empty;
                 Scale = Vector3.One;
                 ParentIndex = -1;
-                ChildIndex = -1;
+                FirstChildIndex = -1;
                 NextSiblingIndex = -1;
                 PreviousSiblingIndex = -1;
                 Unk64 = 0;
@@ -97,9 +97,9 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Clone an existing Bone.
+            /// Clone an existing <see cref="Node"/>.
             /// </summary>
-            public Bone(Bone bone)
+            public Node(Node bone)
             {
                 Name = bone.Name;
                 Translation = bone.Translation;
@@ -108,7 +108,7 @@ namespace SoulsFormats
                 BoundingBoxMin = bone.BoundingBoxMin;
                 BoundingBoxMax = bone.BoundingBoxMax;
                 ParentIndex = bone.ParentIndex;
-                ChildIndex = bone.ChildIndex;
+                FirstChildIndex = bone.FirstChildIndex;
                 NextSiblingIndex = bone.NextSiblingIndex;
                 PreviousSiblingIndex = bone.PreviousSiblingIndex;
                 Unk64 = bone.Unk64;
@@ -120,9 +120,10 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Read a Bone from a stream.
+            /// Read a <see cref="Node"/> from a stream.
             /// </summary>
-            internal Bone(BinaryReaderEx br)
+            /// <param name="br">The stream reader.</param>
+            internal Node(BinaryReaderEx br)
             {
                 Name = br.ReadASCII(32);
                 Translation = br.ReadVector3();
@@ -131,7 +132,7 @@ namespace SoulsFormats
                 BoundingBoxMin = br.ReadVector3();
                 BoundingBoxMax = br.ReadVector3();
                 ParentIndex = br.ReadInt16();
-                ChildIndex = br.ReadInt16();
+                FirstChildIndex = br.ReadInt16();
                 NextSiblingIndex = br.ReadInt16();
                 PreviousSiblingIndex = br.ReadInt16();
                 Unk64 = br.ReadInt32();
@@ -141,8 +142,9 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Write a Bone to a stream.
+            /// Write a <see cref="Node"/> to a stream.
             /// </summary>
+            /// <param name="bw">The stream writer.</param>
             internal void Write(BinaryWriterEx bw)
             {
                 bw.WriteFixStr(Name, 32);
@@ -152,7 +154,7 @@ namespace SoulsFormats
                 bw.WriteVector3(BoundingBoxMin);
                 bw.WriteVector3(BoundingBoxMax);
                 bw.WriteInt16(ParentIndex);
-                bw.WriteInt16(ChildIndex);
+                bw.WriteInt16(FirstChildIndex);
                 bw.WriteInt16(NextSiblingIndex);
                 bw.WriteInt16(PreviousSiblingIndex);
                 bw.WriteInt32(Unk64);
@@ -173,9 +175,7 @@ namespace SoulsFormats
                     * Matrix4x4.CreateTranslation(Translation);
             }
 
-            /// <summary>
-            /// Returns a string representation of the bone.
-            /// </summary>
+            /// <inheritdoc/>
             public override string ToString()
             {
                 return Name;
