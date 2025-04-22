@@ -54,7 +54,7 @@ namespace SoulsFormats
 
         private void Read(BinaryReaderEx br)
         {
-            br = SFUtil.GetDecompressedBR(br, out DCX.Type compression);
+            br = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression);
             Compression = compression;
             Files = BND4.ReadHeader(this, br);
             DataBR = br;

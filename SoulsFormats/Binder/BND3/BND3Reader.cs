@@ -13,6 +13,12 @@ namespace SoulsFormats
         public int Unk18 { get; set; }
 
         /// <summary>
+        /// Whether or not to write the file headers end value or 0.<br/>
+        /// Some Binders have this as 0 and require it to be as such for some reason.
+        /// </summary>
+        public bool WriteFileHeadersEnd { get; set; }
+
+        /// <summary>
         /// Type of compression used, if any.
         /// </summary>
         public DCX.Type Compression { get; set; }
@@ -39,7 +45,7 @@ namespace SoulsFormats
 
         private void Read(BinaryReaderEx br)
         {
-            br = SFUtil.GetDecompressedBR(br, out DCX.Type compression);
+            br = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression);
             Compression = compression;
             Files = BND3.ReadHeader(this, br);
             DataBR = br;

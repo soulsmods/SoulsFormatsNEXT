@@ -11,5 +11,7 @@
         bool BitBigEndian { get; set; }
 
         int Unk18 { get; set; }
+
+        bool WriteFileHeadersEnd { get; set; }
     }
 }

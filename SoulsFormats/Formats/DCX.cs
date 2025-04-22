@@ -9,6 +9,8 @@ namespace SoulsFormats
     /// </summary>
     public static class DCX
     {
+        #region Is
+
         internal static bool Is(BinaryReaderEx br)
         {
             if (br.Stream.Length < 4)
@@ -16,6 +18,22 @@ namespace SoulsFormats
 
             string magic = br.GetASCII(0, 4);
             return magic == "DCP\0" || magic == "DCX\0";
+        }
+
+        /// <summary>
+        /// Returns true if the <see cref="Stream"/> appears to be a <see cref="DCX"/> file.
+        /// </summary>
+        public static bool Is(Stream stream)
+        {
+            if ((stream.Length - stream.Position) < 3)
+            {
+                return false;
+            }
+
+            using (BinaryReaderEx br = new BinaryReaderEx(true, stream, true))
+            {
+                return Is(br);
+            }
         }
 
         /// <summary>
@@ -39,18 +57,42 @@ namespace SoulsFormats
             }
         }
 
-        #region Public Decompress
+        #endregion
+
+        #region Decompress
+
         /// <summary>
-        /// Decompress a DCX file from an array of bytes and return the detected DCX type.
+        /// Decompress a <see cref="DCX"/> file from a <see cref="Stream"/> and return the detected <see cref="DCX"/> type.
         /// </summary>
-        public static byte[] Decompress(byte[] data, out Type type)
+        public static byte[] Decompress(Stream stream, out Type type)
         {
-            BinaryReaderEx br = new BinaryReaderEx(true, data);
-            return Decompress(br, out type);
+            using (BinaryReaderEx br = new BinaryReaderEx(true, stream, true))
+            {
+                return Decompress(br, out type);
+            }
         }
 
         /// <summary>
-        /// Decompress a DCX file from an array of bytes.
+        /// Decompress a <see cref="DCX"/> file from a <see cref="Stream"/>.
+        /// </summary>
+        public static byte[] Decompress(Stream stream)
+        {
+            return Decompress(stream, out _);
+        }
+
+        /// <summary>
+        /// Decompress a <see cref="DCX"/> file from an array of bytes and return the detected <see cref="DCX"/> type.
+        /// </summary>
+        public static byte[] Decompress(byte[] data, out Type type)
+        {
+            using (BinaryReaderEx br = new BinaryReaderEx(true, data))
+            {
+                return Decompress(br, out type);
+            }
+        }
+
+        /// <summary>
+        /// Decompress a <see cref="DCX"/> file from an array of bytes.
         /// </summary>
         public static byte[] Decompress(byte[] data)
         {
@@ -58,25 +100,28 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Decompress a DCX file from the specified path and return the detected DCX type.
+        /// Decompress a <see cref="DCX"/> file from the specified path and return the detected <see cref="DCX"/> type.
         /// </summary>
         public static byte[] Decompress(string path, out Type type)
         {
             using (FileStream stream = File.OpenRead(path))
+            using (BinaryReaderEx br = new BinaryReaderEx(true, stream, true))
             {
-                BinaryReaderEx br = new BinaryReaderEx(true, stream);
                 return Decompress(br, out type);
             }
         }
 
         /// <summary>
-        /// Decompress a DCX file from the specified path.
+        /// Decompress a <see cref="DCX"/> file from the specified path.
         /// </summary>
         public static byte[] Decompress(string path)
         {
             return Decompress(path, out _);
         }
+
         #endregion
+
+        #region Decompress Internal
 
         internal static byte[] Decompress(BinaryReaderEx br, out Type type)
         {
@@ -172,6 +217,10 @@ namespace SoulsFormats
                     throw new FormatException($"Unknown DCX format {type}.");
             }
         }
+
+        #endregion
+
+        #region Decompress Algorithms
 
         private static byte[] DecompressDCPDFLT(BinaryReaderEx br)
         {
@@ -398,9 +447,7 @@ namespace SoulsFormats
             return Oodle.GetOodleCompressor().Decompress(compressed, uncompressedSize);
         }
 
-        /**
-         * Written by ClayAmore
-         */
+        // Written by ClayAmore
         private static byte[] DecompressDCXZSTD(BinaryReaderEx br)
         {
             br.AssertASCII("DCX\0");
@@ -437,7 +484,10 @@ namespace SoulsFormats
             return decompressed;
         }
 
-        #region Public Compress
+        #endregion
+
+        #region Compress
+
         /// <summary>
         /// Compress a DCX file to an array of bytes using the specified DCX type.
         /// </summary>
@@ -460,7 +510,10 @@ namespace SoulsFormats
                 bw.Finish();
             }
         }
+
         #endregion
+
+        #region Compress Internal
 
         internal static void Compress(byte[] data, BinaryWriterEx bw, Type type)
         {
@@ -500,6 +553,10 @@ namespace SoulsFormats
                     throw new NotImplementedException("Compression for the given type is not implemented.");
             }
         }
+
+        #endregion
+
+        #region Compress Algorithms
 
         private static void CompressDCPDFLT(byte[] data, BinaryWriterEx bw)
         {
@@ -744,6 +801,8 @@ namespace SoulsFormats
             bw.Pad(0x10);
         }
 
+        #endregion
+
         /// <summary>
         /// Specific compression format used for a certain file.
         /// </summary>
@@ -859,7 +918,6 @@ namespace SoulsFormats
             /// Most common compression format for Elden Ring.
             /// </summary>
             EldenRing = Type.DCX_KRAK,
-
 
             /// <summary>
             /// Most common compression format for Armored Core VI.

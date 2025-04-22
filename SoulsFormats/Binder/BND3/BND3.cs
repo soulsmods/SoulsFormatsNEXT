@@ -39,6 +39,12 @@ namespace SoulsFormats
         public int Unk18 { get; set; }
 
         /// <summary>
+        /// Whether or not to write the file headers end value or 0.<br/>
+        /// Some Binders have this as 0 and require it to be as such for some reason.
+        /// </summary>
+        public bool WriteFileHeadersEnd { get; set; }
+
+        /// <summary>
         /// Creates an empty BND3 formatted for DS1.
         /// </summary>
         public BND3()
@@ -86,7 +92,7 @@ namespace SoulsFormats
             br.BigEndian = bnd.BigEndian || Binder.ForceBigEndian(bnd.Format);
 
             int fileCount = br.ReadInt32();
-            br.ReadInt32(); // End of file headers, not including padding before data
+            bnd.WriteFileHeadersEnd = br.ReadInt32() > 0; // End of file headers, not including padding before data
             bnd.Unk18 = br.AssertInt32(0, unchecked((int)0x80000000));
             br.AssertInt32(0);
 
@@ -134,7 +140,10 @@ namespace SoulsFormats
             for (int i = 0; i < fileHeaders.Count; i++)
                 fileHeaders[i].WriteFileName(bw, bnd.Format, false, i);
 
-            bw.FillInt32($"FileHeadersEnd", (int)bw.Position);
+            if (bnd.WriteFileHeadersEnd)
+                bw.FillInt32($"FileHeadersEnd", (int)bw.Position);
+            else
+                bw.FillInt32($"FileHeadersEnd", 0);
         }
     }
 }

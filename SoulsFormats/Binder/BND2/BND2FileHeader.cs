@@ -37,10 +37,11 @@ namespace SoulsFormats
         /// <param name="size">The size of the file.</param>
         /// <param name="id">The ID of the file.</param>
         /// <param name="name">The name of the file.</param>
-        public BND2FileHeader(int offset, int size, int id = -1, string name = null)
+        public BND2FileHeader(int offset, int size, int id = -1, string name = "")
         {
             ID = id;
-            Name = name ?? string.Empty;
+            Name = name;
+            Name = name;
             Offset = offset;
             Size = size;
         }
@@ -115,9 +116,9 @@ namespace SoulsFormats
             bw.WriteBytes(bytes);
         }
 
-        internal void WriteBinder2FileData(BinaryWriterEx bwHeader, BinaryWriterEx bwData, int index, byte[] bytes)
+        internal void WriteBinder2FileData(BinaryWriterEx bwHeader, BinaryWriterEx bwData, int index, ushort alignmentSize, byte[] bytes)
         {
-            bwData.Pad(0x800);
+            bwData.Pad(alignmentSize);
             WriteFileData(bwData, bytes);
             bwHeader.FillInt32($"fileOffset_{index}", Offset);
             bwHeader.FillInt32($"fileSize_{index}", Size);
