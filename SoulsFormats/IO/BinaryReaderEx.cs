@@ -158,7 +158,7 @@ namespace SoulsFormats
         public void Pad(int align)
         {
             if (Stream.Position % align > 0)
-                Stream.Position += align - (Stream.Position % align);
+                Stream.Position += align - Stream.Position % align;
         }
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace SoulsFormats
         {
             long relPos = Stream.Position - start;
             if (relPos % align > 0)
-                Stream.Position += align - (relPos % align);
+                Stream.Position += align - relPos % align;
         }
 
         /// <summary>
