@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SoulsFormats
+namespace SoulsFormats.Attributes
 {
     /// <summary>
     /// Indicates whether the alpha component of a Color is used.
