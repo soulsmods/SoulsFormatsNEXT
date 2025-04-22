@@ -1,34 +1,35 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace SoulsFormats.ACE3
 {
     /// <summary>
-    /// A file container used in A.C.E. 3.
+    /// The format of the Binder files used in Another Century's Episode 3.
     /// </summary>
-    public class BND0 : SoulsFile<BND0>
+    public class BND : SoulsFile<BND>
     {
         /// <summary>
-        /// The files contained in this BND0.
+        /// The files in this <see cref="BND"/>.
         /// </summary>
-        public List<File> Files;
+        public List<File> Files { get; set; }
 
         /// <summary>
         /// Whether to use the small header format or not.
         /// </summary>
-        public bool Lite;
+        public bool Lite { get; set; }
 
         /// <summary>
         /// Unknown, non-lite format.
         /// </summary>
-        public byte Flag1;
+        public byte Flag1 { get; set; }
 
         /// <summary>
         /// Unknown, non-lite format.
         /// </summary>
-        public byte Flag2;
+        public byte Flag2 { get; set; }
 
         /// <summary>
-        /// Returns true if the data appears to be a BND0.
+        /// Returns true if the data appears to be a <see cref="BND"/> of this type.
         /// </summary>
         protected override bool Is(BinaryReaderEx br)
         {
@@ -40,7 +41,7 @@ namespace SoulsFormats.ACE3
         }
 
         /// <summary>
-        /// Reads BND0 data from a BinaryReaderEx.
+        /// Reads a <see cref="BND"/> from a stream.
         /// </summary>
         protected override void Read(BinaryReaderEx br)
         {
@@ -48,11 +49,11 @@ namespace SoulsFormats.ACE3
             br.AssertASCII("BND\0");
             // File size in non-lite format
             Lite = br.GetInt32(0xC) == 0;
-            int fileSize, fileCount;
+            int fileCount;
 
             if (Lite)
             {
-                fileSize = br.ReadInt32();
+                br.Position += 4; // File Size
                 fileCount = br.ReadInt32();
                 br.AssertInt32(0);
             }
@@ -60,7 +61,7 @@ namespace SoulsFormats.ACE3
             {
                 br.AssertInt32(0xF7FF);
                 br.AssertInt32(0xD3);
-                fileSize = br.ReadInt32();
+                br.Position += 4; // File Size
                 fileCount = br.ReadInt32();
                 br.AssertInt32(0);
 
@@ -81,7 +82,7 @@ namespace SoulsFormats.ACE3
         }
 
         /// <summary>
-        /// Writes BND0 data to a BinaryWriterEx.
+        /// Writes this <see cref="BND"/> to a stream.
         /// </summary>
         protected override void Write(BinaryWriterEx bw)
         {
@@ -137,20 +138,59 @@ namespace SoulsFormats.ACE3
         }
 
         /// <summary>
-        /// A file in a BND0 container.
+        /// A file in a <see cref="BND"/>.
         /// </summary>
         public class File
         {
             /// <summary>
-            /// The ID number of this file.
+            /// The ID of this <see cref="File"/>.
             /// </summary>
-            public int ID;
+            public int ID { get; set; }
 
             /// <summary>
-            /// The raw data of this file.
+            /// The raw data of this <see cref="File"/>.
             /// </summary>
-            public byte[] Bytes;
+            public byte[] Bytes { get; set; }
 
+            /// <summary>
+            /// Creates a <see cref="File"/>.
+            /// </summary>
+            public File()
+            {
+                ID = -1;
+                Bytes = Array.Empty<byte>();
+            }
+
+            /// <summary>
+            /// Creates a <see cref="File"/> with an ID.
+            /// </summary>
+            public File(int id)
+            {
+                ID = id;
+                Bytes = Array.Empty<byte>();
+            }
+
+            /// <summary>
+            /// Creates a <see cref="File"/> with bytes.
+            /// </summary>
+            public File(byte[] bytes)
+            {
+                ID = -1;
+                Bytes = bytes;
+            }
+
+            /// <summary>
+            /// Creates a <see cref="File"/> with an ID and bytes.
+            /// </summary>
+            public File(int id, byte[] bytes)
+            {
+                ID = id;
+                Bytes = bytes;
+            }
+
+            /// <summary>
+            /// Reads a <see cref="File"/> from a stream.
+            /// </summary>
             internal File(BinaryReaderEx br, bool lite)
             {
                 ID = br.ReadInt32();
@@ -171,6 +211,9 @@ namespace SoulsFormats.ACE3
                 Bytes = br.GetBytes(offset, size);
             }
 
+            /// <summary>
+            /// Writes this <see cref="File"/> entry to a stream.
+            /// </summary>
             internal void Write(BinaryWriterEx bw, bool lite, int index)
             {
                 bw.WriteInt32(ID);
