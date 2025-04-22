@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace SoulsFormats.Other.AC4
+﻿namespace SoulsFormats.Other.AC4
 {
     /// <summary>
     /// A container containing ANE files relating to ANI animations somehow.
