@@ -89,6 +89,17 @@ namespace SoulsFormats
                 Index = index;
             }
 
+            /// <summary>
+            /// Clone an existing LayoutMember.
+            /// </summary>
+            public LayoutMember(LayoutMember layoutMember)
+            {
+                Stream = layoutMember.Stream;
+                Type = layoutMember.Type;
+                Semantic = layoutMember.Semantic;
+                Index = layoutMember.Index;
+            }
+
             internal LayoutMember(BinaryReaderEx br, int structOffset, bool isSpeedTree)
             {
                 if (isSpeedTree)

@@ -28,7 +28,7 @@ namespace SoulsFormats
             public int MaterialIndex { get; set; }
 
             /// <summary>
-            /// Index of the node representing this mesh in the <see cref="FLVER2.Nodes"/> list.
+            /// Index of the node representing this mesh in the <see cref="Nodes"/> list.
             /// </summary>
             public int NodeIndex { get; set; }
 

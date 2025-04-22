@@ -434,10 +434,7 @@ namespace SoulsFormats
                 bw.Pad(0x20);
         }
 
-        /// <summary>
-        /// Check whether or not this <see cref="FLVER2"/> uses speedtree.
-        /// </summary>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public bool IsSpeedtree()
         {
             return Header.SpecialModifier == -32768;
