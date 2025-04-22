@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SoulsFormats.Utilities;
+using System;
 
 namespace SoulsFormats
 {
@@ -66,7 +67,7 @@ namespace SoulsFormats
         {
             byte rawFormat = br.ReadByte();
             bool reverse = bitBigEndian || (rawFormat & 1) != 0 && (rawFormat & 0b1000_0000) == 0;
-            return (Format)(reverse ? rawFormat : SFUtil.ReverseBits(rawFormat));
+            return (Format)(reverse ? rawFormat : EndianHelper.ReverseBits(rawFormat));
         }
 
         /// <summary>
@@ -75,7 +76,7 @@ namespace SoulsFormats
         public static void WriteFormat(BinaryWriterEx bw, bool bitBigEndian, Format format)
         {
             bool reverse = bitBigEndian || ForceBigEndian(format);
-            byte rawFormat = reverse ? (byte)format : SFUtil.ReverseBits((byte)format);
+            byte rawFormat = reverse ? (byte)format : EndianHelper.ReverseBits((byte)format);
             bw.WriteByte(rawFormat);
         }
 
@@ -186,7 +187,7 @@ namespace SoulsFormats
         {
             bool reverse = bitBigEndian;
             byte rawFlags = br.ReadByte();
-            return (FileFlags)(reverse ? rawFlags : SFUtil.ReverseBits(rawFlags));
+            return (FileFlags)(reverse ? rawFlags : EndianHelper.ReverseBits(rawFlags));
         }
 
         /// <summary>
@@ -195,7 +196,7 @@ namespace SoulsFormats
         public static void WriteFileFlags(BinaryWriterEx bw, bool bitBigEndian, FileFlags flags)
         {
             bool reverse = bitBigEndian;
-            byte rawFlags = reverse ? (byte)flags : SFUtil.ReverseBits((byte)flags);
+            byte rawFlags = reverse ? (byte)flags : EndianHelper.ReverseBits((byte)flags);
             bw.WriteByte(rawFlags);
         }
 
