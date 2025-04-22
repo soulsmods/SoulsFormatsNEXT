@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SoulsFormats.Exceptions;
+using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
