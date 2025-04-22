@@ -42,6 +42,7 @@ namespace SoulsFormats
             Entries = new List<Entry>();
             Version = FMGVersion.DarkSouls1;
             BigEndian = false;
+            Unicode = true;
         }
 
         /// <summary>
@@ -52,6 +53,7 @@ namespace SoulsFormats
             Entries = new List<Entry>();
             Version = version;
             BigEndian = Version == FMGVersion.DemonsSouls;
+            Unicode = true;
         }
 
         /// <summary>
