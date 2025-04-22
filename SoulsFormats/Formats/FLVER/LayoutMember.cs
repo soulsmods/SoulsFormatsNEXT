@@ -47,7 +47,7 @@ namespace SoulsFormats
                     {
                         case LayoutType.EdgeCompressed:
                             return 1;
-
+                        case LayoutType.Float1:
                         case LayoutType.Color:
                         case LayoutType.UByte4:
                         case LayoutType.Byte4:
@@ -78,7 +78,7 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Creates a LayoutMember with the specified values.
+            /// Creates a <see cref="LayoutMember"/> with the specified values.
             /// </summary>
             public LayoutMember(LayoutType type, LayoutSemantic semantic, int index = 0, short stream = 0, short specialModifier = 0)
             {
@@ -90,7 +90,7 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Clone an existing LayoutMember.
+            /// Clone an existing <see cref="LayoutMember"/>.
             /// </summary>
             public LayoutMember(LayoutMember layoutMember)
             {
@@ -137,7 +137,7 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Returns the value type and semantic of this member.
+            /// Returns the value type and semantic of this <see cref="LayoutMember"/>.
             /// </summary>
             public override string ToString()
             {
