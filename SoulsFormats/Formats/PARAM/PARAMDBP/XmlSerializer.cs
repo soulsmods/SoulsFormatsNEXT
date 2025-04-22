@@ -95,11 +95,11 @@ namespace SoulsFormats
                     string name = fieldNode.SelectSingleNode("Name").InnerText;
                     string format = fieldNode.SelectSingleNode("Format").InnerText;
                     var type = (PARAMDEF.DefType)Enum.Parse(typeof(PARAMDEF.DefType), fieldNode.SelectSingleNode("Type").InnerText);
-                    object defaultValue = Field.ConvertToDisplayType(fieldNode.SelectSingleNode("Default").InnerText, type);
-                    object minimum = Field.ConvertToDisplayType(fieldNode.SelectSingleNode("Minimum").InnerText, type);
-                    object maximum = Field.ConvertToDisplayType(fieldNode.SelectSingleNode("Maximum").InnerText, type);
+                    object defaultValue = Field.ConvertToDefType(fieldNode.SelectSingleNode("Default").InnerText, type);
+                    object minimum = Field.ConvertToDefType(fieldNode.SelectSingleNode("Minimum").InnerText, type);
+                    object maximum = Field.ConvertToDefType(fieldNode.SelectSingleNode("Maximum").InnerText, type);
 
-                    object increment = Field.ConvertToDisplayType(fieldNode.SelectSingleNode("Increment").InnerText, type);
+                    object increment = Field.ConvertToDefType(fieldNode.SelectSingleNode("Increment").InnerText, type);
 
                     field.Name = name;
                     field.Format = format;
@@ -132,11 +132,11 @@ namespace SoulsFormats
                     string name = cellNode.SelectSingleNode("Name").InnerText;
                     string format = cellNode.SelectSingleNode("Format").InnerText;
                     var type = (PARAMDEF.DefType)Enum.Parse(typeof(PARAMDEF.DefType), cellNode.SelectSingleNode("Type").InnerText);
-                    object defaultValue = Field.ConvertToDisplayType(cellNode.SelectSingleNode("Default").InnerText, type);
-                    object minimum = Field.ConvertToDisplayType(cellNode.SelectSingleNode("Minimum").InnerText, type);
-                    object maximum = Field.ConvertToDisplayType(cellNode.SelectSingleNode("Maximum").InnerText, type);
-                    object increment = Field.ConvertToDisplayType(cellNode.SelectSingleNode("Increment").InnerText, type);
-                    object value = Field.ConvertToDisplayType(cellNode.SelectSingleNode("Value").InnerText, type);
+                    object defaultValue = Field.ConvertToDefType(cellNode.SelectSingleNode("Default").InnerText, type);
+                    object minimum = Field.ConvertToDefType(cellNode.SelectSingleNode("Minimum").InnerText, type);
+                    object maximum = Field.ConvertToDefType(cellNode.SelectSingleNode("Maximum").InnerText, type);
+                    object increment = Field.ConvertToDefType(cellNode.SelectSingleNode("Increment").InnerText, type);
+                    object value = Field.ConvertToDefType(cellNode.SelectSingleNode("Value").InnerText, type);
 
                     field.Name = name;
                     field.Format = format;

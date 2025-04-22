@@ -97,11 +97,11 @@ namespace SoulsFormats
                     // Skip to the colon delimiter and past its whitespace, then get the value of and advance after each line in the entry.
                     var description = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
                     var format = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
-                    var type = Field.GetDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2)); i++;
-                    var defaultValue = Field.ConvertToDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var increment = Field.ConvertToDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var minimum = Field.ConvertToDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var maximum = Field.ConvertToDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2), type);
+                    var type = Field.GetDefType(lines[i].Substring(lines[i].IndexOf(":") + 2)); i++;
+                    var defaultValue = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
+                    var increment = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
+                    var minimum = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
+                    var maximum = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type);
 
                     // Set the field values.
                     field.Name = description;
@@ -144,12 +144,12 @@ namespace SoulsFormats
                     // Skip to the colon delimiter and past its whitespace, then get the value of and advance after each line in the entry.
                     var description = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
                     var format = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
-                    var type = Field.GetDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2)); i++;
-                    var defaultValue = Field.ConvertToDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var increment = Field.ConvertToDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var minimum = Field.ConvertToDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var maximum = Field.ConvertToDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var value = Field.ConvertToDisplayType(lines[i].Substring(lines[i].IndexOf(":") + 2), type);
+                    var type = Field.GetDefType(lines[i].Substring(lines[i].IndexOf(":") + 2)); i++;
+                    var defaultValue = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
+                    var increment = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
+                    var minimum = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
+                    var maximum = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
+                    var value = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type);
 
                     // Set the field values.
                     field.Name = description;

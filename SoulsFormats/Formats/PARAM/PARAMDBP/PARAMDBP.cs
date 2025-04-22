@@ -139,7 +139,7 @@ namespace SoulsFormats
                         size += 4;
                         break;
                     default:
-                        throw new NotImplementedException($"Display Type: {field.Type} invalid or not implemented.");
+                        throw new NotImplementedException($"{nameof(PARAMDEF.DefType)}: {field.Type} invalid or not implemented.");
                 }
             }
             return size;
@@ -168,7 +168,7 @@ namespace SoulsFormats
             {   get => _Type;
                 set
                 {
-                    if (!IsValidDisplayType(value))
+                    if (!IsValidDefType(value))
                         throw new NotSupportedException($"{nameof(PARAMDEF.DefType)} {Type} is not supported by {nameof(PARAMDBP)}.");
                     else
                         _Type = value;
@@ -240,7 +240,7 @@ namespace SoulsFormats
             /// <param name="format">The display format of this field.</param>
             public Field(PARAMDEF.DefType type, string name, string format)
             {
-                if (!IsValidDisplayType(type))
+                if (!IsValidDefType(type))
                     throw new NotSupportedException($"{nameof(PARAMDEF.DefType)} {type} is not supported by PARAMDBP.");
 
                 Type = type;
@@ -367,11 +367,11 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Get a DisplayType using a string.
+            /// Get a type using a string.
             /// </summary>
-            /// <param name="str">A string representing a DisplayType.</param>
-            /// <returns>A DisplayType.</returns>
-            public static PARAMDEF.DefType GetDisplayType(string str)
+            /// <param name="str">A string representing a type.</param>
+            /// <returns>A type.</returns>
+            public static PARAMDEF.DefType GetDefType(string str)
             {
                 switch (str.ToLower())
                 {
@@ -388,12 +388,12 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Convert an object value to the specified type using a FieldType.
+            /// Convert an object value to the specified type using a type.
             /// </summary>
-            /// <param name="str">A string to convert to the specified FieldType.</param>
-            /// <param name="type">A FieldType.</param>
+            /// <param name="str">A string to convert to the specified type.</param>
+            /// <param name="type">A type.</param>
             /// <returns>An object from the provided string converted to the specified type.</returns>
-            public static object ConvertToDisplayType(string str, PARAMDEF.DefType type)
+            public static object ConvertToDefType(string str, PARAMDEF.DefType type)
             {
                 switch (type)
                 {
@@ -410,11 +410,11 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Check if a DisplayType is valid for dbp.
+            /// Check if a type is valid for dbp.
             /// </summary>
             /// <param name="type">A DefType.</param>
             /// <returns>Whether or not the provided DefType is valid for dbp.</returns>
-            public static bool IsValidDisplayType(PARAMDEF.DefType type)
+            public static bool IsValidDefType(PARAMDEF.DefType type)
             {
                 switch (type)
                 {
@@ -442,7 +442,7 @@ namespace SoulsFormats
                        $"Increment: {Increment}\n" +
                        $"Minimum: {Minimum}\n" +
                        $"Maximum:{Maximum}\n" +
-                       $"Description: {Name}";
+                       $"Name: {Name}";
             }
         }
     }
