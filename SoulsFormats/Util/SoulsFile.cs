@@ -25,26 +25,6 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Returns true if the stream appears to be a file of this type.
-        /// </summary>
-        public static bool Is(Stream stream)
-        {
-            if ((stream.Length - stream.Position) == 0)
-            {
-                return false;
-            }
-
-            using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
-            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out _))
-            {
-                long pos = stream.Position;
-                var result = new TFormat().Is(dbr);
-                stream.Position = pos;
-                return result;
-            }
-        }
-
-        /// <summary>
         /// Returns true if the bytes appear to be a file of this type.
         /// </summary>
         public static bool Is(byte[] bytes)
@@ -89,21 +69,6 @@ namespace SoulsFormats
         protected virtual void Read(BinaryReaderEx br)
         {
             throw new NotImplementedException("Read is not implemented for this format.");
-        }
-
-        /// <summary>
-        /// Loads a file from a stream, automatically decompressing it if necessary.
-        /// </summary>
-        public static TFormat Read(Stream stream)
-        {
-            TFormat file = new TFormat();
-            using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
-            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
-            {
-                file.Compression = compression;
-                file.Read(dbr);
-                return file;
-            }
         }
 
         /// <summary>
@@ -162,17 +127,6 @@ namespace SoulsFormats
                     file = null;
                     return false;
                 }
-            }
-        }
-
-        /// <summary>
-        /// Returns whether the stream appears to be a file of this type and reads it if so.
-        /// </summary>
-        public static bool IsRead(Stream stream, out TFormat file)
-        {
-            using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
-            {
-                return IsReadInternal(br, out file);
             }
         }
 

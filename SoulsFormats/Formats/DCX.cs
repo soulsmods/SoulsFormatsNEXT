@@ -21,22 +21,6 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Returns true if the <see cref="Stream"/> appears to be a <see cref="DCX"/> file.
-        /// </summary>
-        public static bool Is(Stream stream)
-        {
-            if ((stream.Length - stream.Position) < 3)
-            {
-                return false;
-            }
-
-            using (BinaryReaderEx br = new BinaryReaderEx(true, stream, true))
-            {
-                return Is(br);
-            }
-        }
-
-        /// <summary>
         /// Returns true if the bytes appear to be a DCX file.
         /// </summary>
         public static bool Is(byte[] bytes)
@@ -60,17 +44,6 @@ namespace SoulsFormats
         #endregion
 
         #region Decompress
-
-        /// <summary>
-        /// Decompress a <see cref="DCX"/> file from a <see cref="Stream"/> and return the detected <see cref="DCX"/> type.
-        /// </summary>
-        public static byte[] Decompress(Stream stream, out Type type)
-        {
-            using (BinaryReaderEx br = new BinaryReaderEx(true, stream, true))
-            {
-                return Decompress(br, out type);
-            }
-        }
 
         /// <summary>
         /// Decompress a <see cref="DCX"/> file from a <see cref="Stream"/>.
