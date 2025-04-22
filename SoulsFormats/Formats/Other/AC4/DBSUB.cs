@@ -1,22 +1,21 @@
 ﻿using System.Collections.Generic;
-using SoulsFormats;
 
-namespace SoulsFormats
+namespace SoulsFormats.Other.AC4
 {
     /// <summary>
-    /// Debriefing video subtitle files for Armored Core 4th generation games.
+    /// Debriefing video subtitle files for 4th generation Armored Core games.
     /// </summary>
     public class DBSUB : SoulsFile<DBSUB>
     {
         /// <summary>
-        /// The subtitle entries of this DBSUB.
+        /// The subtitle entries of this <see cref="DBSUB"/>.
         /// </summary>
-        public List<SubtitleEntry> SubtitleEntries { get; set; } = new List<SubtitleEntry>();
+        public List<SubtitleEntry> SubtitleEntries { get; set; }
 
         /// <summary>
-        /// The video entries of this DBSUB.
+        /// The video entries of this <see cref="DBSUB"/>.
         /// </summary>
-        public List<VideoEntry> VideoEntries { get; set; } = new List<VideoEntry>();
+        public List<VideoEntry> VideoEntries { get; set; }
 
         /// <summary>
         /// Unknown; Believed to be EventID for voice call videos.
@@ -45,6 +44,16 @@ namespace SoulsFormats
         /// The size of video entries.
         /// </summary>
         private const byte VIDEO_ENTRY_SIZE = 0x20;
+
+        /// <summary>
+        /// Creates a new <see cref="DBSUB"/>
+        /// </summary>
+        public DBSUB()
+        {
+            SubtitleEntries = new List<SubtitleEntry>();
+            VideoEntries = new List<VideoEntry>();
+            Unicode = true;
+        }
 
         /// <summary>
         /// Returns true if the data appears to be a Debriefing Subtitle container.
@@ -78,13 +87,13 @@ namespace SoulsFormats
             }
 
             // If stream length is the size of the header, counts will be 0, offsets will be the size of the header.
-            if (br.Length == HEADER_SIZE && ((subtitleCount != 0 || videoCount != 0) || (subtitleEntriesOffset != HEADER_SIZE || videoEntriesOffset != HEADER_SIZE)))
+            if (br.Length == HEADER_SIZE && (subtitleCount != 0 || videoCount != 0 || subtitleEntriesOffset != HEADER_SIZE || videoEntriesOffset != HEADER_SIZE))
             {
                 return false;
             }
 
             // There should be enough of the stream left to even read the entries.
-            long totalHeaderSize = HEADER_SIZE + (subtitleCount * SUBTITLE_ENTRY_SIZE) + (videoCount * VIDEO_ENTRY_SIZE);
+            long totalHeaderSize = HEADER_SIZE + subtitleCount * SUBTITLE_ENTRY_SIZE + videoCount * VIDEO_ENTRY_SIZE;
             if (totalHeaderSize > br.Length)
             {
                 return false;
