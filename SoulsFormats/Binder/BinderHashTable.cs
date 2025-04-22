@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SoulsFormats.Utilities.Cryptography;
+using System;
 using System.Collections.Generic;
 
 namespace SoulsFormats
@@ -21,7 +22,7 @@ namespace SoulsFormats
             uint groupCount = 0;
             for (uint p = (uint)files.Count / 7; p <= 100000; p++)
             {
-                if (SFUtil.IsPrime(p))
+                if (HashHelper.IsPrime(p))
                 {
                     groupCount = p;
                     break;
@@ -91,7 +92,7 @@ namespace SoulsFormats
             public PathHash(int index, string path)
             {
                 Index = index;
-                Hash = SFUtil.FromPathHash(path);
+                Hash = HashHelper.FromPathHash(path);
             }
 
             public void Write(BinaryWriterEx bw)

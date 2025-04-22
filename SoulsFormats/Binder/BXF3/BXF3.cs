@@ -200,7 +200,7 @@ namespace SoulsFormats
         public BXF3()
         {
             Files = new List<BinderFile>();
-            Version = SFUtil.DateToBinderTimestamp(DateTime.Now);
+            Version = Binder.DateToBinderTimestamp(DateTime.Now);
             Format = Binder.Format.IDs | Binder.Format.Names1 | Binder.Format.Names2 | Binder.Format.Compression;
         }
 

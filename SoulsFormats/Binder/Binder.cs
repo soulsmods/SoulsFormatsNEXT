@@ -1,5 +1,7 @@
 ﻿using SoulsFormats.Utilities;
 using System;
+using System.IO;
+using System.Text.RegularExpressions;
 
 namespace SoulsFormats
 {
@@ -204,5 +206,42 @@ namespace SoulsFormats
         /// Whether the file data is compressed.
         /// </summary>
         public static bool IsCompressed(FileFlags flags) => (flags & FileFlags.Compressed) != 0;
+
+        private static readonly Regex timestampRx = new Regex(@"(\d\d)(\w)(\d+)(\w)(\d+)");
+
+        /// <summary>
+        /// Converts a BND/BXF timestamp string to a DateTime object.
+        /// </summary>
+        public static DateTime BinderTimestampToDate(string timestamp)
+        {
+            Match match = timestampRx.Match(timestamp);
+            if (!match.Success)
+                throw new InvalidDataException("Unrecognized timestamp format.");
+
+            int year = Int32.Parse(match.Groups[1].Value) + 2000;
+            int month = match.Groups[2].Value[0] - 'A';
+            int day = Int32.Parse(match.Groups[3].Value);
+            int hour = match.Groups[4].Value[0] - 'A';
+            int minute = Int32.Parse(match.Groups[5].Value);
+
+            return new DateTime(year, month, day, hour, minute, 0);
+        }
+
+        /// <summary>
+        /// Converts a DateTime object to a BND/BXF timestamp string.
+        /// </summary>
+        public static string DateToBinderTimestamp(DateTime dateTime)
+        {
+            int year = dateTime.Year - 2000;
+            if (year < 0 || year > 99)
+                throw new InvalidDataException("BND timestamp year must be between 2000 and 2099 inclusive.");
+
+            char month = (char)(dateTime.Month + 'A');
+            int day = dateTime.Day;
+            char hour = (char)(dateTime.Hour + 'A');
+            int minute = dateTime.Minute;
+
+            return $"{year:D2}{month}{day}{hour}{minute}".PadRight(8, '\0');
+        }
     }
 }

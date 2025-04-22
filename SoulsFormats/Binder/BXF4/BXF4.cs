@@ -220,7 +220,7 @@ namespace SoulsFormats
         public BXF4()
         {
             Files = new List<BinderFile>();
-            Version = SFUtil.DateToBinderTimestamp(DateTime.Now);
+            Version = Binder.DateToBinderTimestamp(DateTime.Now);
             Unicode = true;
             Format = Binder.Format.IDs | Binder.Format.Names1 | Binder.Format.Names2 | Binder.Format.Compression;
             Extended = 4;
