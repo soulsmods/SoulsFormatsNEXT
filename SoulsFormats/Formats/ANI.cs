@@ -64,6 +64,7 @@ namespace SoulsFormats
 
             Positions = new List<Vector3>(positionCount);
             Rotations = new List<Vector3>(rotationCount);
+            Bones = new List<Bone>(boneCount);
 
             br.StepIn(positionsOffset);
             for (int i = 0; i < positionCount; i++)
@@ -71,7 +72,7 @@ namespace SoulsFormats
             br.StepOut();
 
             br.StepIn(rotationsOffset);
-            for (int i = 0; i < positionCount; i++)
+            for (int i = 0; i < rotationCount; i++)
                 Rotations.Add(ReadVector3Short(br));
             br.StepOut();
 
@@ -112,7 +113,7 @@ namespace SoulsFormats
                 bw.WriteShiftJIS(Bones[i].Name, true);
                 if (Bones[i].Frames != null)
                 {
-                    bw.FillInt32($"FrameGroupOffset_{i}", (int)bw.Position);
+                    bw.FillInt32($"AnimationOffset_{i}", (int)bw.Position);
                     Bones[i].Frames.Write(bw);
                 }
             }
@@ -189,9 +190,25 @@ namespace SoulsFormats
         public class Bone
         {
             /// <summary>
-            /// Unknown, always 0, 1, or 2.
+            /// The different object types.
             /// </summary>
-            public int Unk04 { get; set; }
+            public enum ObjectType : int
+            {
+                /// <summary>
+                /// The object is defined in a model.
+                /// </summary>
+                Geom = 1,
+
+                /// <summary>
+                /// The object is only defined in an animation.
+                /// </summary>
+                Dummy = 2
+            }
+
+            /// <summary>
+            /// The object type.
+            /// </summary>
+            public ObjectType Type { get; set; }
 
             /// <summary>
             /// The index of this entry.
@@ -199,10 +216,9 @@ namespace SoulsFormats
             public short BoneIndex { get; set; }
 
             /// <summary>
-            /// The index of this bone for the total combined model.<br/>
-            /// The bone is only defined in the animation file if it is -1.
+            /// The geometry index of this entry.
             /// </summary>
-            public short ModelBoneIndex { get; set; }
+            public short GeomIndex { get; set; }
 
             /// <summary>
             /// The index of the parent entry.
@@ -248,16 +264,16 @@ namespace SoulsFormats
             /// Information about frames for this bone.<br/>
             /// Null when there is none.
             /// </summary>
-            public FrameInfoGroup Frames { get; set; }
+            public Animation Frames { get; set; }
 
             /// <summary>
             /// Create a new <see cref="Bone"/>.
             /// </summary>
             public Bone()
             {
-                Unk04 = 0;
+                Type = ObjectType.Geom;
                 BoneIndex = -1;
-                ModelBoneIndex = -1;
+                GeomIndex = -1;
                 ParentIndex = -1;
                 ChildIndex = -1;
                 NextSiblingIndex = -1;
@@ -279,9 +295,9 @@ namespace SoulsFormats
                     throw new InvalidDataException("Entry must have a bone name.");
 
                 Name = br.GetShiftJIS(boneNameOffset);
-                Unk04 = br.AssertInt16(0, 1, 2);
+                Type = br.ReadEnum32<ObjectType>();
                 BoneIndex = br.ReadInt16();
-                ModelBoneIndex = br.ReadInt16();
+                GeomIndex = br.ReadInt16();
                 ParentIndex = br.ReadInt16();
                 ChildIndex = br.ReadInt16();
                 NextSiblingIndex = br.ReadInt16();
@@ -290,9 +306,15 @@ namespace SoulsFormats
                 Rotation = br.ReadVector3();
                 Scale = br.ReadVector3();
                 int animDataOffset = br.ReadInt32();
+                br.AssertPattern(184, 0);
 
                 if (animDataOffset > 0)
-                    Frames = new FrameInfoGroup(br);
+                {
+                    long pos = br.Position;
+                    br.Position = animDataOffset;
+                    Frames = new Animation(br);
+                    br.Position = pos;
+                }
             }
 
             /// <summary>
@@ -301,9 +323,9 @@ namespace SoulsFormats
             internal void Write(BinaryWriterEx bw, int index)
             {
                 bw.ReserveInt32($"BoneNameOffset_{index}");
-                bw.WriteInt32(Unk04);
+                bw.WriteInt32((int)Type);
                 bw.WriteInt16(BoneIndex);
-                bw.WriteInt16(ModelBoneIndex);
+                bw.WriteInt16(GeomIndex);
                 bw.WriteInt16(ParentIndex);
                 bw.WriteInt16(ChildIndex);
                 bw.WriteInt16(NextSiblingIndex);
@@ -311,21 +333,21 @@ namespace SoulsFormats
                 bw.WriteVector3(Translation);
                 bw.WriteVector3(Rotation);
                 bw.WriteVector3(Scale);
-                bw.WritePattern(184, 0);
-
                 if (Frames != null)
-                    bw.ReserveInt32($"FrameGroupOffset_{index}");
+                    bw.ReserveInt32($"AnimationOffset_{index}");
+
+                bw.WritePattern(184, 0);
             }
 
             /// <summary>
             /// A group of frame information for a bone.
             /// </summary>
-            public class FrameInfoGroup
+            public class Animation
             {
                 /// <summary>
                 /// Unknown, seems to determine whether position and rotation indices are present, and in how many bytes.
                 /// </summary>
-                public enum AnimType : int
+                public enum AnimationType : int
                 {
                     /// <summary>
                     /// Position and rotation indices stored as bytes.
@@ -346,7 +368,7 @@ namespace SoulsFormats
                 /// <summary>
                 /// Unknown, seems to determine whether position and rotation indices are present, and in how many bytes.
                 /// </summary>
-                public AnimType AnimationType { get; set; }
+                public AnimationType Type { get; set; }
 
                 /// <summary>
                 /// Unknown; A rotation of some kind, usually the same as the rotation of the bone that owns it.
@@ -359,75 +381,75 @@ namespace SoulsFormats
                 public Vector3 Unk20 { get; set; }
 
                 /// <summary>
-                /// Info about each frame.
+                /// The key frames in this <see cref="Animation"/>.
                 /// </summary>
-                public List<FrameInfo> Frames { get; set; }
+                public List<Frame> Frames { get; set; }
 
                 /// <summary>
-                /// Create a new <see cref="FrameInfoGroup"/>.
+                /// Create a new <see cref="Animation"/>.
                 /// </summary>
-                public FrameInfoGroup()
+                public Animation()
                 {
-                    AnimationType = AnimType.PosRotShorts;
-                    Frames = new List<FrameInfo>();
+                    Type = AnimationType.PosRotShorts;
+                    Frames = new List<Frame>();
                 }
 
                 /// <summary>
-                /// Create a new <see cref="FrameInfoGroup"/>.
+                /// Create a new <see cref="Animation"/>.
                 /// </summary>
-                public FrameInfoGroup(int frameCount)
+                public Animation(int frameCount)
                 {
-                    AnimationType = AnimType.PosRotShorts;
-                    Frames = new List<FrameInfo>(frameCount);
+                    Type = AnimationType.PosRotShorts;
+                    Frames = new List<Frame>(frameCount);
                 }
 
                 /// <summary>
-                /// Create a new <see cref="FrameInfoGroup"/>.
+                /// Create a new <see cref="Animation"/>.
                 /// </summary>
-                public FrameInfoGroup(AnimType animationType, int frameCount)
+                public Animation(AnimationType animationType, int frameCount)
                 {
-                    AnimationType = animationType;
-                    Frames = new List<FrameInfo>(frameCount);
+                    Type = animationType;
+                    Frames = new List<Frame>(frameCount);
                 }
 
                 /// <summary>
-                /// Deserializes a <see cref="FrameInfoGroup"/> from a stream.
+                /// Deserializes a <see cref="Animation"/> from a stream.
                 /// </summary>
-                internal FrameInfoGroup(BinaryReaderEx br)
+                internal Animation(BinaryReaderEx br)
                 {
                     int framesOffset = br.ReadInt32();
                     int frameCount = br.ReadInt32();
-                    AnimationType = br.ReadEnum32<AnimType>();
+                    Type = br.ReadEnum32<AnimationType>();
                     Unk10 = br.ReadVector3();
                     Unk20 = br.ReadVector3();
                     br.AssertInt32(0);
 
                     br.Position = framesOffset;
-                    Frames = new List<FrameInfo>(frameCount);
+                    Frames = new List<Frame>(frameCount);
                     for (int i = 0; i < frameCount; i++)
-                        Frames.Add(new FrameInfo(br, AnimationType));
+                        Frames.Add(new Frame(br, Type));
                 }
 
                 /// <summary>
-                /// Serializes the <see cref="FrameInfoGroup"/> to a stream.
+                /// Serializes the <see cref="Animation"/> to a stream.
                 /// </summary>
                 internal void Write(BinaryWriterEx bw)
                 {
                     bw.WriteInt32((int)bw.Position + 36);
                     bw.WriteInt32(Frames.Count);
-                    bw.WriteInt32((int)AnimationType);
+                    bw.WriteInt32((int)Type);
                     bw.WriteVector3(Unk10);
                     bw.WriteVector3(Unk20);
                     bw.WriteInt32(0);
 
                     foreach (var frame in Frames)
-                        frame.Write(bw, AnimationType);
+                        frame.Write(bw, Type);
                 }
 
                 /// <summary>
                 /// Information on a frame.
                 /// </summary>
-                public class FrameInfo
+                public class Frame
                 {
                     /// <summary>
                     /// The key frame this information is for.
@@ -470,30 +492,30 @@ namespace SoulsFormats
                     public short UnkIndex7 { get; set; }
 
                     /// <summary>
-                    /// Create a new <see cref="FrameInfo"/>.
+                    /// Create a new <see cref="Frame"/>.
                     /// </summary>
-                    public FrameInfo()
+                    public Frame()
                     {
                         KeyFrame = 0;
                     }
 
                     /// <summary>
-                    /// Create a new <see cref="FrameInfo"/>.
+                    /// Create a new <see cref="Frame"/>.
                     /// </summary>
-                    public FrameInfo(short keyFrame)
+                    public Frame(short keyFrame)
                     {
                         KeyFrame = keyFrame;
                     }
 
                     /// <summary>
-                    /// Serializes the <see cref="FrameInfo"/> to a stream.
+                    /// Serializes the <see cref="Frame"/> to a stream.
                     /// </summary>
-                    internal FrameInfo(BinaryReaderEx br, AnimType animationType)
+                    internal Frame(BinaryReaderEx br, AnimationType animationType)
                     {
                         KeyFrame = br.ReadInt16();
                         switch (animationType)
                         {
-                            case AnimType.PosRotBytes:
+                            case AnimationType.PosRotBytes:
                                 PositionIndex = br.ReadByte();
                                 UnkIndex2 = br.ReadByte();
                                 UnkIndex3 = br.ReadByte();
@@ -502,7 +524,7 @@ namespace SoulsFormats
                                 UnkIndex6 = br.ReadByte();
                                 UnkIndex7 = -1;
                                 break;
-                            case AnimType.PosRotShorts:
+                            case AnimationType.PosRotShorts:
                                 PositionIndex = br.ReadInt16();
                                 UnkIndex2 = br.ReadInt16();
                                 UnkIndex3 = br.ReadInt16();
@@ -511,7 +533,7 @@ namespace SoulsFormats
                                 UnkIndex6 = br.ReadInt16();
                                 UnkIndex7 = br.ReadInt16();
                                 break;
-                            case AnimType.RotShorts:
+                            case AnimationType.RotShorts:
                                 PositionIndex = -1;
                                 UnkIndex2 = -1;
                                 UnkIndex3 = -1;
@@ -530,12 +552,12 @@ namespace SoulsFormats
                     /// </summary>
                     /// <param name="bw">A BinaryWriterEx.</param>
                     /// <param name="animationType">The animation type.</param>
-                    internal void Write(BinaryWriterEx bw, AnimType animationType)
+                    internal void Write(BinaryWriterEx bw, AnimationType animationType)
                     {
                         bw.WriteInt32(KeyFrame);
                         switch (animationType)
                         {
-                            case AnimType.PosRotBytes:
+                            case AnimationType.PosRotBytes:
                                 bw.WriteByte((byte)PositionIndex);
                                 bw.WriteByte((byte)UnkIndex2);
                                 bw.WriteByte((byte)UnkIndex3);
@@ -543,7 +565,7 @@ namespace SoulsFormats
                                 bw.WriteByte((byte)UnkIndex5);
                                 bw.WriteByte((byte)UnkIndex6);
                                 break;
-                            case AnimType.PosRotShorts:
+                            case AnimationType.PosRotShorts:
                                 bw.WriteInt16(PositionIndex);
                                 bw.WriteInt16(UnkIndex2);
                                 bw.WriteInt16(UnkIndex3);
@@ -552,7 +574,7 @@ namespace SoulsFormats
                                 bw.WriteInt16(UnkIndex6);
                                 bw.WriteInt16(UnkIndex7);
                                 break;
-                            case AnimType.RotShorts:
+                            case AnimationType.RotShorts:
                                 bw.WriteInt16(RotationIndex);
                                 bw.WriteInt16(UnkIndex5);
                                 bw.WriteInt16(UnkIndex6);
