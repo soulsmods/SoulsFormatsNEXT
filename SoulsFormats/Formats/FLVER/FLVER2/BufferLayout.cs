@@ -86,7 +86,7 @@ namespace SoulsFormats
                     return false;
                 }
 
-                FLVER.LayoutMember tangentLayout = new FLVER.LayoutMember(FLVER.LayoutType.Byte4C, FLVER.LayoutSemantic.Tangent, 0, 0);
+                FLVER.LayoutMember tangentLayout = new FLVER.LayoutMember(FLVER.LayoutType.UByte4Norm, FLVER.LayoutSemantic.Tangent, 0, 0);
                 Insert(normalIndex + 1, tangentLayout);
                 return true;
             }
