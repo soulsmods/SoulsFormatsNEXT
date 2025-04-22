@@ -647,9 +647,7 @@ namespace SoulsFormats
             }
         }
 
-        /**
-         * Written by ClayAmore
-         */
+        // Written by ClayAmore
         public static byte[] ReadZstd(BinaryReaderEx br, int compressedSize)
         {
             byte[] compressed = br.ReadBytes(compressedSize);
@@ -672,16 +670,6 @@ namespace SoulsFormats
             {
                 return compressor.Wrap(data).ToArray();
             }
-        }
-
-        internal static int Align(int value, int alignment)
-        {
-            var remainder = value % alignment;
-            if (remainder > 0)
-            {
-                return value + (alignment - remainder);
-            }
-            return value;
         }
 
         internal static byte[] To4Bit(byte value)
