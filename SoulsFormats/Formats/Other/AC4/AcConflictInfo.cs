@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace SoulsFormats.Other.AC4
+namespace SoulsFormats.AC4
 {
     /// <summary>
     /// Details about what parts are not allowed to be equipped at the same time in Armored Core For Answer.

@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace SoulsFormats.Other.AC4
+namespace SoulsFormats.AC4
 {
     /// <summary>
     /// A color set for a 4thgen Armored Core.<br/>

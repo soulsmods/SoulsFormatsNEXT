@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace SoulsFormats.Other.AC4
+namespace SoulsFormats.AC4
 {
     /// <summary>
     /// Debriefing video subtitle files for 4th generation Armored Core games.

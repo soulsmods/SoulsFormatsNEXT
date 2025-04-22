@@ -1,4 +1,4 @@
-﻿namespace SoulsFormats.Other.AC4
+﻿namespace SoulsFormats.AC4
 {
     /// <summary>
     /// A part category representing what part this is.
