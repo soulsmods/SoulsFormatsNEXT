@@ -17,9 +17,18 @@ namespace SoulsFormats
             public const int MaxBoneCount = 28;
 
             /// <summary>
-            /// When 1, mesh is in bind pose; when 0, it isn't. Most likely has further implications.
+            /// Determines how the mesh is skinned. If it is <see langword="true"/> the mesh is assumed to be in bind pose and is skinned using the <see cref="FLVER.Vertex.BoneIndices"/> and <see cref="FLVER.Vertex.BoneWeights"/> of the vertices.
+            /// If it is <see langword="false"/> each <see cref="FLVER.Vertex"/> specifies a single node to bind to using its <see cref="FLVER.Vertex.NormalW"/>.
+            /// The mesh is assumed to not be in bind pose and the transform of the bound node is applied to each vertex.
             /// </summary>
-            public byte Dynamic { get; set; }
+            public bool UseBoneWeights { get; set; }
+
+            /// <inheritdoc cref="IFlverMesh.Dynamic"/>
+            public byte Dynamic
+            {
+                get => (byte)(UseBoneWeights ? 1 : 0);
+                set => UseBoneWeights = value == 1;
+            }
 
             /// <summary>
             /// Index of the material used by all triangles in this mesh.
@@ -77,7 +86,7 @@ namespace SoulsFormats
             /// </summary>
             public Mesh()
             {
-                Dynamic = 0;
+                UseBoneWeights = false;
                 MaterialIndex = 0;
                 CullBackfaces = true;
                 TriangleStrip = false;
@@ -94,7 +103,7 @@ namespace SoulsFormats
             /// </summary>
             public Mesh(Mesh mesh)
             {
-                Dynamic = mesh.Dynamic;
+                UseBoneWeights = mesh.UseBoneWeights;
                 MaterialIndex = mesh.MaterialIndex;
                 CullBackfaces = mesh.CullBackfaces;
                 TriangleStrip = mesh.TriangleStrip;
@@ -125,7 +134,7 @@ namespace SoulsFormats
             /// <exception cref="NotSupportedException">There was more than one vertex buffer.</exception>
             internal Mesh(BinaryReaderEx br, int dataOffset, int vertexIndexSize, int version, List<Material> materials)
             {
-                Dynamic = br.ReadByte();
+                UseBoneWeights = br.ReadBoolean();
                 MaterialIndex = br.ReadByte();
                 CullBackfaces = br.ReadBoolean();
                 TriangleStrip = br.ReadBoolean();

@@ -20,7 +20,11 @@ namespace SoulsFormats
             public bool UseBoneWeights { get; set; }
             
             /// <inheritdoc cref="IFlverMesh.Dynamic"/>
-            public byte Dynamic => (byte)(UseBoneWeights ? 1 : 0);
+            public byte Dynamic
+            {
+                get => (byte)(UseBoneWeights ? 1 : 0);
+                set => UseBoneWeights = value == 1;
+            }
 
             /// <summary>
             /// Index of the material used by all triangles in this mesh.
