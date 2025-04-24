@@ -47,6 +47,23 @@ namespace SoulsFormats
                 Cells = cells;
             }
 
+            /// <summary>
+            /// Copy constructor for a row. Does not add to the param.
+            /// </summary>
+            /// <param name="clone">The row that is being copied</param>
+            public Row(Row clone)
+            {
+                ID = clone.ID;
+                Name = clone.Name;
+                var cells = new List<Cell>(clone.Cells.Count);
+
+                foreach (var cell in clone.Cells)
+                {
+                    cells.Add(new Cell(cell));
+                }
+                Cells = cells;
+            }
+
             internal Row(BinaryReaderEx br, PARAM parent, ref long actualStringsOffset)
             {
                 long nameOffset;

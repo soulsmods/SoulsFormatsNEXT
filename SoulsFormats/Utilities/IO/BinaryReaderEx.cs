@@ -64,6 +64,11 @@ namespace SoulsFormats
         public long Length => Stream.Length;
 
         /// <summary>
+        /// The amount of bytes from the current position to the end of the stream.
+        /// </summary>
+        public long Remaining => Stream.Length - Stream.Position;
+
+        /// <summary>
         /// Initializes a new BinaryReaderEx reading from the specified file.
         /// </summary>
         public BinaryReaderEx(bool bigEndian, string path) : this(bigEndian, File.OpenRead(path), false) { }

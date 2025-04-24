@@ -1,4 +1,5 @@
-﻿using SoulsFormats.Compression;
+﻿using Org.BouncyCastle.Utilities;
+using SoulsFormats.Compression;
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -22,12 +23,33 @@ namespace SoulsFormats
         }
 
         /// <summary>
+        /// Returns true if the stream appears to be a DCX file.
+        /// </summary>
+        public static bool Is(Stream stream)
+        {
+            if (stream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            using (var br = new BinaryReaderEx(true, stream, true))
+            {
+                // We know the "Is" call won't advance the stream for this format anyways
+                // So no need to reset position
+                return Is(br);
+            }
+        }
+
+        /// <summary>
         /// Returns true if the bytes appear to be a DCX file.
         /// </summary>
         public static bool Is(byte[] bytes)
         {
-            var br = new BinaryReaderEx(true, bytes);
-            return Is(br);
+            using (var br = new BinaryReaderEx(true, bytes))
+            {
+                return Is(br);
+            }
         }
 
         /// <summary>
@@ -45,6 +67,31 @@ namespace SoulsFormats
         #endregion
 
         #region Decompress
+
+        /// <summary>
+        /// Decompress a <see cref="DCX"/> file from a stream and return the detected <see cref="DCX"/> type.
+        /// </summary>
+        public static byte[] Decompress(Stream stream, out Type type)
+        {
+            if (stream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            using (BinaryReaderEx br = new BinaryReaderEx(true, stream, true))
+            {
+                return Decompress(br, out type);
+            }
+        }
+
+        /// <summary>
+        /// Decompress a <see cref="DCX"/> file from a stream.
+        /// </summary>
+        public static byte[] Decompress(Stream stream)
+        {
+            return Decompress(stream, out _);
+        }
 
         /// <summary>
         /// Decompress a <see cref="DCX"/> file from an array of bytes and return the detected <see cref="DCX"/> type.

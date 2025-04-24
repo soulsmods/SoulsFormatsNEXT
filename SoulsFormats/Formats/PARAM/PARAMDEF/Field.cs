@@ -268,6 +268,14 @@ namespace SoulsFormats
                     throw new InvalidDataException($"Unexpected byte count {byteCount} for type {DisplayType}.");
                 ArrayLength = byteCount / ParamUtil.GetValueSize(DisplayType);
 
+                if (def.BasicFields)
+                {
+                    InternalType = string.Empty;
+                    InternalName = string.Empty;
+                    BitSize = -1;
+                    return;
+                }
+
                 long descriptionOffset = br.ReadVarint();
                 if (descriptionOffset != 0)
                 {
@@ -408,6 +416,9 @@ namespace SoulsFormats
 
                 bw.WriteInt32((int)EditFlags);
                 bw.WriteInt32(ParamUtil.GetValueSize(DisplayType) * (ParamUtil.IsArrayType(DisplayType) ? ArrayLength : 1));
+                if (def.BasicFields)
+                    return;
+
                 bw.ReserveVarint($"DescriptionOffset{index}");
 
                 if (def.FormatVersion >= 202 || def.FormatVersion >= 106 && def.FormatVersion < 200)
@@ -489,6 +500,9 @@ namespace SoulsFormats
                     bw.FillVarint($"DisplayNameOffset{index}", bw.Position);
                     bw.WriteUTF16(DisplayName, true);
                 }
+
+                if (def.BasicFields)
+                    return;
 
                 long descriptionOffset = 0;
                 if (Description != null)

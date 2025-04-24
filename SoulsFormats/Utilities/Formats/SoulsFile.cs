@@ -25,6 +25,35 @@ namespace SoulsFormats
         }
 
         /// <summary>
+        /// Returns true if the stream appears to be a file of this type.
+        /// </summary>
+        public static bool Is(Stream stream)
+        {
+            if (stream.Length == 0)
+                return false;
+
+            if (stream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
+            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out _))
+            {
+                var dummy = new TFormat();
+                bool result = dummy.Is(dbr);
+                if (!result)
+                {
+                    // Reset in case format advances during "Is"
+                    stream.Position = 0;
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
         /// Returns true if the bytes appear to be a file of this type.
         /// </summary>
         public static bool Is(byte[] bytes)
@@ -74,9 +103,15 @@ namespace SoulsFormats
         /// <summary>
         /// Loads a file from a <see cref="Stream"/>, automatically decompressing it if necessary.
         /// </summary>
-        // Internal for now due to the possibility that jumping offsets will be incorrect with any starting position except 0.
-        internal static TFormat Read(Stream stream)
+        public static TFormat Read(Stream stream)
         {
+            if (stream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            stream.Position = 0; 
             using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
             using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
             {
@@ -143,6 +178,30 @@ namespace SoulsFormats
                     file = null;
                     return false;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Returns whether the stream appears to be a file of this type and reads it if so.
+        /// </summary>
+        public static bool IsRead(Stream stream, out TFormat file)
+        {
+            if (stream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            using (var br = new BinaryReaderEx(false, stream, true))
+            {
+                bool result = IsReadInternal(br, out file);
+                if (!result)
+                {
+                    // Reset in case format advances during "Is"
+                    stream.Position = 0;
+                }
+
+                return result;
             }
         }
 

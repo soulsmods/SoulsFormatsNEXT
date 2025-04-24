@@ -14,7 +14,7 @@ namespace SoulsFormats
             public const int CURRENT_XML_VERSION = 3;
             private static Regex FIELD_NAME_VALIDATOR = new Regex("^\\w+$");
 
-            public static PARAMDEF Deserialize(XmlDocument xml, bool versionAware)
+            public static PARAMDEF Deserialize(XmlDocument xml, bool versionAware, bool validateFields = true)
             {
                 var def = new PARAMDEF();
                 XmlNode root = xml.SelectSingleNode("PARAMDEF");
@@ -30,7 +30,7 @@ namespace SoulsFormats
                 def.Fields = new List<Field>();
                 foreach (XmlNode node in root.SelectNodes("Fields/Field"))
                 {
-                    var field = DeserializeField(def, node, versionAware);
+                    var field = DeserializeField(def, node, versionAware, validateFields);
                     if (field != null)
                         def.Fields.Add(field);
                 }
@@ -71,7 +71,7 @@ namespace SoulsFormats
             private static readonly Regex defBitRx = new Regex($@"^(?<name>.+?)\s*:\s*(?<size>\d+)$");
             private static readonly Regex defArrayRx = new Regex($@"^(?<name>.+?)\s*\[\s*(?<length>\d+)\]$");
 
-            private static Field DeserializeField(PARAMDEF def, XmlNode node, bool versionAware)
+            private static Field DeserializeField(PARAMDEF def, XmlNode node, bool versionAware, bool validateFields)
             {
                 // Check regulation version info for the field if it exists
                 ulong firstVersion = 0;
@@ -135,16 +135,19 @@ namespace SoulsFormats
                     field.RemovedRegulationVersion = removedVersion;
                 }
 
-                if (!FIELD_NAME_VALIDATOR.IsMatch(internalName))
-                    throw new Exception("Disallowed field name found in paramdef: " + def.ParamType + ", name: " + field.InternalName);
-                // Check same name, and if version aware, check they aren't replacing eachother
-                bool matchingFieldTest(Field ifield) => string.Equals(field.InternalName, ifield.InternalName)
-                    && (!versionAware || (
-                        (field.RemovedRegulationVersion == 0 || field.RemovedRegulationVersion > ifield.FirstRegulationVersion)
-                        && (ifield.RemovedRegulationVersion == 0 || field.FirstRegulationVersion < ifield.RemovedRegulationVersion)));
-                Field field2 = def.Fields.Find(matchingFieldTest);
-                if (field2 != null)
-                    throw new Exception("Repeated field name found in paramdef: " + def.ParamType + ", name: " + field.InternalName);
+                if (validateFields)
+                {
+                    if (!FIELD_NAME_VALIDATOR.IsMatch(internalName))
+                        throw new Exception("Disallowed field name found in paramdef: " + def.ParamType + ", name: " + field.InternalName);
+                    // Check same name, and if version aware, check they aren't replacing eachother
+                    bool matchingFieldTest(Field ifield) => string.Equals(field.InternalName, ifield.InternalName)
+                        && (!versionAware || (
+                            (field.RemovedRegulationVersion == 0 || field.RemovedRegulationVersion > ifield.FirstRegulationVersion)
+                            && (ifield.RemovedRegulationVersion == 0 || field.FirstRegulationVersion < ifield.RemovedRegulationVersion)));
+                    Field field2 = def.Fields.Find(matchingFieldTest);
+                    if (field2 != null)
+                        throw new Exception("Repeated field name found in paramdef: " + def.ParamType + ", name: " + field.InternalName);
+                }
                 
                 return field;
             }
