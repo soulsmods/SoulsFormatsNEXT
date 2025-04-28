@@ -204,17 +204,13 @@ namespace SoulsFormats
                         offset = bw.Position;
                         offsetDict.Add(text, offset);
                         bw.FillVarint($"StringOffset{i}", offset);
-
-                        if (text != null)
+                        if (Unicode)
                         {
-                            if (Unicode)
-                            {
-                                bw.WriteUTF16(Entries[i].Text, true);
-                            }
-                            else
-                            {
-                                bw.WriteShiftJIS(Entries[i].Text, true);
-                            }
+                            bw.WriteUTF16(Entries[i].Text, true);
+                        }
+                        else
+                        {
+                            bw.WriteShiftJIS(Entries[i].Text, true);
                         }
                     }
                     else
