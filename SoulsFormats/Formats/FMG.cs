@@ -197,27 +197,34 @@ namespace SoulsFormats
             for (int i = 0; i < Entries.Count; i++)
             {
                 string text = Entries[i].Text;
-                if (!offsetDict.TryGetValue(text, out long offset))
+                if (text != null)
                 {
-                    offset = bw.Position;
-                    offsetDict.Add(text, offset);
-                    bw.FillVarint($"StringOffset{i}", offset);
-
-                    if (text != null)
+                    if (!offsetDict.TryGetValue(text, out long offset))
                     {
-                        if (Unicode)
+                        offset = bw.Position;
+                        offsetDict.Add(text, offset);
+                        bw.FillVarint($"StringOffset{i}", offset);
+
+                        if (text != null)
                         {
-                            bw.WriteUTF16(Entries[i].Text, true);
+                            if (Unicode)
+                            {
+                                bw.WriteUTF16(Entries[i].Text, true);
+                            }
+                            else
+                            {
+                                bw.WriteShiftJIS(Entries[i].Text, true);
+                            }
                         }
-                        else
-                        {
-                            bw.WriteShiftJIS(Entries[i].Text, true);
-                        }
+                    }
+                    else
+                    {
+                        bw.FillVarint($"StringOffset{i}", offset);
                     }
                 }
                 else
                 {
-                    bw.FillVarint($"StringOffset{i}", offset);
+                    bw.FillVarint($"StringOffset{i}", 0);
                 }
             }
         }
@@ -227,10 +234,9 @@ namespace SoulsFormats
             for (int i = 0; i < Entries.Count; i++)
             {
                 string text = Entries[i].Text;
-                bw.FillVarint($"StringOffset{i}", bw.Position);
-
                 if (text != null)
                 {
+                    bw.FillVarint($"StringOffset{i}", bw.Position);
                     if (Unicode)
                     {
                         bw.WriteUTF16(Entries[i].Text, true);
@@ -239,6 +245,10 @@ namespace SoulsFormats
                     {
                         bw.WriteShiftJIS(Entries[i].Text, true);
                     }
+                }
+                else
+                {
+                    bw.FillVarint($"StringOffset{i}", 0);
                 }
             }
         }
