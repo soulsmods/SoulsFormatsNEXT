@@ -77,7 +77,7 @@ namespace SoulsFormats
         /// </summary>
         public static void WriteFormat(BinaryWriterEx bw, bool bitBigEndian, Format format)
         {
-            bool reverse = bitBigEndian || ForceBigEndian(format);
+            bool reverse = bitBigEndian || (ForceBigEndian(format) && (format & Format.Flag6) != 0);
             byte rawFormat = reverse ? (byte)format : EndianHelper.ReverseBits((byte)format);
             bw.WriteByte(rawFormat);
         }
