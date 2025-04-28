@@ -72,11 +72,6 @@ namespace SoulsFormats
                 return fixedDefaults[type];
         }
 
-        public static object GetDefaultDefault(DefType type)
-        {
-            return variableDefaults[type];
-        }
-
         private static readonly Dictionary<DefType, float> fixedMinimums = new Dictionary<DefType, float>
         {
             [DefType.s8] = sbyte.MinValue,
@@ -117,11 +112,6 @@ namespace SoulsFormats
                 return variableMinimums[type];
             else
                 return fixedMinimums[type];
-        }
-
-        public static object GetDefaultMinimum(DefType type)
-        {
-            return variableMinimums[type];
         }
 
         private static readonly Dictionary<DefType, float> fixedMaximums = new Dictionary<DefType, float>
@@ -166,11 +156,6 @@ namespace SoulsFormats
                 return fixedMaximums[type];
         }
 
-        public static object GetDefaultMaximum(DefType type)
-        {
-            return variableMaximums[type];
-        }
-
         private static readonly Dictionary<DefType, float> fixedIncrements = new Dictionary<DefType, float>
         {
             [DefType.s8] = 1,
@@ -211,11 +196,6 @@ namespace SoulsFormats
                 return variableIncrements[type];
             else
                 return fixedIncrements[type];
-        }
-
-        public static object GetDefaultIncrement(DefType type)
-        {
-            return variableIncrements[type];
         }
 
         public static EditFlags GetDefaultEditFlags(DefType type)

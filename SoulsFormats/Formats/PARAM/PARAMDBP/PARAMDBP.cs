@@ -9,6 +9,47 @@ namespace SoulsFormats
     public partial class PARAMDBP : SoulsFile<PARAMDBP>
     {
         /// <summary>
+        /// Supported primitive field types.
+        /// </summary>
+        public enum DbpType
+        {
+            /// <summary>
+            /// Signed 1-byte integer.
+            /// </summary>
+            s8,
+
+            /// <summary>
+            /// Unsigned 1-byte integer.
+            /// </summary>
+            u8,
+
+            /// <summary>
+            /// Signed 2-byte integer.
+            /// </summary>
+            s16,
+
+            /// <summary>
+            /// Unsigned 2-byte integer.
+            /// </summary>
+            u16,
+
+            /// <summary>
+            /// Signed 4-byte integer.
+            /// </summary>
+            s32,
+
+            /// <summary>
+            /// Unsigned 4-byte integer.
+            /// </summary>
+            u32,
+
+            /// <summary>
+            /// Single-precision floating point value.
+            /// </summary>
+            f32
+        }
+
+        /// <summary>
         /// Whether or not the dbp should be written in bigendian.
         /// </summary>
         public bool BigEndian { get; set; }
@@ -25,36 +66,6 @@ namespace SoulsFormats
         {
             BigEndian = true;
             Fields = new List<Field>();
-        }
-
-        /// <summary>
-        /// Create a new PARAMDBP from PARAMDEF.
-        /// </summary>
-        /// <param name="def">A PARAMDEF.</param>
-        public PARAMDBP(PARAMDEF def)
-        {
-            var dbp = new PARAMDBP
-            {
-                BigEndian = def.BigEndian,
-                Compression = def.Compression,
-                Fields = new List<Field>(def.Fields.Count)
-            };
-
-            foreach (var field in def.Fields)
-            {
-                var dbpfield = new Field
-                {
-                    Type = field.DisplayType,
-                    Name = field.DisplayName,
-                    Format = field.DisplayFormat ?? ParamUtil.GetDefaultFormat(field.DisplayType),
-                    Default = field.Default,
-                    Minimum = field.Minimum,
-                    Maximum = field.Maximum,
-                    Increment = field.Increment
-                };
-
-                dbp.Fields.Add(dbpfield);
-            }
         }
 
         /// <summary>
@@ -86,8 +97,8 @@ namespace SoulsFormats
 
             for (int i = 0; i < fieldCount; i++)
             {
-                Fields[i].Name = br.ReadShiftJIS();
-                Fields[i].Format = br.ReadShiftJIS();
+                Fields[i].DisplayName = br.ReadShiftJIS();
+                Fields[i].DisplayFormat = br.ReadShiftJIS();
             }
         }
 
@@ -109,8 +120,8 @@ namespace SoulsFormats
 
             for (int i = 0; i < Fields.Count; i++)
             {
-                bw.WriteShiftJIS(Fields[i].Name, true);
-                bw.WriteShiftJIS(Fields[i].Format, true);
+                bw.WriteShiftJIS(Fields[i].DisplayName, true);
+                bw.WriteShiftJIS(Fields[i].DisplayFormat, true);
             }
         }
 
@@ -123,23 +134,23 @@ namespace SoulsFormats
             int size = 0;
             foreach (Field field in Fields)
             {
-                switch (field.Type)
+                switch (field.DisplayType)
                 {
-                    case PARAMDEF.DefType.s8:
-                    case PARAMDEF.DefType.u8:
+                    case DbpType.s8:
+                    case DbpType.u8:
                         size += 1;
                         break;
-                    case PARAMDEF.DefType.s16:
-                    case PARAMDEF.DefType.u16:
+                    case DbpType.s16:
+                    case DbpType.u16:
                         size += 2;
                         break;
-                    case PARAMDEF.DefType.s32:
-                    case PARAMDEF.DefType.u32:
-                    case PARAMDEF.DefType.f32:
+                    case DbpType.s32:
+                    case DbpType.u32:
+                    case DbpType.f32:
                         size += 4;
                         break;
                     default:
-                        throw new NotImplementedException($"{nameof(PARAMDEF.DefType)}: {field.Type} invalid or not implemented.");
+                        throw new NotImplementedException($"{nameof(DbpType)}: {field.DisplayType} invalid or not implemented.");
                 }
             }
             return size;
@@ -159,31 +170,20 @@ namespace SoulsFormats
         /// </summary>
         public class Field
         {
-            private PARAMDEF.DefType _Type;
-
             /// <summary>
             /// Type of value to display in the editor.
             /// </summary>
-            public PARAMDEF.DefType Type
-            {   get => _Type;
-                set
-                {
-                    if (!IsValidDefType(value))
-                        throw new NotSupportedException($"{nameof(PARAMDEF.DefType)} {Type} is not supported by {nameof(PARAMDBP)}.");
-                    else
-                        _Type = value;
-                }
-            }
+            public DbpType DisplayType { get; set; }
 
             /// <summary>
             /// The description for this field describing what it is in the DBP param.
             /// </summary>
-            public string Name { get; set; }
+            public string DisplayName { get; set; }
 
             /// <summary>
             /// The string formatter indicating how this field's values should be formatted.
             /// </summary>
-            public string Format { get; set; }
+            public string DisplayFormat { get; set; }
 
             /// <summary>
             /// Default value for new fields.
@@ -210,9 +210,9 @@ namespace SoulsFormats
             /// </summary>
             public Field()
             {
-                _Type = PARAMDEF.DefType.s32;
-                Name = string.Empty;
-                Format = string.Empty;
+                DisplayType = DbpType.s32;
+                DisplayName = string.Empty;
+                DisplayFormat = string.Empty;
                 Default = 0;
                 Increment = 1;
                 Minimum = 0;
@@ -223,33 +223,22 @@ namespace SoulsFormats
             /// Create a new Field with default values using the specified options.
             /// </summary>
             /// <param name="type">The type the values in the field will be.</param>
-            public Field(PARAMDEF.DefType type) : this(type, string.Empty, string.Empty) { }
-
-            /// <summary>
-            /// Create a new Field with default values using the specified options.
-            /// </summary>
-            /// <param name="type">The type the values in the field will be.</param>
-            /// <param name="name">The name of the field.</param>
-            public Field(PARAMDEF.DefType type, string name) : this(type, name, string.Empty) { }
+            public Field(DbpType type) : this(type, string.Empty) { }
 
             /// <summary>
             /// Create a new Field with default values using the specified options.
             /// </summary>
             /// <param name="type">The type the values in the field will be.</param>
             /// <param name="name">The display name of this field.</param>
-            /// <param name="format">The display format of this field.</param>
-            public Field(PARAMDEF.DefType type, string name, string format)
+            public Field(DbpType type, string name)
             {
-                if (!IsValidDefType(type))
-                    throw new NotSupportedException($"{nameof(PARAMDEF.DefType)} {type} is not supported by PARAMDBP.");
-
-                Type = type;
-                Name = name;
-                Format = format;
-                Default = ParamUtil.GetDefaultDefault(type);
-                Increment = ParamUtil.GetDefaultIncrement(type);
-                Minimum = ParamUtil.GetDefaultMinimum(type);
-                Maximum = ParamUtil.GetDefaultMaximum(type);
+                DisplayType = type;
+                DisplayName = name;
+                DisplayFormat = ParamDbpUtil.GetDefaultFormat(type);
+                Default = ParamDbpUtil.GetDefaultDefault(type);
+                Increment = ParamDbpUtil.GetDefaultIncrement(type);
+                Minimum = ParamDbpUtil.GetDefaultMinimum(type);
+                Maximum = ParamDbpUtil.GetDefaultMaximum(type);
             }
 
             /// <summary>
@@ -257,55 +246,55 @@ namespace SoulsFormats
             /// </summary>
             internal Field(BinaryReaderEx br)
             {
-                Type = (PARAMDEF.DefType)br.ReadUInt32();
+                DisplayType = (DbpType)br.ReadInt32();
                 br.AssertInt32(0);
                 br.AssertInt32(0);
-                switch (Type)
+                switch (DisplayType)
                 {
-                    case PARAMDEF.DefType.s8:
+                    case DbpType.s8:
                         Default = br.ReadSByte();
                         Increment = br.ReadSByte();
                         Minimum = br.ReadSByte();
                         Maximum = br.ReadSByte();
                         break;
-                    case PARAMDEF.DefType.u8:
+                    case DbpType.u8:
                         Default = br.ReadByte();
                         Increment = br.ReadByte();
                         Minimum = br.ReadByte();
                         Maximum = br.ReadByte();
                         break;
-                    case PARAMDEF.DefType.s16:
+                    case DbpType.s16:
                         Default = br.ReadInt16();
                         Increment = br.ReadInt16();
                         Minimum = br.ReadInt16();
                         Maximum = br.ReadInt16();
                         break;
-                    case PARAMDEF.DefType.u16:
+                    case DbpType.u16:
                         Default = br.ReadUInt16();
                         Increment = br.ReadUInt16();
                         Minimum = br.ReadUInt16();
                         Maximum = br.ReadUInt16();
                         break;
-                    case PARAMDEF.DefType.s32:
+                    case DbpType.s32:
                         Default = br.ReadInt32();
                         Increment = br.ReadInt32();
                         Minimum = br.ReadInt32();
                         Maximum = br.ReadInt32();
                         break;
-                    case PARAMDEF.DefType.u32:
+                    case DbpType.u32:
                         Default = br.ReadUInt32();
                         Increment = br.ReadUInt32();
                         Minimum = br.ReadUInt32();
                         Maximum = br.ReadUInt32();
                         break;
-                    case PARAMDEF.DefType.f32:
+                    case DbpType.f32:
                         Default = br.ReadSingle();
                         Increment = br.ReadSingle();
                         Minimum = br.ReadSingle();
                         Maximum = br.ReadSingle();
                         break;
                     default:
-                        throw new NotImplementedException($"{nameof(PARAMDEF.DefType)}: {Type} invalid or not implemented.");
+                        throw new NotImplementedException($"{nameof(DbpType)}: {DisplayType} invalid or not implemented.");
                 }
             }
 
@@ -314,55 +303,55 @@ namespace SoulsFormats
             /// </summary>
             internal void Write(BinaryWriterEx bw)
             {
-                bw.WriteInt32((int)Type);
+                bw.WriteInt32((int)DisplayType);
                 bw.WriteInt32(0);
                 bw.WriteInt32(0);
-                switch (Type)
+                switch (DisplayType)
                 {
-                    case PARAMDEF.DefType.s8:
+                    case DbpType.s8:
                         bw.WriteSByte((sbyte)Default);
                         bw.WriteSByte((sbyte)Increment);
                         bw.WriteSByte((sbyte)Minimum);
                         bw.WriteSByte((sbyte)Maximum);
                         break;
-                    case PARAMDEF.DefType.u8:
+                    case DbpType.u8:
                         bw.WriteByte((byte)Default);
                         bw.WriteByte((byte)Increment);
                         bw.WriteByte((byte)Minimum);
                         bw.WriteByte((byte)Maximum);
                         break;
-                    case PARAMDEF.DefType.s16:
+                    case DbpType.s16:
                         bw.WriteInt16((short)Default);
                         bw.WriteInt16((short)Increment);
                         bw.WriteInt16((short)Minimum);
                         bw.WriteInt16((short)Maximum);
                         break;
-                    case PARAMDEF.DefType.u16:
+                    case DbpType.u16:
                         bw.WriteUInt16((ushort)Default);
                         bw.WriteUInt16((ushort)Increment);
                         bw.WriteUInt16((ushort)Minimum);
                         bw.WriteUInt16((ushort)Maximum);
                         break;
-                    case PARAMDEF.DefType.s32:
+                    case DbpType.s32:
                         bw.WriteInt32((int)Default);
                         bw.WriteInt32((int)Increment);
                         bw.WriteInt32((int)Minimum);
                         bw.WriteInt32((int)Maximum);
                         break;
-                    case PARAMDEF.DefType.u32:
+                    case DbpType.u32:
                         bw.WriteUInt32((uint)Default);
                         bw.WriteUInt32((uint)Increment);
                         bw.WriteUInt32((uint)Minimum);
                         bw.WriteUInt32((uint)Maximum);
                         break;
-                    case PARAMDEF.DefType.f32:
+                    case DbpType.f32:
                         bw.WriteSingle((float)Default);
                         bw.WriteSingle((float)Increment);
                         bw.WriteSingle((float)Minimum);
                         bw.WriteSingle((float)Maximum);
                         break;
                     default:
-                        throw new NotImplementedException($"{nameof(PARAMDEF.DefType)}: {Type} invalid or not implemented.");
+                        throw new NotImplementedException($"{nameof(DbpType)}: {DisplayType} invalid or not implemented.");
                 }
             }
 
@@ -371,19 +360,19 @@ namespace SoulsFormats
             /// </summary>
             /// <param name="str">A string representing a type.</param>
             /// <returns>A type.</returns>
-            public static PARAMDEF.DefType GetDefType(string str)
+            public static DbpType GetDbpType(string str)
             {
                 switch (str.ToLower())
                 {
-                    case "s8": return PARAMDEF.DefType.s8;
-                    case "u8": return PARAMDEF.DefType.u8;
-                    case "s16": return PARAMDEF.DefType.s16;
-                    case "u16": return PARAMDEF.DefType.u16;
-                    case "s32": return PARAMDEF.DefType.s32;
-                    case "u32": return PARAMDEF.DefType.u32;
-                    case "f32": return PARAMDEF.DefType.f32;
+                    case "s8": return DbpType.s8;
+                    case "u8": return DbpType.u8;
+                    case "s16": return DbpType.s16;
+                    case "u16": return DbpType.u16;
+                    case "s32": return DbpType.s32;
+                    case "u32": return DbpType.u32;
+                    case "f32": return DbpType.f32;
                     default:
-                        throw new NotImplementedException($"{nameof(PARAMDEF.DefType)}: {str} invalid or not implemented.");
+                        throw new NotImplementedException($"{nameof(DbpType)}: {str} invalid or not implemented.");
                 }
             }
 
@@ -393,41 +382,19 @@ namespace SoulsFormats
             /// <param name="str">A string to convert to the specified type.</param>
             /// <param name="type">A type.</param>
             /// <returns>An object from the provided string converted to the specified type.</returns>
-            public static object ConvertToDefType(string str, PARAMDEF.DefType type)
+            public static object ConvertToDbpType(string str, DbpType type)
             {
                 switch (type)
                 {
-                    case PARAMDEF.DefType.s8: return Convert.ToSByte(str);
-                    case PARAMDEF.DefType.u8: return Convert.ToByte(str);
-                    case PARAMDEF.DefType.s16: return Convert.ToInt16(str);
-                    case PARAMDEF.DefType.u16: return Convert.ToUInt16(str);
-                    case PARAMDEF.DefType.s32: return Convert.ToInt32(str);
-                    case PARAMDEF.DefType.u32: return Convert.ToUInt32(str);
-                    case PARAMDEF.DefType.f32: return Convert.ToSingle(str);
+                    case DbpType.s8: return Convert.ToSByte(str);
+                    case DbpType.u8: return Convert.ToByte(str);
+                    case DbpType.s16: return Convert.ToInt16(str);
+                    case DbpType.u16: return Convert.ToUInt16(str);
+                    case DbpType.s32: return Convert.ToInt32(str);
+                    case DbpType.u32: return Convert.ToUInt32(str);
+                    case DbpType.f32: return Convert.ToSingle(str);
                     default:
-                        throw new NotImplementedException($"{nameof(PARAMDEF.DefType)}: {type} invalid or not implemented.");
-                }
-            }
-
-            /// <summary>
-            /// Check if a type is valid for dbp.
-            /// </summary>
-            /// <param name="type">A DefType.</param>
-            /// <returns>Whether or not the provided DefType is valid for dbp.</returns>
-            public static bool IsValidDefType(PARAMDEF.DefType type)
-            {
-                switch (type)
-                {
-                    case PARAMDEF.DefType.s8:
-                    case PARAMDEF.DefType.u8:
-                    case PARAMDEF.DefType.s16:
-                    case PARAMDEF.DefType.u16:
-                    case PARAMDEF.DefType.s32:
-                    case PARAMDEF.DefType.u32:
-                    case PARAMDEF.DefType.f32:
-                        return true;
-                    default:
-                        return false;
+                        throw new NotImplementedException($"{nameof(DbpType)}: {type} invalid or not implemented.");
                 }
             }
 
@@ -436,13 +403,13 @@ namespace SoulsFormats
             /// </summary>
             public override string ToString()
             {
-                return $"Type: {Type}\n" +
-                       $"Format: {Format}\n" +
+                return $"Type: {DisplayType}\n" +
+                       $"Format: {DisplayFormat}\n" +
                        $"Default: {Default}\n" +
                        $"Increment: {Increment}\n" +
                        $"Minimum: {Minimum}\n" +
                        $"Maximum:{Maximum}\n" +
-                       $"Name: {Name}";
+                       $"Name: {DisplayName}";
             }
         }
     }

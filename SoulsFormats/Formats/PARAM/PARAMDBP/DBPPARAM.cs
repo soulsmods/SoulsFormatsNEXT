@@ -78,31 +78,31 @@ namespace SoulsFormats
             bw.BigEndian = BigEndian;
             foreach (var cell in Cells)
             {
-                switch (cell.Dbp.Type)
+                switch (cell.Dbp.DisplayType)
                 {
-                    case PARAMDEF.DefType.s8:
+                    case PARAMDBP.DbpType.s8:
                         bw.WriteSByte(Convert.ToSByte(cell.Value));
                         break;
-                    case PARAMDEF.DefType.u8:
+                    case PARAMDBP.DbpType.u8:
                         bw.WriteByte(Convert.ToByte(cell.Value));
                         break;
-                    case PARAMDEF.DefType.s16:
+                    case PARAMDBP.DbpType.s16:
                         bw.WriteInt16(Convert.ToInt16(cell.Value));
                         break;
-                    case PARAMDEF.DefType.u16:
+                    case PARAMDBP.DbpType.u16:
                         bw.WriteUInt16(Convert.ToUInt16(cell.Value));
                         break;
-                    case PARAMDEF.DefType.s32:
+                    case PARAMDBP.DbpType.s32:
                         bw.WriteInt32(Convert.ToInt32(cell.Value));
                         break;
-                    case PARAMDEF.DefType.u32:
+                    case PARAMDBP.DbpType.u32:
                         bw.WriteUInt32(Convert.ToUInt32(cell.Value));
                         break;
-                    case PARAMDEF.DefType.f32:
+                    case PARAMDBP.DbpType.f32:
                         bw.WriteSingle(Convert.ToSingle(cell.Value));
                         break;
                     default:
-                        throw new NotImplementedException($"{nameof(PARAMDEF.DefType)}: {cell.Dbp.Type} invalid or not implemented.");
+                        throw new NotImplementedException($"{nameof(PARAMDBP.DbpType)}: {cell.Dbp.DisplayType} invalid or not implemented.");
                 }
             }
         }
@@ -136,7 +136,7 @@ namespace SoulsFormats
             for (int i = 0; i < dbp.Fields.Count; i++)
             {
                 PARAMDBP.Field field = dbp.Fields[i];
-                object value = ReadCellValue(CellReader, field.Type);
+                object value = ReadCellValue(CellReader, field.DisplayType);
                 cells[i] = new Cell(field, value);
             }
             Cells = cells;
@@ -152,34 +152,34 @@ namespace SoulsFormats
         /// <param name="type">The display type of the cell.</param>
         /// <returns>The value of the cell as an object.</returns>
         /// <exception cref="NotImplementedException">If the provided display type does is not supported or does not exist.</exception>
-        private object ReadCellValue(BinaryReaderEx br, PARAMDEF.DefType type)
+        private object ReadCellValue(BinaryReaderEx br, PARAMDBP.DbpType type)
         {
             object value;
             switch (type)
             {
-                case PARAMDEF.DefType.s8:
+                case PARAMDBP.DbpType.s8:
                     value = br.ReadSByte();
                     break;
-                case PARAMDEF.DefType.u8:
+                case PARAMDBP.DbpType.u8:
                     value = br.ReadByte();
                     break;
-                case PARAMDEF.DefType.s16:
+                case PARAMDBP.DbpType.s16:
                     value = br.ReadInt16();
                     break;
-                case PARAMDEF.DefType.u16:
+                case PARAMDBP.DbpType.u16:
                     value = br.ReadUInt16();
                     break;
-                case PARAMDEF.DefType.s32:
+                case PARAMDBP.DbpType.s32:
                     value = br.ReadInt32();
                     break;
-                case PARAMDEF.DefType.u32:
+                case PARAMDBP.DbpType.u32:
                     value = br.ReadUInt32();
                     break;
-                case PARAMDEF.DefType.f32:
+                case PARAMDBP.DbpType.f32:
                     value = br.ReadSingle();
                     break;
                 default:
-                    throw new NotImplementedException($"{nameof(PARAMDEF.DefType)}: {type} invalid or not implemented.");
+                    throw new NotImplementedException($"{nameof(PARAMDBP.DbpType)}: {type} invalid or not implemented.");
             }
             return value;
         }
@@ -197,20 +197,20 @@ namespace SoulsFormats
             /// <summary>
             /// The DisplayType of the cell from its dbp field as a string.
             /// </summary>
-            public PARAMDEF.DefType Type
-                => Dbp.Type;
+            public PARAMDBP.DbpType DisplayType
+                => Dbp.DisplayType;
 
             /// <summary>
             /// The description of the cell from its dbp field.
             /// </summary>
-            public string Name
-                => Dbp.Name;
+            public string DisplayName
+                => Dbp.DisplayName;
 
             /// <summary>
             /// The DisplayFormat of the cell from its dbp field.
             /// </summary>
-            public string Format
-                => Dbp.Format;
+            public string DisplayFormat
+                => Dbp.DisplayFormat;
 
             /// <summary>
             /// The default editor value of the cell from its dbp field.
@@ -252,17 +252,17 @@ namespace SoulsFormats
                     if (value == null)
                         throw new NullReferenceException($"Cell value may not be null.");
 
-                    switch (Dbp.Type)
+                    switch (Dbp.DisplayType)
                     {
-                        case PARAMDEF.DefType.s8: _Value = Convert.ToSByte(value); break;
-                        case PARAMDEF.DefType.u8: _Value = Convert.ToByte(value); break;
-                        case PARAMDEF.DefType.s16: _Value = Convert.ToInt16(value); break;
-                        case PARAMDEF.DefType.u16: _Value = Convert.ToUInt16(value); break;
-                        case PARAMDEF.DefType.s32: _Value = Convert.ToInt32(value); break;
-                        case PARAMDEF.DefType.u32: _Value = Convert.ToUInt32(value); break;
-                        case PARAMDEF.DefType.f32: _Value = Convert.ToSingle(value); break;
+                        case PARAMDBP.DbpType.s8: _Value = Convert.ToSByte(value); break;
+                        case PARAMDBP.DbpType.u8: _Value = Convert.ToByte(value); break;
+                        case PARAMDBP.DbpType.s16: _Value = Convert.ToInt16(value); break;
+                        case PARAMDBP.DbpType.u16: _Value = Convert.ToUInt16(value); break;
+                        case PARAMDBP.DbpType.s32: _Value = Convert.ToInt32(value); break;
+                        case PARAMDBP.DbpType.u32: _Value = Convert.ToUInt32(value); break;
+                        case PARAMDBP.DbpType.f32: _Value = Convert.ToSingle(value); break;
                         default:
-                            throw new NotImplementedException($"Conversion not specified for {nameof(PARAMDEF.DefType)}: {Dbp.Type}");
+                            throw new NotImplementedException($"Conversion not specified for {nameof(PARAMDBP.DbpType)}: {Dbp.DisplayType}");
                     }
                 }
             }
@@ -283,7 +283,7 @@ namespace SoulsFormats
             /// </summary>
             public override string ToString()
             {
-                return $"{Dbp.Type} {Dbp.Name} = {Value}";
+                return $"{Dbp.DisplayType} {Dbp.DisplayName} = {Value}";
             }
         }
     }

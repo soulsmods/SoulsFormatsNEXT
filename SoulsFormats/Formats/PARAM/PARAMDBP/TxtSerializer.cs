@@ -13,6 +13,14 @@ namespace SoulsFormats
             #region Serialize
 
             /// <summary>
+            /// Serialize a dbp to a txt on the specified path.
+            /// </summary>
+            /// <param name="dbp">A dbp.</param>
+            /// <param name="path">The path to serialize a txt to.</param>
+            public static void SerializeDbp(PARAMDBP dbp, string path)
+                => File.WriteAllLines(path, SerializeDbp(dbp));
+
+            /// <summary>
             /// Serialize a dbp to a string array.
             /// </summary>
             /// <param name="dbp">A dbp.</param>
@@ -27,9 +35,9 @@ namespace SoulsFormats
                 {
                     Field field = dbp.Fields[i];
                     lines[lineIndex++] = $"[{i}]";
-                    lines[lineIndex++] = $"Name   : {field.Name}";
-                    lines[lineIndex++] = $"Format : {field.Format}";
-                    lines[lineIndex++] = $"Type   : {field.Type}";
+                    lines[lineIndex++] = $"DisplayName   : {field.DisplayName}";
+                    lines[lineIndex++] = $"DisplayFormat : {field.DisplayFormat}";
+                    lines[lineIndex++] = $"DisplayType   : {field.DisplayType}";
                     lines[lineIndex++] = $"Default       : {field.Default}";
                     lines[lineIndex++] = $"Increment     : {field.Increment}";
                     lines[lineIndex++] = $"Minimum       : {field.Minimum}";
@@ -38,6 +46,14 @@ namespace SoulsFormats
 
                 return lines;
             }
+
+            /// <summary>
+            /// Serialize a param that has an applied dbp to a txt on the specified path.
+            /// </summary>
+            /// <param name="param">A param.</param>
+            /// <param name="path">The path to serialize a txt to.</param>
+            public static void SerializeParam(DBPPARAM param, string path)
+                => File.WriteAllLines(path, SerializeParam(param));
 
             /// <summary>
             /// Serialize a param that has an applied dbp to a string array.
@@ -56,9 +72,9 @@ namespace SoulsFormats
                 {
                     var cell = param.Cells[i];
                     lines[lineIndex++] = $"[{i}]";
-                    lines[lineIndex++] = $"Name   : {cell.Name}";
-                    lines[lineIndex++] = $"Format : {cell.Format}";
-                    lines[lineIndex++] = $"Type   : {cell.Type}";
+                    lines[lineIndex++] = $"DisplayName   : {cell.DisplayName}";
+                    lines[lineIndex++] = $"DisplayFormat : {cell.DisplayFormat}";
+                    lines[lineIndex++] = $"DisplayType   : {cell.DisplayType}";
                     lines[lineIndex++] = $"Default       : {cell.Default}";
                     lines[lineIndex++] = $"Increment     : {cell.Increment}";
                     lines[lineIndex++] = $"Minimum       : {cell.Minimum}";
@@ -72,6 +88,14 @@ namespace SoulsFormats
             #endregion
 
             #region Deserialize
+
+            /// <summary>
+            /// Deserialize a dbp from the specified txt path.
+            /// </summary>
+            /// <param name="path">The path to deserialize a txt from.</param>
+            /// <returns>A new dbp.</returns>
+            public static PARAMDBP DeserializeDbp(string path)
+                => DeserializeDbp(File.ReadAllLines(path));
 
             /// <summary>
             /// Deserialize a dbp from a string array.
@@ -95,18 +119,18 @@ namespace SoulsFormats
                     Field field = new Field();
 
                     // Skip to the colon delimiter and past its whitespace, then get the value of and advance after each line in the entry.
-                    var description = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
-                    var format = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
-                    var type = Field.GetDefType(lines[i].Substring(lines[i].IndexOf(":") + 2)); i++;
-                    var defaultValue = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var increment = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var minimum = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var maximum = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type);
+                    var displayName = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
+                    var displayFormat = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
+                    var displayType = Field.GetDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2)); i++;
+                    var defaultValue = Field.ConvertToDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2), displayType); i++;
+                    var increment = Field.ConvertToDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2), displayType); i++;
+                    var minimum = Field.ConvertToDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2), displayType); i++;
+                    var maximum = Field.ConvertToDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2), displayType);
 
                     // Set the field values.
-                    field.Name = description;
-                    field.Format = format;
-                    field.Type = type;
+                    field.DisplayName = displayName;
+                    field.DisplayFormat = displayFormat;
+                    field.DisplayType = displayType;
                     field.Default = defaultValue;
                     field.Increment = increment;
                     field.Minimum = minimum;
@@ -118,6 +142,14 @@ namespace SoulsFormats
 
                 return dbp;
             }
+
+            /// <summary>
+            /// Deserialize a param from the specified txt path.
+            /// </summary>
+            /// <param name="path">The path to deserialize a txt from.</param>
+            /// <returns>A new param.</returns>
+            public static DBPPARAM DeserializeParam(string path)
+                => DeserializeParam(File.ReadAllLines(path));
 
             /// <summary>
             /// Deserialize a param from a string array.
@@ -142,19 +174,19 @@ namespace SoulsFormats
                     Field field = new Field();
 
                     // Skip to the colon delimiter and past its whitespace, then get the value of and advance after each line in the entry.
-                    var description = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
-                    var format = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
-                    var type = Field.GetDefType(lines[i].Substring(lines[i].IndexOf(":") + 2)); i++;
-                    var defaultValue = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var increment = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var minimum = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var maximum = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type); i++;
-                    var value = Field.ConvertToDefType(lines[i].Substring(lines[i].IndexOf(":") + 2), type);
+                    var displayName = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
+                    var displayFormat = lines[i].Substring(lines[i].IndexOf(":") + 2); i++;
+                    var displayType = Field.GetDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2)); i++;
+                    var defaultValue = Field.ConvertToDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2), displayType); i++;
+                    var increment = Field.ConvertToDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2), displayType); i++;
+                    var minimum = Field.ConvertToDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2), displayType); i++;
+                    var maximum = Field.ConvertToDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2), displayType); i++;
+                    var value = Field.ConvertToDbpType(lines[i].Substring(lines[i].IndexOf(":") + 2), displayType);
 
                     // Set the field values.
-                    field.Name = description;
-                    field.Format = format;
-                    field.Type = type;
+                    field.DisplayName = displayName;
+                    field.DisplayFormat = displayFormat;
+                    field.DisplayType = displayType;
                     field.Default = defaultValue;
                     field.Increment = increment;
                     field.Minimum = minimum;

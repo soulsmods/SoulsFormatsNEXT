@@ -25,7 +25,7 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Returns true if the stream appears to be a file of this type.
+        /// Returns true if the <see cref="Stream"/> appears to be a file of this type.
         /// </summary>
         public static bool Is(Stream stream)
         {
@@ -93,7 +93,7 @@ namespace SoulsFormats
         #region Read
 
         /// <summary>
-        /// Loads file data from a BinaryReaderEx.
+        /// Reads file data from a stream, automatically decompressing it if necessary.
         /// </summary>
         protected virtual void Read(BinaryReaderEx br)
         {
@@ -101,7 +101,7 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Loads a file from a <see cref="Stream"/>, automatically decompressing it if necessary.
+        /// Reads a file from a <see cref="Stream"/>, automatically decompressing it if necessary.
         /// </summary>
         public static TFormat Read(Stream stream)
         {
@@ -123,7 +123,7 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Loads a file from a byte array, automatically decompressing it if necessary.
+        /// Reads a file from a byte array, automatically decompressing it if necessary.
         /// </summary>
         public static TFormat Read(byte[] bytes)
         {
@@ -233,7 +233,7 @@ namespace SoulsFormats
         #region Write
 
         /// <summary>
-        /// Writes file data to a BinaryWriterEx.
+        /// Serializes file data to a stream.
         /// </summary>
         protected virtual void Write(BinaryWriterEx bw)
         {
@@ -241,7 +241,7 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Writes file data to a BinaryWriterEx, compressing it afterwards if specified.
+        /// Writes file data to a stream, compressing it afterwards if specified.
         /// </summary>
         private void Write(BinaryWriterEx bw, DCX.Type compression)
         {
