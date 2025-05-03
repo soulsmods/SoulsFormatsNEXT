@@ -165,11 +165,12 @@ namespace SoulsFormats
             using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
             {
                 var test = new TFormat();
-                if (test.Is(br))
+                if (test.Is(dbr))
                 {
                     br.Position = 0;
+                    dbr.Position = 0;
                     test.Compression = compression;
-                    test.Read(br);
+                    test.Read(dbr);
                     file = test;
                     return true;
                 }
