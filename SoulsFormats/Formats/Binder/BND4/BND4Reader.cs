@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace SoulsFormats
 {
@@ -47,8 +48,22 @@ namespace SoulsFormats
         /// </summary>
         public BND4Reader(byte[] bytes)
         {
-            var ms = new MemoryStream(bytes);
-            var br = new BinaryReaderEx(false, ms);
+            var br = new BinaryReaderEx(false, bytes);
+            Read(br);
+        }
+
+        /// <summary>
+        /// Reads a BND3 from the given <see cref="Stream"/>, decompressing if necessary.
+        /// </summary>
+        public BND4Reader(Stream stream)
+        {
+            if (stream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            var br = new BinaryReaderEx(false, stream, true);
             Read(br);
         }
 

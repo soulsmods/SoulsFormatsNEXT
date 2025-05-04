@@ -91,6 +91,12 @@ namespace SoulsFormats
         /// </summary>
         public BND2Reader(Stream stream)
         {
+            if (stream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
             var br = new BinaryReaderEx(false, stream, true);
             Read(br);
         }

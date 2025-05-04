@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace SoulsFormats
 {
@@ -14,9 +15,8 @@ namespace SoulsFormats
         {
             using (FileStream fsHeader = File.OpenRead(bhdPath))
             {
-                FileStream fsData = File.OpenRead(bdtPath);
                 var brHeader = new BinaryReaderEx(false, fsHeader);
-                var brData = new BinaryReaderEx(false, fsData);
+                var brData = new BinaryReaderEx(false, bdtPath);
                 Read(brHeader, brData);
             }
         }
@@ -28,23 +28,27 @@ namespace SoulsFormats
         {
             using (FileStream fsHeader = File.OpenRead(bhdPath))
             {
-                var msData = new MemoryStream(bdtBytes);
                 var brHeader = new BinaryReaderEx(false, fsHeader);
-                var brData = new BinaryReaderEx(false, msData);
+                var brData = new BinaryReaderEx(false, bdtBytes);
                 Read(brHeader, brData);
             }
         }
 
         /// <summary>
-        /// Reads a BXF3 from the given BHD bytes and BDT path.
+        /// Reads a BXF3 from the given BHD path and BDT stream.
         /// </summary>
-        public BXF3Reader(byte[] bhdBytes, string bdtPath)
+        public BXF3Reader(string bhdPath, Stream bdtStream)
         {
-            using (var msHeader = new MemoryStream(bhdBytes))
+            if (bdtStream.Position != 0)
             {
-                FileStream fsData = File.OpenRead(bdtPath);
-                var brHeader = new BinaryReaderEx(false, msHeader);
-                var brData = new BinaryReaderEx(false, fsData);
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            using (FileStream fsHeader = File.OpenRead(bhdPath))
+            {
+                var brHeader = new BinaryReaderEx(false, fsHeader);
+                var brData = new BinaryReaderEx(false, bdtStream, true);
                 Read(brHeader, brData);
             }
         }
@@ -56,11 +60,90 @@ namespace SoulsFormats
         {
             using (var msHeader = new MemoryStream(bhdBytes))
             {
-                var msData = new MemoryStream(bdtBytes);
                 var brHeader = new BinaryReaderEx(false, msHeader);
-                var brData = new BinaryReaderEx(false, msData);
+                var brData = new BinaryReaderEx(false, bdtBytes);
                 Read(brHeader, brData);
             }
+        }
+
+        /// <summary>
+        /// Reads a BXF3 from the given BHD bytes and BDT stream.
+        /// </summary>
+        public BXF3Reader(byte[] bhdBytes, string bdtPath)
+        {
+            using (var msHeader = new MemoryStream(bhdBytes))
+            {
+                var brHeader = new BinaryReaderEx(false, msHeader);
+                var brData = new BinaryReaderEx(false, bdtPath);
+                Read(brHeader, brData);
+            }
+        }
+
+        /// <summary>
+        /// Reads a BXF3 from the given BHD bytes and BDT path.
+        /// </summary>
+        public BXF3Reader(byte[] bhdBytes, Stream bdtStream)
+        {
+            if (bdtStream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            using (var msHeader = new MemoryStream(bhdBytes))
+            {
+                var brHeader = new BinaryReaderEx(false, msHeader);
+                var brData = new BinaryReaderEx(false, bdtStream, true);
+                Read(brHeader, brData);
+            }
+        }
+
+        /// <summary>
+        /// Reads a BXF3 from the given BHD and BDT streams.
+        /// </summary>
+        public BXF3Reader(Stream bhdStream, Stream bdtStream)
+        {
+            if (bhdStream.Position != 0 && bdtStream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if streams are not at position {0}.");
+            }
+
+            var brHeader = new BinaryReaderEx(false, bhdStream, true);
+            var brData = new BinaryReaderEx(false, bdtStream, true);
+            Read(brHeader, brData);
+        }
+
+        /// <summary>
+        /// Reads a BXF3 from the given BHD stream and BDT path.
+        /// </summary>
+        public BXF3Reader(Stream bhdStream, string bdtPath)
+        {
+            if (bhdStream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            var brHeader = new BinaryReaderEx(false, bhdStream, true);
+            var brData = new BinaryReaderEx(false, bdtPath);
+            Read(brHeader, brData);
+        }
+
+        /// <summary>
+        /// Reads a BXF3 from the given BHD stream and BDT bytes.
+        /// </summary>
+        public BXF3Reader(Stream bhdStream, byte[] bdtBytes)
+        {
+            if (bhdStream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            var brHeader = new BinaryReaderEx(false, bhdStream, true);
+            var brData = new BinaryReaderEx(false, bdtBytes);
+            Read(brHeader, brData);
         }
 
         private void Read(BinaryReaderEx brHeader, BinaryReaderEx brData)
