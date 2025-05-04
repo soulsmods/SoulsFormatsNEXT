@@ -139,8 +139,17 @@ namespace SoulsFormats
 
             br.AssertInt32(0);
             br.AssertInt32(0);
-            Header.Unk68 = br.AssertInt16(0, 1, 2, 3, 4, 5);
-            Header.SpecialModifier = br.AssertInt16(0, -32768);
+
+            if (Header.Version >= 0x2001A)
+            {
+                Header.Unk68 = br.AssertInt16(0, 1, 2, 3, 4, 5);
+                Header.SpecialModifier = br.AssertInt16(0, -32768);
+            }
+            else
+            {
+                Header.Unk68 = br.AssertInt32(0, 1, 2, 3, 4, 5);
+            }
+
             br.AssertInt32(0);
             br.AssertInt32(0);
             Header.Unk74 = br.AssertInt32(0, 0x10);
@@ -273,14 +282,25 @@ namespace SoulsFormats
 
             bw.WriteInt32(0);
             bw.WriteInt32(0);
-            bw.WriteInt32(Header.Unk68);
+
+            bool isSpeedTree = IsSpeedtree();
+            if (isSpeedTree)
+            {
+                bw.WriteInt16((short)Header.Unk68);
+                bw.WriteInt16(Header.SpecialModifier);
+            }
+            else
+            {
+                bw.WriteInt32(Header.Unk68);
+            }
+
             bw.WriteInt32(0);
             bw.WriteInt32(0);
             bw.WriteInt32(Header.Unk74);
             bw.WriteInt32(0);
             bw.WriteInt32(0);
 
-            bool isSpeedTree = IsSpeedtree();
+            
             foreach (FLVER.Dummy dummy in Dummies)
                 dummy.Write(bw, Header.Version);
 
@@ -498,7 +518,7 @@ namespace SoulsFormats
             /// <summary>
             /// Unknown.
             /// </summary>
-            public short Unk68 { get; set; }
+            public int Unk68 { get; set; }
             
             /// <summary>
             /// Used to denote Speedtree if -32768. Doesn't seem to be used for anything else currently.

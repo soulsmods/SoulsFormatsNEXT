@@ -234,7 +234,7 @@ namespace SoulsFormats
             var version = GetFormatVersion(br);
             var header = new ContainerHeader(br, version, wrapped);
             int maxContainerIndex = GetMaxContainerIndex(br, header.FileCount, version);
-            var containers = GatherContainers(br, maxContainerIndex, path, wrapped, wrapperVersion);
+            var containers = GatherContainers(br, maxContainerIndex, path, wrapped);
 
             var archive = new Zero3(containers, version, header, wrapped, wrapperVersion, wrappedName);
             foreach (var container in containers)
@@ -260,7 +260,7 @@ namespace SoulsFormats
             var version = GetFormatVersion(br);
             var header = new ContainerHeader(br, version, wrapped);
             int maxContainerIndex = GetMaxContainerIndex(br, header.FileCount, version);
-            var containers = GatherContainers(br, maxContainerIndex, containersBytes, wrapped, wrapperVersion);  
+            var containers = GatherContainers(br, maxContainerIndex, containersBytes, wrapped);  
 
             var archive = new Zero3(containers, version, header, wrapped, wrapperVersion, wrappedName);
             foreach (var container in containers)
@@ -414,10 +414,9 @@ namespace SoulsFormats
         /// <param name="maxContainerIndex">The max container index.</param>
         /// <param name="path">The path to the first container.</param>
         /// <param name="wrapped">Whether or not the containers are wrapped.</param>
-        /// <param name="wrappingVersion">The version of the containers wrapping these containers.</param>
         /// <returns>An array of containers.</returns>
         /// <exception cref="InvalidDataException">Could not find a container.</exception>
-        private static BinaryReaderEx[] GatherContainers(BinaryReaderEx br, int maxContainerIndex, string path, bool wrapped, string wrappingVersion)
+        private static BinaryReaderEx[] GatherContainers(BinaryReaderEx br, int maxContainerIndex, string path, bool wrapped)
         {
             int containerCount = maxContainerIndex + 1;
             var containers = new BinaryReaderEx[containerCount];
@@ -436,11 +435,7 @@ namespace SoulsFormats
                 if (wrapped)
                 {
                     var bnd = BND3.Read(containerPath);
-                    if (bnd.Version != wrappingVersion)
-                    {
-                        throw new InvalidDataException($"Wrapper {i} version does not match the initial wrapper version: {bnd.Version} != {wrappingVersion}");
-                    }
-
+                    // Don't check wrapper versions, as some can be different even for the same set of Zero3 pieces
                     cbr = Unwrap(bnd, i);
                 }
                 else
@@ -461,10 +456,9 @@ namespace SoulsFormats
         /// <param name="maxContainerIndex">The max container index.</param>
         /// <param name="containersBytes">The container bytes.</param>
         /// <param name="wrapped">Whether or not the containers are wrapped.</param>
-        /// <param name="wrappingVersion">The version of the containers wrapping these containers.</param>
         /// <returns>An array of containers.</returns>
         /// <exception cref="InvalidDataException">Could not find a container.</exception>
-        private static BinaryReaderEx[] GatherContainers(BinaryReaderEx br, int maxContainerIndex, IEnumerable<byte[]> containersBytes, bool wrapped, string wrappingVersion)
+        private static BinaryReaderEx[] GatherContainers(BinaryReaderEx br, int maxContainerIndex, IEnumerable<byte[]> containersBytes, bool wrapped)
         {
             int containerCount = maxContainerIndex + 1;
             var containers = new BinaryReaderEx[containerCount];
@@ -480,11 +474,7 @@ namespace SoulsFormats
                 if (wrapped)
                 {
                     var bnd = BND3.Read(containerBytes);
-                    if (bnd.Version != wrappingVersion)
-                    {
-                        throw new InvalidDataException($"Wrapper {index} version does not match the initial wrapper version: {bnd.Version} != {wrappingVersion}");
-                    }
-
+                    // Don't check wrapper versions, as some can be different even for the same set of Zero3 pieces
                     containers[index] = Unwrap(bnd, index);
                 }
                 else

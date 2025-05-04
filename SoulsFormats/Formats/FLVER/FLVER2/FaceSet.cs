@@ -194,7 +194,7 @@ namespace SoulsFormats
                 bw.WriteInt32(Indices.Count);
                 bw.ReserveInt32($"FaceSetVertices{index}");
 
-                if (header.Version > 0x20005)
+                if (header.Version > 0x20007)
                 {
                     bw.WriteInt32(Indices.Count * (indexSize / 8));
                     bw.WriteInt32(0);
