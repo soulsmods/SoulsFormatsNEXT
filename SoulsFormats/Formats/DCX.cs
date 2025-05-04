@@ -1,5 +1,4 @@
-﻿using Org.BouncyCastle.Utilities;
-using SoulsFormats.Compression;
+﻿using SoulsFormats.Compression;
 using System;
 using System.IO;
 using System.IO.Compression;

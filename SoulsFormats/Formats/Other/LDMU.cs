@@ -92,14 +92,14 @@ namespace SoulsFormats.Other
         }
 
         /// <summary>
-        /// Reads a <see cref="LDMU"/> from the specified byte arrays.
+        /// Reads a <see cref="LDMU"/> from the specified paths.
         /// </summary>
-        /// <param name="headerBytes">The bytes of an <see cref="LDMU"/> header.</param>
+        /// <param name="headerPath">The file path to an <see cref="LDMU"/> header.</param>
         /// <param name="dataBytes">The bytes of <see cref="LDMU"/> data.</param>
         /// <returns>The read <see cref="LDMU"/>.</returns>
-        public static LDMU Read(byte[] headerBytes, byte[] dataBytes)
+        public static LDMU Read(string headerPath, byte[] dataBytes)
         {
-            using (var br = new BinaryReaderEx(false, headerBytes))
+            using (var br = new BinaryReaderEx(false, headerPath))
             using (var ms = new MemoryStream(dataBytes, false))
             {
                 return new LDMU(br, ms);
@@ -121,9 +121,39 @@ namespace SoulsFormats.Other
         }
 
         /// <summary>
+        /// Reads a <see cref="LDMU"/> from the specified byte arrays.
+        /// </summary>
+        /// <param name="headerBytes">The bytes of an <see cref="LDMU"/> header.</param>
+        /// <param name="dataBytes">The bytes of <see cref="LDMU"/> data.</param>
+        /// <returns>The read <see cref="LDMU"/>.</returns>
+        public static LDMU Read(byte[] headerBytes, byte[] dataBytes)
+        {
+            using (var br = new BinaryReaderEx(false, headerBytes))
+            using (var ms = new MemoryStream(dataBytes, false))
+            {
+                return new LDMU(br, ms);
+            }
+        }
+
+        /// <summary>
+        /// Reads a <see cref="LDMU"/> from the specified byte arrays.
+        /// </summary>
+        /// <param name="headerBytes">The bytes of an <see cref="LDMU"/> header.</param>
+        /// <param name="dataPath">The file path to <see cref="LDMU"/> data.</param>
+        /// <returns>The read <see cref="LDMU"/>.</returns>
+        public static LDMU Read(byte[] headerBytes, string dataPath)
+        {
+            using (var br = new BinaryReaderEx(false, headerBytes))
+            using (var fs = System.IO.File.OpenRead(dataPath))
+            {
+                return new LDMU(br, fs);
+            }
+        }
+
+        /// <summary>
         /// Reads a <see cref="LDMU"/> from the specified header path and data stream.
         /// </summary>
-        /// <param name="headerBytes">The bytes an <see cref="LDMU"/> header.</param>
+        /// <param name="headerBytes">The bytes of an <see cref="LDMU"/> header.</param>
         /// <param name="dataStream">A <see cref="Stream"/> with the current position starting with a <see cref="LDMU"/> data file.</param>
         /// <returns>The read <see cref="LDMU"/>.</returns>
         public static LDMU Read(byte[] headerBytes, Stream dataStream)
@@ -131,6 +161,68 @@ namespace SoulsFormats.Other
             using (var br = new BinaryReaderEx(false, headerBytes))
             {
                 return new LDMU(br, dataStream);
+            }
+        }
+
+        /// <summary>
+        /// Reads a <see cref="LDMU"/> from the specified byte arrays.
+        /// </summary>
+        /// <param name="headerStream">The stream of a <see cref="LDMU"/> header.</param>
+        /// <param name="dataStream">The stream of <see cref="LDMU"/> data.</param>
+        /// <returns>The read <see cref="LDMU"/>.</returns>
+        public static LDMU Read(Stream headerStream, Stream dataStream)
+        {
+            if (headerStream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            using (var br = new BinaryReaderEx(false, headerStream, true))
+            {
+                return new LDMU(br, dataStream);
+            }
+        }
+
+        /// <summary>
+        /// Reads a <see cref="LDMU"/> from the specified byte arrays.
+        /// </summary>
+        /// <param name="headerStream">The stream of a <see cref="LDMU"/> header.</param>
+        /// <param name="dataPath">The file path to <see cref="LDMU"/> data.</param>
+        /// <returns>The read <see cref="LDMU"/>.</returns>
+        public static LDMU Read(Stream headerStream, string dataPath)
+        {
+            if (headerStream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            using (var br = new BinaryReaderEx(false, headerStream, true))
+            using (var fs = System.IO.File.OpenRead(dataPath))
+            {
+                return new LDMU(br, fs);
+            }
+        }
+
+        /// <summary>
+        /// Reads a <see cref="LDMU"/> from the specified header path and data stream.
+        /// </summary>
+        /// <param name="headerStream">The stream of a <see cref="LDMU"/> header.</param>
+        /// <param name="dataBytes">The bytes of <see cref="LDMU"/> data.</param>
+        /// <returns>The read <see cref="LDMU"/>.</returns>
+        public static LDMU Read(Stream headerStream, byte[] dataBytes)
+        {
+            if (headerStream.Position != 0)
+            {
+                // Cannot ensure offset jumping for every format will work otherwise
+                throw new InvalidOperationException($"Cannot safely read if stream is not at position {0}.");
+            }
+
+            using (var br = new BinaryReaderEx(false, headerStream, true))
+            using (var ms = new MemoryStream(dataBytes, false))
+            {
+                return new LDMU(br, ms);
             }
         }
 
