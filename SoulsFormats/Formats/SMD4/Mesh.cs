@@ -178,12 +178,11 @@ namespace SoulsFormats
             /// <summary>
             /// Get a list of faces as index arrays.
             /// </summary>
-            /// <param name="allowPrimitiveRestarts">Whether or not to allow primitive restarts.</param>
             /// <param name="includeDegenerateFaces">Whether or not to include degenerate faces.</param>
             /// <returns>A list of triangle arrays.</returns>
-            public List<ushort[]> GetFaceIndices(bool allowPrimitiveRestarts, bool includeDegenerateFaces)
+            public List<ushort[]> GetFaceIndices(bool includeDegenerateFaces)
             {
-                List<ushort> indices = Triangulate(allowPrimitiveRestarts, includeDegenerateFaces);
+                List<ushort> indices = Triangulate(includeDegenerateFaces);
                 var faces = new List<ushort[]>();
                 for (int i = 0; i < indices.Count; i += 3)
                 {
@@ -200,10 +199,9 @@ namespace SoulsFormats
             /// <summary>
             /// Get an approximate triangle count for the mesh indices.
             /// </summary>
-            /// <param name="allowPrimitiveRestarts">Whether or not to allow primitive restarts.</param>
             /// <param name="includeDegenerateFaces">Whether or not to include degenerate faces.</param>
             /// <returns>An approximate triangle count.</returns>
-            public int GetFaceCount(bool allowPrimitiveRestarts, bool includeDegenerateFaces)
+            public int GetFaceCount(bool includeDegenerateFaces)
             {
                 // Triangle strip
                 int counter = 0;
@@ -213,7 +211,7 @@ namespace SoulsFormats
                     int vi2 = Indices[i + 1];
                     int vi3 = Indices[i + 2];
 
-                    bool notRestart = allowPrimitiveRestarts || (vi1 != 0xFFFF && vi2 != 0xFFFF && vi3 != 0xFFFF);
+                    bool notRestart = vi1 != 0xFFFF && vi2 != 0xFFFF && vi3 != 0xFFFF;
                     bool included = includeDegenerateFaces || (vi1 != vi2 && vi1 != vi3 && vi2 != vi3);
                     if (notRestart && included)
                     {
@@ -227,10 +225,9 @@ namespace SoulsFormats
             /// <summary>
             /// Attempt to triangulate the mesh face indices.
             /// </summary>
-            /// <param name="allowPrimitiveRestarts">Whether or not to allow primitive restarts.</param>
             /// <param name="includeDegenerateFaces">Whether or not to include degenerate faces.</param>
             /// <returns>A triangulated list of face indices.</returns>
-            public List<ushort> Triangulate(bool allowPrimitiveRestarts, bool includeDegenerateFaces)
+            public List<ushort> Triangulate(bool includeDegenerateFaces)
             {
                 var triangles = new List<ushort>();
                 bool flip = false;
@@ -240,7 +237,7 @@ namespace SoulsFormats
                     ushort vi2 = Indices[i + 1];
                     ushort vi3 = Indices[i + 2];
 
-                    if (allowPrimitiveRestarts && (vi1 == 0xFFFF || vi2 == 0xFFFF || vi3 == 0xFFFF))
+                    if (vi1 == 0xFFFF || vi2 == 0xFFFF || vi3 == 0xFFFF)
                     {
                         flip = true;
                     }

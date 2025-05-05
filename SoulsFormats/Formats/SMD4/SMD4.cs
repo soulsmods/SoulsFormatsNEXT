@@ -131,7 +131,7 @@ namespace SoulsFormats
 
             int faceCount = 0;
             foreach (var mesh in Meshes)
-                faceCount += mesh.GetFaceCount(true, true);
+                faceCount += mesh.GetFaceCount(true);
 
             int indexCount = faceCount * 3;
             bw.WriteInt32(faceCount); // Not entirely accurate but oh well
