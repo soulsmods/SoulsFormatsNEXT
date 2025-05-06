@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
 
@@ -110,6 +111,7 @@ namespace SoulsFormats
                     field.Default = ParamUtil.GetDefaultDefault(def, field.DisplayType);
 
                 string internalName = outerMatch.Groups["name"].Value.Trim();
+
                 Match bitMatch = defBitRx.Match(internalName);
                 Match arrayMatch = defArrayRx.Match(internalName);
                 field.BitSize = -1;
@@ -127,9 +129,14 @@ namespace SoulsFormats
                         internalName = arrayMatch.Groups["name"].Value;
                     }
                 }
-                field.InternalName = internalName;
 
+                field.InternalName = internalName;
                 field.DisplayName = node.ReadStringOrDefault("DisplayName", field.InternalName);
+
+                // Hacky solution for old defs
+                if (def.FormatVersion < 102 && field.InternalName == RemoveWhitespace(field.DisplayName))
+                    field.InternalName = string.Empty;
+
                 field.InternalType = node.ReadStringOrDefault("Enum", field.DisplayType.ToString());
                 field.Description = node.ReadStringIfExist("Description");
                 field.DisplayFormat = node.ReadStringOrDefault("DisplayFormat", ParamUtil.GetDefaultFormat(field.DisplayType));
@@ -243,7 +250,13 @@ namespace SoulsFormats
 
             private static void SerializeField(PARAMDEF def, Field field, XmlWriter xw)
             {
-                string fieldDef = $"{field.DisplayType} {field.InternalName}";
+                string fieldDef = $"{field.DisplayType}";
+                if (def.FormatVersion >= 102 || !string.IsNullOrWhiteSpace(field.InternalName))
+                    fieldDef += $" {field.InternalName}";
+                else
+                    // Hacky solution for old defs
+                    fieldDef += $" {RemoveWhitespace(field.DisplayName)}";
+
                 if (ParamUtil.IsBitType(field.DisplayType) && field.BitSize != -1)
                     fieldDef += $":{field.BitSize}";
                 else if (ParamUtil.IsArrayType(field.DisplayType))
@@ -271,6 +284,9 @@ namespace SoulsFormats
                 xw.WriteDefaultElement("UnkC0", field.UnkC0, null);
                 xw.WriteDefaultElement("UnkC8", field.UnkC8, null);
             }
+
+            private static string RemoveWhitespace(string value)
+                => string.Concat(value.Where(c => !char.IsWhiteSpace(c)));
 
             private static string VariableValueToString(PARAMDEF def, DefType type, object value)
             {
