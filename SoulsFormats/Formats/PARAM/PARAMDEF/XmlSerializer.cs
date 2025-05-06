@@ -134,7 +134,7 @@ namespace SoulsFormats
                 field.DisplayName = node.ReadStringOrDefault("DisplayName", field.InternalName);
 
                 // Hacky solution for old defs
-                if (def.FormatVersion < 102 && field.InternalName == RemoveWhitespace(field.DisplayName))
+                if (def.FormatVersion < 102 && field.InternalName == "unnamed")
                     field.InternalName = string.Empty;
 
                 field.InternalType = node.ReadStringOrDefault("Enum", field.DisplayType.ToString());
@@ -254,8 +254,7 @@ namespace SoulsFormats
                 if (def.FormatVersion >= 102 || !string.IsNullOrWhiteSpace(field.InternalName))
                     fieldDef += $" {field.InternalName}";
                 else
-                    // Hacky solution for old defs
-                    fieldDef += $" {RemoveWhitespace(field.DisplayName)}";
+                    fieldDef += $" unnamed";
 
                 if (ParamUtil.IsBitType(field.DisplayType) && field.BitSize != -1)
                     fieldDef += $":{field.BitSize}";
@@ -284,9 +283,6 @@ namespace SoulsFormats
                 xw.WriteDefaultElement("UnkC0", field.UnkC0, null);
                 xw.WriteDefaultElement("UnkC8", field.UnkC8, null);
             }
-
-            private static string RemoveWhitespace(string value)
-                => string.Concat(value.Where(c => !char.IsWhiteSpace(c)));
 
             private static string VariableValueToString(PARAMDEF def, DefType type, object value)
             {
