@@ -111,10 +111,12 @@ namespace SoulsFormats
                 br.AssertInt32(0);
                 paramTypeOffset = br.ReadInt64();
                 br.AssertPattern(0x14, 0x00);
-                ParamType = br.GetASCII(paramTypeOffset);
 
-                // ParamType itself will be checked after rows.
-                actualStringsOffset = paramTypeOffset;
+                if (paramTypeOffset < br.Length)
+                {
+                    ParamType = br.GetASCII(paramTypeOffset);
+                    actualStringsOffset = paramTypeOffset;
+                }
             }
             else
             {
@@ -172,11 +174,9 @@ namespace SoulsFormats
                 }
             }
 
-            long dataStart = 0;
             Rows = new List<Row>(rowCount);
             if (HeaderlessRows)
             {
-                dataStart = rowsStart;
                 DetectedSize = (br.Length - rowsStart) / rowCount;
                 long rowOffset = rowsStart;
                 for (int i = 0; i < rowCount; i++)
@@ -196,24 +196,6 @@ namespace SoulsFormats
                     DetectedSize = (actualStringsOffset == 0 ? stringsOffset : actualStringsOffset) - Rows[0].DataOffset;
                 else
                     DetectedSize = -1;
-
-                if (Rows.Count > 0)
-                {
-                    dataStart = Rows.Min(row => row.DataOffset);
-                }
-            }
-
-            if (Format2D.HasFlag(FormatFlags1.OffsetParamType))
-            {
-                // Check if ParamTypeOffset is valid.
-                if (paramTypeOffset == dataStart + (rowCount * DetectedSize))
-                {
-                    ParamType = br.GetASCII(paramTypeOffset);
-                }
-                else
-                {
-                    ParamType = string.Empty;
-                }
             }
         }
 

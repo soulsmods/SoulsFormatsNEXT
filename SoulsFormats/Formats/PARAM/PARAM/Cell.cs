@@ -28,7 +28,12 @@ namespace SoulsFormats
                     switch (Def.DisplayType)
                     {
                         case PARAMDEF.DefType.s8: this.value = Convert.ToSByte(value); break;
-                        case PARAMDEF.DefType.u8: this.value = Convert.ToByte(value); break;
+                        case PARAMDEF.DefType.u8:
+                            if (Def.ArrayLength > 1)
+                                this.value = (byte[])value;
+                            else
+                                this.value = Convert.ToByte(value);
+                            break;
                         case PARAMDEF.DefType.s16: this.value = Convert.ToInt16(value); break;
                         case PARAMDEF.DefType.u16: this.value = Convert.ToUInt16(value); break;
                         case PARAMDEF.DefType.s32: this.value = Convert.ToInt32(value); break;

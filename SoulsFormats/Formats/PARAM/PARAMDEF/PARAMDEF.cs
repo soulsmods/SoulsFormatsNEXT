@@ -41,7 +41,7 @@ namespace SoulsFormats
         // 106 - Elden Ring (deprecated ObjectParam)
         // 201 - Bloodborne
         // 202 - Dark Souls 3
-        // 203 - Elden Ring
+        // 203 - Elden Ring, Armored Core 6
         public short FormatVersion { get; set; }
 
         /// <summary>
@@ -282,8 +282,16 @@ namespace SoulsFormats
         /// </summary>
         public int GetRowSize(ulong version = ulong.MaxValue)
         {
+            return GetFieldsSize(Fields.Count, version);
+        }
+
+        internal int GetFieldsSize(int fieldCount, ulong version = ulong.MaxValue)
+        {
+            if (fieldCount < 0 || fieldCount > Fields.Count)
+                throw new ArgumentException("Count must be from 0 to total fields count.", nameof(fieldCount));
+
             int size = 0;
-            for (int i = 0; i < Fields.Count; i++)
+            for (int i = 0; i < fieldCount; i++)
             {
                 if (VersionAware && !Fields[i].IsValidForRegulationVersion(version))
                     continue;
@@ -297,15 +305,14 @@ namespace SoulsFormats
                 if (ParamUtil.IsBitType(type) && field.BitSize != -1)
                 {
                     int bitOffset = field.BitSize;
-                    DefType bitType = type == DefType.dummy8 ? DefType.u8 : type;
-                    int bitLimit = ParamUtil.GetBitLimit(bitType);
+                    int bitLimit = ParamUtil.GetBitLimit(type);
 
-                    for (; i < Fields.Count - 1; i++)
+                    for (; i < fieldCount - 1; i++)
                     {
                         Field nextField = Fields[i + 1];
                         DefType nextType = nextField.DisplayType;
-                        if (!ParamUtil.IsBitType(nextType) || nextField.BitSize == -1 || bitOffset + nextField.BitSize > bitLimit
-                            || (nextType == DefType.dummy8 ? DefType.u8 : nextType) != bitType)
+                        if (!ParamUtil.IsBitType(nextType) || nextField.BitSize == -1 || ParamUtil.GetBitLimit(nextType) != bitLimit
+                            || bitOffset + nextField.BitSize > bitLimit)
                             break;
                         bitOffset += nextField.BitSize;
                     }
@@ -370,20 +377,26 @@ namespace SoulsFormats
         /// <summary>
         /// Writes an XML-formatted PARAMDEF to a file using the current XML version.
         /// </summary>
-        public void XmlSerialize(string path)
+        public void XmlSerialize(string path, bool includeOffsets = false)
         {
-            XmlSerialize(path, XmlSerializer.CURRENT_XML_VERSION);
+            XmlSerialize(path, XmlSerializer.CURRENT_XML_VERSION, includeOffsets);
         }
 
         /// <summary>
         /// Writes an XML-formatted PARAMDEF to a file using the given XML version.
         /// </summary>
-        public void XmlSerialize(string path, int xmlVersion)
+        public void XmlSerialize(string path, int xmlVersion, bool includeOffsets = false)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            var xws = new XmlWriterSettings { Indent = true };
+            var xws = new XmlWriterSettings
+            {
+                Indent = true
+            };
+
             using (var xw = XmlWriter.Create(path, xws))
-                XmlSerializer.Serialize(this, xw, xmlVersion);
+            {
+                XmlSerializer.Serialize(this, xw, xmlVersion, includeOffsets);
+            }
         }
     }
 }
