@@ -55,14 +55,14 @@ namespace SoulsFormats
                         case LayoutType.Byte4Norm:
                         case LayoutType.Short2:
                         case LayoutType.Byte4E:
-                        case LayoutType.Half_2:
+                        case LayoutType.Half2:
                             return 4;
 
                         case LayoutType.Float2:
                         case LayoutType.Short4:
                         case LayoutType.UShort4:
                         case LayoutType.Short4Norm:
-                        case LayoutType.Half_4:
+                        case LayoutType.Half4:
                             return 8;
 
                         case LayoutType.Float3:
@@ -218,12 +218,12 @@ namespace SoulsFormats
             /// <summary>
             /// Two half-precision values.
             /// </summary>
-            Half_2 = 45,
+            Half2 = 45,
 
             /// <summary>
             /// Four half-precision values.
             /// </summary>
-            Half_4 = 46,
+            Half4 = 46,
 
             /// <summary>
             /// Unknown.

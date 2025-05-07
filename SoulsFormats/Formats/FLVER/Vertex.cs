@@ -237,7 +237,7 @@ namespace SoulsFormats
                             Normal = ReadShortNormXYZ(br);
                             NormalW = br.ReadInt16();
                         }
-                        else if (member.Type == LayoutType.Half_4)
+                        else if (member.Type == LayoutType.Half4)
                         {
                             Normal = ReadUShortNormXYZ(br);
                             NormalW = br.ReadInt16();
@@ -291,7 +291,7 @@ namespace SoulsFormats
                         {
                             UVs.Add(new Vector3(br.ReadInt16(), br.ReadInt16(), 0) / uvFactor);
                         }
-                        else if (member.Type == LayoutType.Half_2)
+                        else if (member.Type == LayoutType.Half2)
                         {
                             UVs.Add(new Vector3(br.ReadInt16(), br.ReadInt16(), 0) / uvFactor);
                         }
@@ -300,7 +300,7 @@ namespace SoulsFormats
                             UVs.Add(new Vector3(br.ReadInt16(), br.ReadInt16(), 0) / uvFactor);
                             UVs.Add(new Vector3(br.ReadInt16(), br.ReadInt16(), 0) / uvFactor);
                         }
-                        else if (member.Type == LayoutType.Half_4)
+                        else if (member.Type == LayoutType.Half4)
                         {
                             UVs.Add(new Vector3(br.ReadInt16(), br.ReadInt16(), 0) / uvFactor);
                             UVs.Add(new Vector3(br.ReadInt16(), br.ReadInt16(), 0) / uvFactor);
@@ -549,7 +549,7 @@ namespace SoulsFormats
                             WriteShortNormXYZ(bw, Normal);
                             bw.WriteInt16((short)NormalW);
                         }
-                        else if (member.Type == LayoutType.Half_4)
+                        else if (member.Type == LayoutType.Half4)
                         {
                             WriteUShortNormXYZ(bw, Normal);
                             bw.WriteInt16((short)NormalW);
@@ -617,7 +617,7 @@ namespace SoulsFormats
                             bw.WriteInt16((short)Math.Round(uv.X));
                             bw.WriteInt16((short)Math.Round(uv.Y));
                         }
-                        else if (member.Type == LayoutType.Half_2)
+                        else if (member.Type == LayoutType.Half2)
                         {
                             bw.WriteInt16((short)Math.Round(uv.X));
                             bw.WriteInt16((short)Math.Round(uv.Y));
@@ -631,7 +631,7 @@ namespace SoulsFormats
                             bw.WriteInt16((short)Math.Round(uv.X));
                             bw.WriteInt16((short)Math.Round(uv.Y));
                         }
-                        else if (member.Type == LayoutType.Half_4)
+                        else if (member.Type == LayoutType.Half4)
                         {
                             bw.WriteInt16((short)Math.Round(uv.X));
                             bw.WriteInt16((short)Math.Round(uv.Y));

@@ -34,7 +34,7 @@ namespace SoulsFormats
             /// <summary>
             /// The vertices in this buffer. 
             /// </summary>
-            public EdgeGeom.FIXEDc3[] Vertices { get; set; }
+            public EdgeGeom.Fixed3[] Vertices { get; set; }
 
             /// <summary>
             /// The bit-packed bone indices in this buffer.
@@ -49,6 +49,7 @@ namespace SoulsFormats
             /// <exception cref="InvalidDataException">The length values were invalid.</exception>
             internal EdgeVertexBuffer(BinaryReaderEx br, int vertexCount)
             {
+                long start = br.Position;
                 Multiplier = br.ReadVector4();
                 Offset = br.ReadVector4();
                 int edgeVertexBufferLength = br.ReadInt32(); // The length of vertices + padding + header
@@ -68,14 +69,17 @@ namespace SoulsFormats
                     throw new InvalidDataException($"{nameof(edgeVertexBufferTotalLength)} must be the same length as {nameof(edgeVertexBufferLength)} when {nameof(BoneIndexBitSize)} is {0}.");
                 }
 
-                long pos = br.Position;
-                Vertices = new EdgeGeom.FIXEDc3[vertexCount];
+                
+                Vertices = new EdgeGeom.Fixed3[vertexCount];
                 for (int i = 0; i < vertexCount; i++)
                 {
-                    Vertices[i] = new EdgeGeom.FIXEDc3(br);
+                    Vertices[i] = new EdgeGeom.Fixed3(br);
                 }
-                br.Position = pos + (edgeVertexBufferLength - 48);
+
+                br.Position = start + edgeVertexBufferLength;
                 BoneIndexBytes = br.ReadBytes(edgeVertexBufferTotalLength - edgeVertexBufferLength);
+
+                br.Position = start + edgeVertexBufferTotalLength;
             }
         }
     }

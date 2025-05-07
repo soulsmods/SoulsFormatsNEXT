@@ -272,7 +272,7 @@ namespace SoulsFormats.Utilities
         #region Vertices
 
         [StructLayout(LayoutKind.Explicit)]
-        internal struct FIXEDc3
+        internal struct Fixed3
         {
             [FieldOffset(0)]
             public ushort X;
@@ -283,7 +283,7 @@ namespace SoulsFormats.Utilities
             [FieldOffset(4)]
             public ushort Z;
 
-            internal FIXEDc3(BinaryReaderEx br)
+            internal Fixed3(BinaryReaderEx br)
             {
                 X = br.ReadUInt16();
                 Y = br.ReadUInt16();
