@@ -225,6 +225,7 @@ namespace SoulsFormats
         {
             switch (type)
             {
+                case DefType.u8: // ACFA AcActRestrictionParam.def
                 case DefType.dummy8:
                 case DefType.fixstr:
                 case DefType.fixstrW:
@@ -239,10 +240,27 @@ namespace SoulsFormats
         {
             switch (type)
             {
+                case DefType.s8:
                 case DefType.u8:
+                case DefType.s16:
                 case DefType.u16:
+                case DefType.s32:
                 case DefType.u32:
                 case DefType.dummy8:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static bool IsSignedBitType(DefType type)
+        {
+            switch (type)
+            {
+                case DefType.s8:
+                case DefType.s16:
+                case DefType.s32:
                     return true;
 
                 default:
@@ -302,14 +320,19 @@ namespace SoulsFormats
 
         public static int GetBitLimit(DefType type)
         {
-            if (type == DefType.u8)
-                return 8;
-            else if (type == DefType.u16)
-                return 16;
-            else if (type == DefType.u32)
-                return 32;
-            else
-                throw new InvalidOperationException($"Bit type may only be u8, u16, or u32.");
+            switch (type)
+            {
+                case DefType.s8: return 8;
+                case DefType.u8: return 8;
+                case DefType.s16: return 16;
+                case DefType.u16: return 16;
+                case DefType.s32: return 32;
+                case DefType.u32: return 32;
+                case DefType.dummy8: return 8;
+
+                default:
+                    throw new InvalidOperationException($"Type {type} cannot be a bitfield.");
+            }
         }
     }
 }

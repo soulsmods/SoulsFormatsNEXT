@@ -16,6 +16,11 @@ namespace SoulsFormats
             public Vector3 Position { get; set; }
 
             /// <summary>
+            /// A texture coordinate of the vertex.
+            /// </summary>
+            public Vector2 UV { get; set; }
+
+            /// <summary>
             /// Bones the vertex is weighted to, indexing the parent mesh's bone indices.
             /// </summary>
             public VertexBoneIndices BoneIndices { get; set; }
@@ -54,6 +59,14 @@ namespace SoulsFormats
                         BoneWeights = new VertexBoneWeights(1f, 0f, 0f, 0f);
                         br.AssertInt16(0);
                     }
+                    else if (vertexFormat == 1)
+                    {
+                        Position = br.ReadVector3();
+                        UV = br.ReadVector2();
+                        BoneIndices = new VertexBoneIndices(br.ReadInt16(), -1, -1, -1);
+                        BoneWeights = new VertexBoneWeights(1f, 0f, 0f, 0f);
+                        br.AssertInt16(0);
+                    }
                     else if (vertexFormat == 2)
                     {
                         Position = br.ReadVector3();
@@ -81,6 +94,13 @@ namespace SoulsFormats
                     if (vertexFormat == 0)
                     {
                         bw.WriteVector3(Position);
+                        bw.WriteInt16(BoneIndices[0]);
+                        bw.WriteInt16(0);
+                    }
+                    else if (vertexFormat == 1)
+                    {
+                        bw.WriteVector3(Position);
+                        bw.WriteVector2(UV);
                         bw.WriteInt16(BoneIndices[0]);
                         bw.WriteInt16(0);
                     }

@@ -2,7 +2,7 @@
 using System.Drawing;
 using System.Numerics;
 
-namespace SoulsFormats.Formats.Other.MWC
+namespace SoulsFormats.Other.MWC
 {
     /// <summary>
     /// Metal Wolf Chaos Map Model Data

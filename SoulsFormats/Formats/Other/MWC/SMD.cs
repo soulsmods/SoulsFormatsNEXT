@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace SoulsFormats.Formats.Other.MWC
+namespace SoulsFormats.Other.MWC
 {
     /// <summary>
     /// Metal Wolf Chaos SMD file format, not to be confused with the Valve SMD file format

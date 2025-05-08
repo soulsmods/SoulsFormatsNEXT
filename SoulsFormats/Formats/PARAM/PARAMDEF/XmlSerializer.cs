@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
 
@@ -14,7 +15,7 @@ namespace SoulsFormats
             public const int CURRENT_XML_VERSION = 3;
             private static Regex FIELD_NAME_VALIDATOR = new Regex("^\\w+$");
 
-            public static PARAMDEF Deserialize(XmlDocument xml, bool versionAware)
+            public static PARAMDEF Deserialize(XmlDocument xml, bool versionAware, bool validateFields = true)
             {
                 var def = new PARAMDEF();
                 XmlNode root = xml.SelectSingleNode("PARAMDEF");
@@ -30,7 +31,7 @@ namespace SoulsFormats
                 def.Fields = new List<Field>();
                 foreach (XmlNode node in root.SelectNodes("Fields/Field"))
                 {
-                    var field = DeserializeField(def, node, versionAware);
+                    var field = DeserializeField(def, node, versionAware, validateFields);
                     if (field != null)
                         def.Fields.Add(field);
                 }
@@ -40,7 +41,7 @@ namespace SoulsFormats
                 return def;
             }
 
-            public static void Serialize(PARAMDEF def, XmlWriter xw, int xmlVersion)
+            public static void Serialize(PARAMDEF def, XmlWriter xw, int xmlVersion, bool includeOffsets)
             {
                 if (xmlVersion < 0 || xmlVersion > CURRENT_XML_VERSION)
                     throw new InvalidOperationException($"XML version {xmlVersion} not recognized.");
@@ -54,9 +55,21 @@ namespace SoulsFormats
                 xw.WriteElementString("Unicode", def.Unicode.ToString());
                 xw.WriteElementString(xmlVersion == 0 ? "Version" : "FormatVersion", def.FormatVersion.ToString());
 
+                int offset = 0;
                 xw.WriteStartElement("Fields");
-                foreach (Field field in def.Fields)
+                for (int i = 0; i < def.Fields.Count; i++)
                 {
+                    if (includeOffsets)
+                    {
+                        int currentSize = def.GetFieldsSize(i + 1);
+                        if (currentSize != offset)
+                        {
+                            xw.WriteComment($" +0x{offset:X} ");
+                            offset = currentSize;
+                        }
+                    }
+
+                    Field field = def.Fields[i];
                     xw.WriteStartElement("Field");
                     SerializeField(def, field, xw);
                     xw.WriteEndElement();
@@ -71,7 +84,7 @@ namespace SoulsFormats
             private static readonly Regex defBitRx = new Regex($@"^(?<name>.+?)\s*:\s*(?<size>\d+)$");
             private static readonly Regex defArrayRx = new Regex($@"^(?<name>.+?)\s*\[\s*(?<length>\d+)\]$");
 
-            private static Field DeserializeField(PARAMDEF def, XmlNode node, bool versionAware)
+            private static Field DeserializeField(PARAMDEF def, XmlNode node, bool versionAware, bool validateFields)
             {
                 // Check regulation version info for the field if it exists
                 ulong firstVersion = 0;
@@ -93,11 +106,12 @@ namespace SoulsFormats
                 Match outerMatch = defOuterRx.Match(fieldDef);
                 field.DisplayType = (DefType)Enum.Parse(typeof(DefType), outerMatch.Groups["type"].Value.Trim());
                 if (outerMatch.Groups["default"].Success)
-                    field.Default = float.Parse(outerMatch.Groups["default"].Value, CultureInfo.InvariantCulture);
+                    ParseVariableValue(def, field.DisplayType, outerMatch.Groups["default"].Value);
                 else
                     field.Default = ParamUtil.GetDefaultDefault(def, field.DisplayType);
 
                 string internalName = outerMatch.Groups["name"].Value.Trim();
+
                 Match bitMatch = defBitRx.Match(internalName);
                 Match arrayMatch = defArrayRx.Match(internalName);
                 field.BitSize = -1;
@@ -109,12 +123,20 @@ namespace SoulsFormats
                 }
                 else if (ParamUtil.IsArrayType(field.DisplayType))
                 {
-                    field.ArrayLength = int.Parse(arrayMatch.Groups["length"].Value);
-                    internalName = arrayMatch.Groups["name"].Value;
+                    if (arrayMatch.Success)
+                    {
+                        field.ArrayLength = int.Parse(arrayMatch.Groups["length"].Value);
+                        internalName = arrayMatch.Groups["name"].Value;
+                    }
                 }
-                field.InternalName = internalName;
 
+                field.InternalName = internalName;
                 field.DisplayName = node.ReadStringOrDefault("DisplayName", field.InternalName);
+
+                // Hacky solution for old defs
+                if (def.FormatVersion < 102 && field.InternalName == "unnamed")
+                    field.InternalName = string.Empty;
+
                 field.InternalType = node.ReadStringOrDefault("Enum", field.DisplayType.ToString());
                 field.Description = node.ReadStringIfExist("Description");
                 field.DisplayFormat = node.ReadStringOrDefault("DisplayFormat", ParamUtil.GetDefaultFormat(field.DisplayType));
@@ -135,16 +157,19 @@ namespace SoulsFormats
                     field.RemovedRegulationVersion = removedVersion;
                 }
 
-                if (!FIELD_NAME_VALIDATOR.IsMatch(internalName))
-                    throw new Exception("Disallowed field name found in paramdef: " + def.ParamType + ", name: " + field.InternalName);
-                // Check same name, and if version aware, check they aren't replacing eachother
-                bool matchingFieldTest(Field ifield) => string.Equals(field.InternalName, ifield.InternalName)
-                    && (!versionAware || (
-                        (field.RemovedRegulationVersion == 0 || field.RemovedRegulationVersion > ifield.FirstRegulationVersion)
-                        && (ifield.RemovedRegulationVersion == 0 || field.FirstRegulationVersion < ifield.RemovedRegulationVersion)));
-                Field field2 = def.Fields.Find(matchingFieldTest);
-                if (field2 != null)
-                    throw new Exception("Repeated field name found in paramdef: " + def.ParamType + ", name: " + field.InternalName);
+                if (validateFields)
+                {
+                    if (!FIELD_NAME_VALIDATOR.IsMatch(internalName))
+                        throw new Exception("Disallowed field name found in paramdef: " + def.ParamType + ", name: " + field.InternalName);
+                    // Check same name, and if version aware, check they aren't replacing eachother
+                    bool matchingFieldTest(Field ifield) => string.Equals(field.InternalName, ifield.InternalName)
+                        && (!versionAware || (
+                            (field.RemovedRegulationVersion == 0 || field.RemovedRegulationVersion > ifield.FirstRegulationVersion)
+                            && (ifield.RemovedRegulationVersion == 0 || field.FirstRegulationVersion < ifield.RemovedRegulationVersion)));
+                    Field field2 = def.Fields.Find(matchingFieldTest);
+                    if (field2 != null)
+                        throw new Exception("Repeated field name found in paramdef: " + def.ParamType + ", name: " + field.InternalName);
+                }
                 
                 return field;
             }
@@ -225,7 +250,12 @@ namespace SoulsFormats
 
             private static void SerializeField(PARAMDEF def, Field field, XmlWriter xw)
             {
-                string fieldDef = $"{field.DisplayType} {field.InternalName}";
+                string fieldDef = $"{field.DisplayType}";
+                if (def.FormatVersion >= 102 || !string.IsNullOrWhiteSpace(field.InternalName))
+                    fieldDef += $" {field.InternalName}";
+                else
+                    fieldDef += $" unnamed";
+
                 if (ParamUtil.IsBitType(field.DisplayType) && field.BitSize != -1)
                     fieldDef += $":{field.BitSize}";
                 else if (ParamUtil.IsArrayType(field.DisplayType))

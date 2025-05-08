@@ -268,6 +268,14 @@ namespace SoulsFormats
                     throw new InvalidDataException($"Unexpected byte count {byteCount} for type {DisplayType}.");
                 ArrayLength = byteCount / ParamUtil.GetValueSize(DisplayType);
 
+                if (def.BasicFields)
+                {
+                    InternalType = string.Empty;
+                    InternalName = string.Empty;
+                    BitSize = -1;
+                    return;
+                }
+
                 long descriptionOffset = br.ReadVarint();
                 if (descriptionOffset != 0)
                 {
@@ -302,7 +310,21 @@ namespace SoulsFormats
                         match = arrayLengthRx.Match(InternalName);
                         int length = match.Success ? int.Parse(match.Groups["length"].Value) : 1;
                         if (length != ArrayLength)
-                            throw new InvalidDataException($"Mismatched array length in {InternalName} with byte count {byteCount}.");
+                        {
+                            // AcActRestrictionParam.def in Armored Core V has it's last field with an internal name of reserved[8] and type of u8
+                            // However it's byte count is 1, and the data only has 1 byte as well.
+                            // This may be a remnant from Armored Core For Answer's strange AcActRestrictionParam.def which had a u8 "reserved" value of 9 actual bytes.
+                            // So I'm removing this exception call in special cases.
+                            if (DisplayType != DefType.u8 &&
+                                DisplayType != DefType.dummy8)
+                            {
+                                throw new InvalidDataException($"Mismatched array length in {InternalName} with byte count {byteCount}.");
+                            }
+
+                            // Should probably trust the byte count over the name, but just in case...
+                            ArrayLength = Math.Min(ArrayLength, length);
+                        }
+
                         if (match.Success)
                             InternalName = match.Groups["name"].Value;
                     }
@@ -408,6 +430,9 @@ namespace SoulsFormats
 
                 bw.WriteInt32((int)EditFlags);
                 bw.WriteInt32(ParamUtil.GetValueSize(DisplayType) * (ParamUtil.IsArrayType(DisplayType) ? ArrayLength : 1));
+                if (def.BasicFields)
+                    return;
+
                 bw.ReserveVarint($"DescriptionOffset{index}");
 
                 if (def.FormatVersion >= 202 || def.FormatVersion >= 106 && def.FormatVersion < 200)
@@ -489,6 +514,9 @@ namespace SoulsFormats
                     bw.FillVarint($"DisplayNameOffset{index}", bw.Position);
                     bw.WriteUTF16(DisplayName, true);
                 }
+
+                if (def.BasicFields)
+                    return;
 
                 long descriptionOffset = 0;
                 if (Description != null)

@@ -86,6 +86,11 @@ namespace SoulsFormats
         int MaterialIndex { get; }
 
         /// <summary>
+        /// Index of the node representing this mesh in the nodes list.
+        /// </summary>
+        int NodeIndex { get; }
+
+        /// <summary>
         /// Points making up the mesh's shape.
         /// </summary>
         IReadOnlyList<FLVER.Vertex> Vertices { get; }

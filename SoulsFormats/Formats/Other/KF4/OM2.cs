@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
 
-namespace SoulsFormats.KF4
+namespace SoulsFormats.Other.KF4
 {
     /// <summary>
     /// A 3D model format used in King's Field IV. Extension: .om2

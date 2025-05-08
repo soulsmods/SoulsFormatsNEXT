@@ -11,6 +11,36 @@ namespace SoulsFormats
     public class BHD5
     {
         /// <summary>
+        /// Indicates the format of a dvdbnd.
+        /// </summary>
+        public enum Game
+        {
+            /// <summary>
+            /// Dark Souls 1, both PC and console versions.
+            /// <para>The first known format of this header.</para>
+            /// </summary>
+            DarkSouls1,
+
+            /// <summary>
+            /// Dark Souls 2 and Scholar of the First Sin on PC.
+            /// <para>Includes AES encryption and salting.</para>
+            /// </summary>
+            DarkSouls2,
+
+            /// <summary>
+            /// Dark Souls 3 and Sekiro on PC.
+            /// <para>Includes size fields that identify how big the archive or its files are without padding.</para>
+            /// </summary>
+            DarkSouls3,
+
+            /// <summary>
+            /// Elden Ring on PC.
+            /// <para>Improves the size of many fields by making them 64-bit, changes the unpadded size fields to be 32-bit, and resorts some fields.</para>
+            /// </summary>
+            EldenRing,
+        }
+
+        /// <summary>
         /// Format the file should be written in.
         /// </summary>
         public Game Format { get; set; }
@@ -36,23 +66,22 @@ namespace SoulsFormats
         public List<Bucket> Buckets { get; set; }
 
         /// <summary>
-        /// Read a dvdbnd header from the given stream, formatted for the given game. Must already be decrypted, if applicable.
+        /// Whether or not the current format version supports encryption.
         /// </summary>
-        public static BHD5 Read(Stream bhdStream, Game game)
-        {
-            var br = new BinaryReaderEx(false, bhdStream);
-            return new BHD5(br, game);
-        }
+        public bool EncryptionSupported
+            => Format >= Game.DarkSouls2;
 
         /// <summary>
-        /// Write a dvdbnd header to the given stream.
+        /// Whether or not the current format version supports unpadded size fields.
         /// </summary>
-        public void Write(Stream bhdStream)
-        {
-            var bw = new BinaryWriterEx(false, bhdStream);
-            Write(bw);
-            bw.Finish();
-        }
+        public bool UnpaddedSizeSupported
+            => Format >= Game.DarkSouls3;
+
+        /// <summary>
+        /// Whether or not the current format version supports upgraded 64-bit fields for many things.
+        /// </summary>
+        public bool LongFieldsSupported
+            => Format >= Game.DarkSouls3;
 
         /// <summary>
         /// Creates an empty BHD5.
@@ -62,6 +91,41 @@ namespace SoulsFormats
             Format = game;
             Salt = "";
             Buckets = new List<Bucket>();
+        }
+
+        #region Read
+
+        /// <summary>
+        /// Read a header from the given path, formatted for the given game. Must already be decrypted, if applicable.
+        /// </summary>
+        public static BHD5 Read(string path, Game game)
+        {
+            using (BinaryReaderEx br = new BinaryReaderEx(false, path))
+            {
+                return new BHD5(br, game);
+            }
+        }
+
+        /// <summary>
+        /// Read a header from the given bytes, formatted for the given game. Must already be decrypted, if applicable.
+        /// </summary>
+        public static BHD5 Read(byte[] bytes, Game game)
+        {
+            using (BinaryReaderEx br = new BinaryReaderEx(false, bytes))
+            {
+                return new BHD5(br, game);
+            }
+        }
+
+        /// <summary>
+        /// Read a header from the given stream, formatted for the given game. Must already be decrypted, if applicable.
+        /// </summary>
+        public static BHD5 Read(Stream stream, Game game)
+        {
+            using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
+            {
+                return new BHD5(br, game);
+            }
         }
 
         private BHD5(BinaryReaderEx br, Game game)
@@ -90,6 +154,42 @@ namespace SoulsFormats
             Buckets = new List<Bucket>(bucketCount);
             for (int i = 0; i < bucketCount; i++)
                 Buckets.Add(new Bucket(br, game));
+        }
+
+        #endregion
+
+        #region Write
+
+        /// <summary>
+        /// Write a header to the given path.
+        /// </summary>
+        public void Write(string path)
+        {
+            using (BinaryWriterEx bw = new BinaryWriterEx(false, path))
+            {
+                Write(bw);
+            }
+        }
+
+        /// <summary>
+        /// Write a header to an array of bytes.
+        /// </summary>
+        public byte[] Write()
+        {
+            BinaryWriterEx bw = new BinaryWriterEx(false);
+            Write(bw);
+            return bw.FinishBytes();
+        }
+
+        /// <summary>
+        /// Write a header to the given <see cref="Stream"/>.
+        /// </summary>
+        public void Write(Stream stream)
+        {
+            using (BinaryWriterEx bw = new BinaryWriterEx(false, stream, true))
+            {
+                Write(bw);
+            }
         }
 
         private void Write(BinaryWriterEx bw)
@@ -125,31 +225,134 @@ namespace SoulsFormats
             bw.FillInt32("FileSize", (int)bw.Position);
         }
 
+        #endregion
+
+        #region Is
+
         /// <summary>
-        /// Indicates the format of a dvdbnd.
+        /// Whether or not the data appears to be a header file.
         /// </summary>
-        public enum Game
+        public static bool IsHeader(string path)
         {
-            /// <summary>
-            /// Dark Souls 1, both PC and console versions.
-            /// </summary>
-            DarkSouls1,
+            using (FileStream fs = File.OpenRead(path))
+            {
+                if (fs.Length < 4)
+                {
+                    return false;
+                }
 
-            /// <summary>
-            /// Dark Souls 2 and Scholar of the First Sin on PC.
-            /// </summary>
-            DarkSouls2,
-
-            /// <summary>
-            /// Dark Souls 3 and Sekiro on PC.
-            /// </summary>
-            DarkSouls3,
-
-            /// <summary>
-            /// Elden Ring on PC.
-            /// </summary>
-            EldenRing,
+                using (BinaryReaderEx br = new BinaryReaderEx(false, fs))
+                {
+                    return IsHeader(br);
+                }
+            }
         }
+
+        /// <summary>
+        /// Whether or not the data appears to be a header file.
+        /// </summary>
+        public static bool IsHeader(byte[] bytes)
+        {
+            if (bytes.Length < 4)
+            {
+                return false;
+            }
+
+            using (BinaryReaderEx br = new BinaryReaderEx(false, bytes))
+            {
+                return IsHeader(br);
+            }
+        }
+
+        /// <summary>
+        /// Whether or not the data appears to be a header file.
+        /// </summary>
+        public static bool IsHeader(Stream stream)
+        {
+            if ((stream.Length - stream.Position) < 4)
+            {
+                return false;
+            }
+
+            using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
+            {
+                return IsHeader(br);
+            }
+        }
+
+        /// <summary>
+        /// Whether or not the data appears to be a header file.
+        /// </summary>
+        private static bool IsHeader(BinaryReaderEx br) => br.Remaining >= 4 && br.GetASCII(br.Position, 4) == "BHD5";
+
+        /// <summary>
+        /// Whether or not the data appears to be a data file.
+        /// </summary>
+        public static bool IsData(string path)
+        {
+            using (FileStream fs = File.OpenRead(path))
+            {
+                if (fs.Length < 4)
+                {
+                    return false;
+                }
+
+                using (BinaryReaderEx br = new BinaryReaderEx(false, fs))
+                {
+                    return IsData(br);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether or not the data appears to be a data file.
+        /// </summary>
+        public static bool IsData(byte[] bytes)
+        {
+            if (bytes.Length < 4)
+            {
+                return false;
+            }
+
+            using (BinaryReaderEx br = new BinaryReaderEx(false, bytes))
+            {
+                return IsData(br);
+            }
+        }
+
+        /// <summary>
+        /// Whether or not the data appears to be a header file.
+        /// </summary>
+        public static bool IsData(Stream stream)
+        {
+            if ((stream.Length - stream.Position) < 4)
+            {
+                return false;
+            }
+
+            using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
+            {
+                return IsData(br);
+            }
+        }
+
+        /// <summary>
+        /// Whether or not the data appears to be a data file.
+        /// </summary>
+        private static bool IsData(BinaryReaderEx br)
+        {
+            if (br.Remaining < 4)
+            {
+                return false;
+            }
+
+            string magic = br.GetASCII(br.Position, 4);
+            return magic == "BDF3" || magic == "BDF4";
+        }
+
+        #endregion
+
+        #region Bucket
 
         /// <summary>
         /// A collection of files grouped by their hash.
@@ -188,6 +391,10 @@ namespace SoulsFormats
                     this[i].Write(bw, game, index, i);
             }
         }
+
+        #endregion
+
+        #region FileHeader
 
         /// <summary>
         /// Information about an individual file in the dvdbnd.
@@ -350,6 +557,10 @@ namespace SoulsFormats
             }
         }
 
+        #endregion
+
+        #region SHAHash
+
         /// <summary>
         /// Hash information for a file in the dvdbnd.
         /// </summary>
@@ -394,6 +605,10 @@ namespace SoulsFormats
                     range.Write(bw);
             }
         }
+
+        #endregion
+
+        #region AESKey
 
         /// <summary>
         /// Encryption information for a file in the dvdbnd.
@@ -458,6 +673,10 @@ namespace SoulsFormats
             }
         }
 
+        #endregion
+
+        #region Range
+
         /// <summary>
         /// Indicates a hashed or encrypted section of a file.
         /// </summary>
@@ -494,5 +713,7 @@ namespace SoulsFormats
                 bw.WriteInt64(EndOffset);
             }
         }
+
+        #endregion
     }
 }

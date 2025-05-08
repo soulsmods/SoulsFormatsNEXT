@@ -14,14 +14,14 @@ namespace SoulsFormats
         public SMDHeader Header { get; set; }
 
         /// <summary>
-        /// Unknown indices of some kind.
+        /// Unknown.
         /// </summary>
-        public List<int> UnkIndices { get; set; }
+        public List<Unk10> Unk10s { get; set; }
 
         /// <summary>
-        /// Bones used by this model, may or may not be the full skeleton.
+        /// Joints available for vertices to be attached to.
         /// </summary>
-        public List<Bone> Bones { get; set; }
+        public List<Node> Nodes { get; set; }
 
         /// <summary>
         /// Individual chunks of the model.
@@ -29,40 +29,40 @@ namespace SoulsFormats
         public List<Mesh> Meshes { get; set; }
 
         /// <summary>
-        /// Create a new SMD4 with default values.
+        /// Create a new <see cref="SMD4"/>.
         /// </summary>
         public SMD4()
         {
             Header = new SMDHeader();
-            UnkIndices = new List<int>();
-            Bones = new List<Bone>();
+            Unk10s = new List<Unk10>();
+            Nodes = new List<Node>();
             Meshes = new List<Mesh>();
         }
 
         /// <summary>
-        /// Clone an existing SMD4.
+        /// Clone an existing <see cref="SMD4"/>.
         /// </summary>
         public SMD4(SMD4 smd)
         {
             Header = new SMDHeader();
-            UnkIndices = new List<int>();
-            Bones = new List<Bone>();
+            Unk10s = new List<Unk10>();
+            Nodes = new List<Node>();
             Meshes = new List<Mesh>();
 
             Header.Version = smd.Header.Version;
             Header.BoundingBoxMin = smd.Header.BoundingBoxMin;
             Header.BoundingBoxMax = smd.Header.BoundingBoxMax;
 
-            for (int i = 0; i < smd.UnkIndices.Count; i++)
-                UnkIndices.Add(smd.UnkIndices[i]);
-            foreach (Bone bone in smd.Bones)
-                Bones.Add(new Bone(bone));
+            for (int i = 0; i < smd.Unk10s.Count; i++)
+                Unk10s.Add(new Unk10(smd.Unk10s[i]));
+            foreach (Node bone in smd.Nodes)
+                Nodes.Add(new Node(bone));
             foreach (Mesh mesh in smd.Meshes)
                 Meshes.Add(new Mesh(mesh));
         }
 
         /// <summary>
-        /// Returns true if the data appears to be an SMD4 model.
+        /// Returns true if the data appears to be an <see cref="SMD4"/> model.
         /// </summary>
         protected override bool Is(BinaryReaderEx br)
         {
@@ -72,8 +72,9 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Reads SMD4 data from a BinaryReaderEx.
+        /// Read an <see cref="SMD4"/> from a stream.
         /// </summary>
+        /// <param name="br">The stream reader.</param>
         protected override void Read(BinaryReaderEx br)
         {
             br.BigEndian = true;
@@ -82,67 +83,64 @@ namespace SoulsFormats
 
             Header.Version = br.ReadInt32();
             int dataOffset = br.ReadInt32();
-            br.ReadInt32(); // Data size
-            int unkIndicesCount = br.ReadInt32();
+            int dataSize = br.ReadInt32();
+            int countUnk10 = br.ReadInt32();
             int boneCount = br.ReadInt32();
             int meshCount = br.ReadInt32();
             br.AssertInt32(meshCount); // Vertex Buffer Count?
 
             Header.BoundingBoxMin = br.ReadVector3();
             Header.BoundingBoxMax = br.ReadVector3();
-            br.ReadInt32(); // Face count?
-            br.ReadInt32(); // Index count?
+            int trueFaceCount = br.ReadInt32();
+            int totalFaceCount = br.ReadInt32();
             br.AssertPattern(32, 0);
 
-            UnkIndices = new List<int>();
-            Bones = new List<Bone>();
+            Unk10s = new List<Unk10>();
+            Nodes = new List<Node>();
             Meshes = new List<Mesh>();
 
-            for (int i = 0; i < unkIndicesCount; i++)
+            for (int i = 0; i < countUnk10; i++)
             {
-                br.BigEndian = false;
-                UnkIndices.Add(br.ReadInt32());
-                br.AssertPattern(32, 0);
-                br.BigEndian = true;
+                Unk10s.Add(new Unk10(br));
             }
 
             for (int i = 0; i < boneCount; i++)
-                Bones.Add(new Bone(br));
+                Nodes.Add(new Node(br));
             for (int i = 0; i < meshCount; i++)
                 Meshes.Add(new Mesh(br, dataOffset, Header.Version));
         }
 
         /// <summary>
-        /// Writes SMD4 data to a BinaryWriterEx.
+        /// Write an <see cref="SMD4"/> to a stream.
         /// </summary>
+        /// <param name="bw">The stream writer.</param>
         protected override void Write(BinaryWriterEx bw)
         {
             bw.BigEndian = true;
             bw.WriteASCII("SMD4", false);
             bw.WriteInt32(Header.Version);
-            bw.ReserveInt32("dataOffset");
-            bw.ReserveInt32("dataSize");
-            bw.WriteInt32(UnkIndices.Count);
-            bw.WriteInt32(Bones.Count);
+            bw.ReserveInt32("DataOffset");
+            bw.ReserveInt32("DataSize");
+            bw.WriteInt32(Unk10s.Count);
+            bw.WriteInt32(Nodes.Count);
             bw.WriteInt32(Meshes.Count);
             bw.WriteInt32(Meshes.Count); // Vertex Buffer Count?
 
             bw.WriteVector3(Header.BoundingBoxMin);
             bw.WriteVector3(Header.BoundingBoxMax);
 
-            bw.WriteInt32(GetFaceCount()); // Not entirely accurate but oh well
-            bw.WriteInt32(GetIndiceCount()); // Not entirely accurate but oh well
+            int faceCount = 0;
+            foreach (var mesh in Meshes)
+                faceCount += mesh.GetFaceCount(true);
+
+            int indexCount = faceCount * 3;
+            bw.WriteInt32(faceCount); // Not entirely accurate but oh well
+            bw.WriteInt32(indexCount); // Not entirely accurate but oh well
             bw.WritePattern(32, 0);
 
-            for (int i = 0; i < UnkIndices.Count; i++)
-            {
-                bw.BigEndian = false;
-                bw.WriteInt32(UnkIndices[i]);
-                bw.WritePattern(32, 0);
-                bw.BigEndian = true;
-            }
-
-            foreach (Bone bone in Bones)
+            for (int i = 0; i < Unk10s.Count; i++)
+                Unk10s[i].Write(bw);
+            foreach (Node bone in Nodes)
                 bone.Write(bw);
             for (int i = 0; i < Meshes.Count; i++)
                 Meshes[i].Write(bw, i, Header.Version);
@@ -150,65 +148,61 @@ namespace SoulsFormats
             // Fill Data
             bw.Pad(0x800);
             int dataStart = (int)bw.Position;
-            bw.FillInt32("dataOffset", dataStart);
+            bw.FillInt32("DataOffset", dataStart);
             for (int i = 0; i < Meshes.Count; i++)
             {
                 Mesh mesh = Meshes[i];
-                bw.FillInt32($"vertexIndicesOffset_{i}", (int)bw.Position - dataStart);
-                bw.WriteUInt16s(mesh.VertexIndices);
+                bw.FillInt32($"VertexIndicesOffset_{i}", (int)bw.Position - dataStart);
+                bw.WriteUInt16s(mesh.Indices);
                 bw.Pad(0x10);
 
-                bw.FillInt32($"vertexBufferOffset_{i}", (int)bw.Position - dataStart);
+                bw.FillInt32($"VertexBufferOffset_{i}", (int)bw.Position - dataStart);
                 foreach (Vertex vertex in mesh.Vertices)
                     vertex.Write(bw, Header.Version, mesh.VertexFormat);
             }
             bw.Pad(0x800);
 
             int dataEnd = (int)bw.Position;
-            bw.FillInt32("dataSize", dataEnd - dataStart);
+            bw.FillInt32("DataSize", dataEnd - dataStart);
         }
 
         /// <summary>
-        /// Get the total indice count from the VertexIndices of all Meshes in this model.
+        /// Compute the world transform for a bone.
         /// </summary>
-        public int GetIndiceCount()
+        /// <param name="index">The index of the bone to compute the world transform of.</param>
+        /// <returns>A matrix representing the world transform of the bone.</returns>
+        public Matrix4x4 ComputeBoneWorldMatrix(int index)
         {
-            int count = 0;
-            foreach (Mesh mesh in Meshes)
+            var bone = Nodes[index];
+            Matrix4x4 matrix = bone.ComputeLocalTransform();
+            while (bone.ParentIndex != -1)
             {
-                count += mesh.VertexIndices.Count;
+                bone = Nodes[bone.ParentIndex];
+                matrix *= bone.ComputeLocalTransform();
             }
-            return count;
+
+            return matrix;
         }
 
         /// <summary>
-        /// Get the total calculated face count from the VertexIndices of all Meshes in this model.
+        /// Compute the world transform for a bone.
         /// </summary>
-        public int GetFaceCount()
+        /// <param name="bone">The bone to compute the world transform of.</param>
+        /// <returns>A matrix representing the world transform of the bone.</returns>
+        public Matrix4x4 ComputeBoneWorldMatrix(Node bone)
         {
-            int count = 0;
-            foreach (Mesh mesh in Meshes)
+            Matrix4x4 matrix = bone.ComputeLocalTransform();
+            while (bone.ParentIndex != -1)
             {
-                count += mesh.GetFaceCount();
+                bone = Nodes[bone.ParentIndex];
+                matrix *= bone.ComputeLocalTransform();
             }
-            return count;
+
+            return matrix;
         }
 
         /// <summary>
-        /// Get the total calculated strip count from the VertexIndices of all Meshes in this model.
-        /// </summary>
-        public int GetStripCount()
-        {
-            int count = 0;
-            foreach (Mesh mesh in Meshes)
-            {
-                count += mesh.GetStripCount();
-            }
-            return count;
-        }
-
-        /// <summary>
-        /// An SMD4 header containing general values for this model.
+        /// An <see cref="SMD4"/> header containing general values for this model.
         /// </summary>
         public class SMDHeader
         {
@@ -228,7 +222,7 @@ namespace SoulsFormats
             public Vector3 BoundingBoxMax { get; set; }
 
             /// <summary>
-            /// Creates a SMDHeader with default values.
+            /// Create a new <see cref="SMDHeader"/>.
             /// </summary>
             public SMDHeader()
             {
