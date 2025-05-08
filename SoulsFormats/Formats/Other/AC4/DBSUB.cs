@@ -28,7 +28,7 @@ namespace SoulsFormats.AC4
         /// <remarks>
         /// Older test subtitle files are in ShiftJIS and not Unicode.
         /// </remarks>
-        public bool Unicode { get; set; } = true;
+        public bool Unicode { get; set; }
 
         /// <summary>
         /// The size of the header.
