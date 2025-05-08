@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace SoulsFormats.AC4
+namespace SoulsFormats.Other.AC4
 {
     /// <summary>
     /// Details what should attach to what in Armored Core For Answer parts.<br/>

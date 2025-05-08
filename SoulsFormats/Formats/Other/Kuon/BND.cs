@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SoulsFormats.Kuon
+namespace SoulsFormats.Other.Kuon
 {
     /// <summary>
     /// The format of Binder files in Kuon except for the main archive.

@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
-namespace SoulsFormats.AC3SL
+namespace SoulsFormats.Other.AC3SL
 {
     /// <summary>
     /// The format of the Binder file found in Armored Core 3 Silent Line.

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
-namespace SoulsFormats.Dreamcast
+namespace SoulsFormats.Other.Dreamcast
 {
     /// <summary>
     /// An archive format used in games such as Frame Gride. Extension: *.mgf, File magic: MGFL

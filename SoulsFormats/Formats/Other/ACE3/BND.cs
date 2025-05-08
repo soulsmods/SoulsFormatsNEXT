@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SoulsFormats.ACE3
+namespace SoulsFormats.Other.ACE3
 {
     /// <summary>
     /// The format of the Binder files used in Another Century's Episode 3.

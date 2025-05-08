@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace SoulsFormats
+namespace SoulsFormats.Other
 {
     /// <summary>
     /// A multi-file container format used in Armored Core 4 and Murakumo: Renegade Mech Pursuit.

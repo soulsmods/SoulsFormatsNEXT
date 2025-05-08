@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
 
-namespace SoulsFormats.SOM
+namespace SoulsFormats.Other.SOM
 {
     /// <summary>
     /// A model format used in Sword of Moonlight for basic models like items.

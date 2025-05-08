@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SoulsFormats.Kuon
+namespace SoulsFormats.Other.Kuon
 {
     /// <summary>
     /// The format of the Binder files acting as Kuon's main archive, ALL/ELL. Extension: .bnd

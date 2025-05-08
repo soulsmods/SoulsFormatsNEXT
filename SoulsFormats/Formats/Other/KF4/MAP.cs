@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace SoulsFormats.KF4
+namespace SoulsFormats.Other.KF4
 {
     /// <summary>
     /// A map asset container used in King's Field IV. Extension: .map

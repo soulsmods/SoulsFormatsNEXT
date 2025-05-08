@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SoulsFormats.Otogi2
+namespace SoulsFormats.Other.Otogi2
 {
     /// <summary>
     /// Model-related file container used in Otogi 2. Extension: .dat
