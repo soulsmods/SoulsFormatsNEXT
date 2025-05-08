@@ -80,6 +80,10 @@ namespace SoulsFormats
                 BoneIndexBytes = br.ReadBytes(edgeVertexBufferTotalLength - edgeVertexBufferLength);
 
                 br.Position = start + edgeVertexBufferTotalLength;
+
+                // TODO figure out how bone weights are compressed into 1 or 2 bytes.
+                // DS1 PS3 models have this.
+                // This buffer existing is likely determined by EdgeGeomSpuConfigInfo's SkinningMode.
             }
         }
     }

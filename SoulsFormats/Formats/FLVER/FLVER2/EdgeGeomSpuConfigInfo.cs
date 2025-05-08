@@ -254,12 +254,12 @@ namespace SoulsFormats
             /// <summary>
             /// How indexes for vertices are stored.
             /// </summary>
-            public EdgeGeomIndexes IndexesFlavor;
+            public EdgeGeomIndexes IndexMode;
 
             /// <summary>
             /// The type of calculation for matrix palette skinning.
             /// </summary>
-            public EdgeGeomSkin SkinningFlavor;
+            public EdgeGeomSkin SkinningMode;
 
             /// <summary>
             /// The format ID for skinning matrices.<br/>
@@ -311,8 +311,8 @@ namespace SoulsFormats
                 OutputVertexFormatId = (RsxVertexFormat)outputVertexFormatId;
                 VertexDeltaFormatId = vertexDeltaFormatId;
                 byte indexesFlavorAndSkinningFlavorValues = indexesFlavorAndSkinningFlavor;
-                IndexesFlavor = (EdgeGeomIndexes)(indexesFlavorAndSkinningFlavorValues >> 4);
-                SkinningFlavor = (EdgeGeomSkin)(indexesFlavorAndSkinningFlavorValues & 0b0000_1111);
+                IndexMode = (EdgeGeomIndexes)(indexesFlavorAndSkinningFlavorValues >> 4);
+                SkinningMode = (EdgeGeomSkin)(indexesFlavorAndSkinningFlavorValues & 0b0000_1111);
                 SkinningMatrixFormat = (EdgeGeomSkinningMatrixFormat)skinningMatrixFormat;
                 NumVertexes = numVertexes;
                 NumIndexes = numIndexes;
@@ -340,8 +340,8 @@ namespace SoulsFormats
                 OutputVertexFormatId = (RsxVertexFormat)edgeGeomSpuConfigInfoBytes[4];
                 VertexDeltaFormatId = edgeGeomSpuConfigInfoBytes[5];
                 byte indexesFlavorAndSkinningFlavorValues = edgeGeomSpuConfigInfoBytes[6];
-                IndexesFlavor = (EdgeGeomIndexes)(indexesFlavorAndSkinningFlavorValues >> 4);
-                SkinningFlavor = (EdgeGeomSkin)(indexesFlavorAndSkinningFlavorValues & 0b0000_1111);
+                IndexMode = (EdgeGeomIndexes)(indexesFlavorAndSkinningFlavorValues >> 4);
+                SkinningMode = (EdgeGeomSkin)(indexesFlavorAndSkinningFlavorValues & 0b0000_1111);
                 SkinningMatrixFormat = (EdgeGeomSkinningMatrixFormat)edgeGeomSpuConfigInfoBytes[7];
                 NumVertexes = BitConverterHelper.ToUInt16BigEndian(edgeGeomSpuConfigInfoBytes, 8);
                 NumIndexes = BitConverterHelper.ToUInt16BigEndian(edgeGeomSpuConfigInfoBytes, 10);
@@ -363,8 +363,8 @@ namespace SoulsFormats
                 OutputVertexFormatId = (RsxVertexFormat)br.ReadByte();
                 VertexDeltaFormatId = br.ReadByte();
                 byte indexesFlavorAndSkinningFlavorValues = br.ReadByte();
-                IndexesFlavor = (EdgeGeomIndexes)(indexesFlavorAndSkinningFlavorValues >> 4);
-                SkinningFlavor = (EdgeGeomSkin)(indexesFlavorAndSkinningFlavorValues & 0b0000_1111);
+                IndexMode = (EdgeGeomIndexes)(indexesFlavorAndSkinningFlavorValues >> 4);
+                SkinningMode = (EdgeGeomSkin)(indexesFlavorAndSkinningFlavorValues & 0b0000_1111);
                 SkinningMatrixFormat = (EdgeGeomSkinningMatrixFormat)br.ReadByte();
                 NumVertexes = br.ReadUInt16();
                 NumIndexes = br.ReadUInt16();

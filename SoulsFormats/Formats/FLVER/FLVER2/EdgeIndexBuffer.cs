@@ -1,6 +1,5 @@
 ﻿using SoulsFormats.Utilities;
 using System.Collections.Generic;
-using System.Numerics;
 
 namespace SoulsFormats
 {
@@ -14,12 +13,12 @@ namespace SoulsFormats
             /// <summary>
             /// The total length of the edge index buffer.
             /// </summary>
-            internal int EdgeIndexesLength { get; private set; }
+            public int EdgeIndexesLength { get; private set; }
 
             /// <summary>
             /// The offset to the edge index buffer.
             /// </summary>
-            internal int EdgeIndexesOffset { get; private set; }
+            public int EdgeIndexesOffset { get; private set; }
 
             /// <summary>
             /// Unknown.
@@ -29,43 +28,53 @@ namespace SoulsFormats
             /// <summary>
             /// Unknown.
             /// </summary>
-            internal byte Unk11 { get; private set; }
+            public byte Unk11 { get; private set; }
 
             /// <summary>
             /// Unknown.
             /// </summary>
-            internal byte Unk12 { get; private set; }
+            public byte Unk12 { get; private set; }
 
             /// <summary>
             /// Unknown.
             /// </summary>
-            internal byte Unk13 { get; private set; }
+            public byte Unk13 { get; private set; }
 
             /// <summary>
             /// The index all decompressed indexes are based from.<br/>
             /// Add this to all decompressed indexes.
             /// </summary>
-            internal ushort BaseIndex { get; private set; }
+            public ushort BaseIndex { get; private set; }
 
             /// <summary>
             /// Unknown.
             /// </summary>
-            internal short Unk16 { get; private set; }
+            public short Unk16 { get; private set; }
 
             /// <summary>
             /// The length of the vertices used by this member in the edge vertex buffer plus padding.
             /// </summary>
-            internal int EdgeVertexBufferLength { get; private set; }
+            public int EdgeVertexBufferLength { get; private set; }
 
             /// <summary>
             /// The offset of the vertices used by this member in the edge vertex buffer.
             /// </summary>
-            internal int EdgeVertexBufferOffset { get; private set; }
+            public int EdgeVertexBufferOffset { get; private set; }
+
+            /// <summary>
+            /// Unknown; Seen set in DS1 PS3 model AM_F_9430.flver.
+            /// </summary>
+            public int Unk20 { get; private set; }
+
+            /// <summary>
+            /// Unknown; Seen set in DS1 PS3 model AM_F_9430.flver.
+            /// </summary>
+            public int Unk24 { get; private set; }
 
             /// <summary>
             /// SPU configuration information for edge geometry.
             /// </summary>
-            internal EdgeGeomSpuConfigInfo SpuConfigInfo { get; private set; }
+            public EdgeGeomSpuConfigInfo SpuConfigInfo { get; private set; }
 
             /// <summary>
             /// Read a member from a stream.
@@ -85,8 +94,8 @@ namespace SoulsFormats
                 Unk16 = br.ReadInt16();
                 EdgeVertexBufferLength = br.ReadInt32();
                 EdgeVertexBufferOffset = br.ReadInt32();
-                br.AssertInt32(0);
-                br.AssertInt32(0);
+                Unk20 = br.ReadInt32();
+                Unk24 = br.ReadInt32();
                 br.AssertInt32(0);
                 br.AssertInt32(0);
                 SpuConfigInfo = new EdgeGeomSpuConfigInfo(br);
