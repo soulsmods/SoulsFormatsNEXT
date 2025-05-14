@@ -1,4 +1,6 @@
-﻿using System;
+﻿using SoulsFormats.Compression;
+using SoulsFormats.Utilities;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -263,8 +265,8 @@ namespace SoulsFormats
                 bw.FillInt32($"SectorOffset_{i}", (int)((bw.Position - entriesSize) / SECTOR_SIZE));
                 if (Compressed)
                 {
-                    int bytesWritten = SFUtil.WriteZlib(bw, 0x9C, file.Bytes);
-                    bw.FillInt32($"SectorLength_{i}", SFUtil.Align(bytesWritten, SECTOR_SIZE) / SECTOR_SIZE);
+                    int bytesWritten = ZlibHelper.WriteZlib(bw, 0x9C, file.Bytes);
+                    bw.FillInt32($"SectorLength_{i}", MathHelper.Align(bytesWritten, SECTOR_SIZE) / SECTOR_SIZE);
                 }
                 else
                 {
@@ -363,7 +365,7 @@ namespace SoulsFormats
                     if (sectorLength > 0)
                     {
                         br.StepIn(dataOffset + (sectorOffset * SECTOR_SIZE));
-                        Bytes = SFUtil.ReadZlib(br, sectorLength * SECTOR_SIZE);
+                        Bytes = ZlibHelper.ReadZlib(br, sectorLength * SECTOR_SIZE);
                         br.StepOut();
                     }
                     else
@@ -406,7 +408,7 @@ namespace SoulsFormats
             internal void Write(BinaryWriterEx bw, bool compressed, int index)
             {
                 bw.ReserveInt32($"SectorOffset_{index}");
-                bw.WriteInt32(SFUtil.Align(Bytes.Length, SECTOR_SIZE) / SECTOR_SIZE);
+                bw.WriteInt32(MathHelper.Align(Bytes.Length, SECTOR_SIZE) / SECTOR_SIZE);
                 if (compressed)
                 {
                     bw.ReserveInt32($"SectorLength_{index}");

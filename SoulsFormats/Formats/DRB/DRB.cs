@@ -15,6 +15,11 @@ namespace SoulsFormats
         public enum DRBVersion
         {
             /// <summary>
+            /// Armored Core For Answer
+            /// </summary>
+            ArmoredCoreForAnswer,
+
+            /// <summary>
             /// Dark Souls, Demon's Souls, and Shadow Assault: Tenchu
             /// </summary>
             DarkSouls,
@@ -97,7 +102,7 @@ namespace SoulsFormats
             Dictionary<int, Control> controls = ReadCTRL(br, strings, ctprStart);
             Dictionary<int, Anik> aniks = ReadANIK(br, strings);
             Dictionary<int, Anio> anios = ReadANIO(br, aniks);
-            Anims = ReadANIM(br, strings, anios);
+            Anims = ReadANIM(br, strings, anios, version);
             Dictionary<int, Scdk> scdks = ReadSCDK(br, strings, scdpStart);
             Dictionary<int, Scdo> scdos = ReadSCDO(br, strings, scdks);
             Scdls = ReadSCDL(br, strings, scdos);
@@ -158,7 +163,7 @@ namespace SoulsFormats
             Queue<int> dlgCtrlOffsets = WriteCTRL(bw, stringOffsets, ctprOffsets, out Queue<int> dlgoCtrlOffsets);
             Queue<int> anikOffsets = WriteANIK(bw, stringOffsets);
             Queue<int> anioOffsets = WriteANIO(bw, anikOffsets);
-            WriteANIM(bw, stringOffsets, anioOffsets);
+            WriteANIM(bw, stringOffsets, anioOffsets, Version);
             Queue<int> scdkOffsets = WriteSCDK(bw, stringOffsets, scdpOffsets);
             Queue<int> scdoOffsets = WriteSCDO(bw, stringOffsets, scdkOffsets);
             WriteSCDL(bw, stringOffsets, scdoOffsets);
@@ -497,24 +502,24 @@ namespace SoulsFormats
             return anioOffsets;
         }
 
-        private List<Anim> ReadANIM(BinaryReaderEx br, Dictionary<int, string> strings, Dictionary<int, Anio> anios)
+        private List<Anim> ReadANIM(BinaryReaderEx br, Dictionary<int, string> strings, Dictionary<int, Anio> anios, DRBVersion version)
         {
             long start = ReadBlockHeader(br, "ANIM", out int count, out int size);
             var anims = new List<Anim>(count);
             for (int i = 0; i < count; i++)
             {
-                anims.Add(new Anim(br, strings, anios));
+                anims.Add(new Anim(br, strings, anios, version));
             }
             br.Position = start + size;
             return anims;
         }
 
-        private void WriteANIM(BinaryWriterEx bw, Dictionary<string, int> stringOffsets, Queue<int> anioOffsets)
+        private void WriteANIM(BinaryWriterEx bw, Dictionary<string, int> stringOffsets, Queue<int> anioOffsets, DRBVersion version)
         {
             long start = WriteBlockHeader(bw, "ANIM");
             foreach (Anim anim in Anims)
             {
-                anim.Write(bw, stringOffsets, anioOffsets);
+                anim.Write(bw, stringOffsets, anioOffsets, version);
             }
             FinishBlockHeader(bw, "ANIM", start, Anims.Count);
         }
@@ -787,7 +792,7 @@ namespace SoulsFormats
                 return false;
 
             BinaryReaderEx br = new BinaryReaderEx(false, bytes);
-            return Is(SFUtil.GetDecompressedBR(br, out _));
+            return Is(SFUtil.GetDecompressedBinaryReader(br, out _));
         }
 
         /// <summary>
@@ -801,7 +806,7 @@ namespace SoulsFormats
                     return false;
 
                 BinaryReaderEx br = new BinaryReaderEx(false, stream);
-                return Is(SFUtil.GetDecompressedBR(br, out _));
+                return Is(SFUtil.GetDecompressedBinaryReader(br, out _));
             }
         }
 
@@ -812,7 +817,7 @@ namespace SoulsFormats
         {
             BinaryReaderEx br = new BinaryReaderEx(false, bytes);
             DRB drb = new DRB();
-            br = SFUtil.GetDecompressedBR(br, out drb.Compression);
+            br = SFUtil.GetDecompressedBinaryReader(br, out drb.Compression);
             drb.Read(br, version);
             return drb;
         }
@@ -826,7 +831,7 @@ namespace SoulsFormats
             {
                 BinaryReaderEx br = new BinaryReaderEx(false, stream);
                 DRB drb = new DRB();
-                br = SFUtil.GetDecompressedBR(br, out drb.Compression);
+                br = SFUtil.GetDecompressedBinaryReader(br, out drb.Compression);
                 drb.Read(br, version);
                 return drb;
             }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace SoulsFormats.MWC
+namespace SoulsFormats.Other.MWC
 {
     /// <summary>
     /// Texture container used in Metal Wolf Chaos. Extension: _t.dat
