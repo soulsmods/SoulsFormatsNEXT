@@ -87,15 +87,13 @@ namespace SoulsFormats.Other.AC4
             }
 
             // If stream length is the size of the header, counts will be 0, offsets will be the size of the header.
-            if (br.Length == HEADER_SIZE &&
-                (subtitleCount != 0 || videoCount != 0) ||
-                (subtitleEntriesOffset != HEADER_SIZE || videoEntriesOffset != HEADER_SIZE))
+            if (br.Length == HEADER_SIZE && (subtitleCount != 0 || videoCount != 0 || subtitleEntriesOffset != HEADER_SIZE || videoEntriesOffset != HEADER_SIZE))
             {
                 return false;
             }
 
             // There should be enough of the stream left to even read the entries.
-            long totalHeaderSize = HEADER_SIZE + (subtitleCount * SUBTITLE_ENTRY_SIZE) + (videoCount * VIDEO_ENTRY_SIZE);
+            long totalHeaderSize = HEADER_SIZE + subtitleCount * SUBTITLE_ENTRY_SIZE + videoCount * VIDEO_ENTRY_SIZE;
             if (totalHeaderSize > br.Length)
             {
                 return false;
