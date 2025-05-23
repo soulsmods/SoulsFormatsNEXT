@@ -138,7 +138,7 @@ namespace SoulsFormats
 
         internal static byte[] Decompress(BinaryReaderEx br, out CompressionData compression)
         {
-            compression = new CompressionData(Type.Unknown);
+            compression = new UnkCompressionData();
             br.BigEndian = true;
 
             string magic = br.ReadASCII(4);
@@ -148,10 +148,10 @@ namespace SoulsFormats
                 switch (format)
                 {
                     case "DFLT":
-                        compression = new CompressionData(Type.DCP_DFLT);
+                        compression = new DcpDfltCompressionData();
                         break;
                     case "EDGE":
-                        compression = new CompressionData(Type.DCP_EDGE);
+                        compression = new DcpEdgeCompressionData();
                         break;
                 }
             }
@@ -161,7 +161,7 @@ namespace SoulsFormats
                 switch (format)
                 {
                     case "EDGE":
-                        compression = new CompressionData(Type.DCX_EDGE);
+                        compression = new DcxEdgeCompressionData();
                         break;
                     case "DFLT":
                         int unk04 = br.GetInt32(0x4);
@@ -177,7 +177,7 @@ namespace SoulsFormats
                         compression = new DcxKrakCompressionData(compressionLevel);
                         break;
                     case "ZSTD":
-                        compression = new CompressionData(Type.DCX_ZSTD);
+                        compression = new DcxZstdCompressionData();
                         break;
                 }
             }
@@ -187,7 +187,7 @@ namespace SoulsFormats
                 byte b1 = br.GetByte(1);
                 if (b0 == 0x78 && (b1 == 0x01 || b1 == 0x5E || b1 == 0x9C || b1 == 0xDA))
                 {
-                    compression = new CompressionData(Type.Zlib);
+                    compression = new ZlibCompressionData();
                 }
             }
 
@@ -519,10 +519,10 @@ namespace SoulsFormats
                     CompressDCXEDGE(data, bw);
                     return;
                 case Type.DCX_DFLT:
-                    CompressDCXDFLT(data, bw, compression);
+                    CompressDCXDFLT(data, bw, (DcxDfltCompressionData)compression);
                     return;
                 case Type.DCX_KRAK:
-                    CompressDCXKRAK(data, bw, compression);
+                    CompressDCXKRAK(data, bw, (DcxKrakCompressionData)compression);
                     return;
                 case Type.DCX_ZSTD:
                     CompressDCXZSTD(data, bw);
@@ -650,23 +650,17 @@ namespace SoulsFormats
             bw.FillInt32("CompressedSize", compressedSize);
         }
 
-        private static void CompressDCXDFLT(byte[] data, BinaryWriterEx bw, CompressionData compression)
+        private static void CompressDCXDFLT(byte[] data, BinaryWriterEx bw, DcxDfltCompressionData compression)
         {
-            DcxDfltCompressionData dfltCompression = (DcxDfltCompressionData)compression;
-            if (dfltCompression == null)
-            {
-                throw new Exception("Provided invalid compression data for compressing DCX DFLT format.");
-            }
-            
             bw.WriteASCII("DCX\0");
             
-            bw.WriteInt32(dfltCompression.Unk04);
+            bw.WriteInt32(compression.Unk04);
 
             bw.WriteInt32(0x18);
             bw.WriteInt32(0x24);
 
-            bw.WriteInt32(dfltCompression.Unk10);
-            bw.WriteInt32(dfltCompression.Unk14);
+            bw.WriteInt32(compression.Unk10);
+            bw.WriteInt32(compression.Unk14);
 
             bw.WriteASCII("DCS\0");
             bw.WriteInt32(data.Length);
@@ -675,14 +669,14 @@ namespace SoulsFormats
             bw.WriteASCII("DFLT");
             bw.WriteInt32(0x20);
 
-            bw.WriteByte(dfltCompression.Unk30);
+            bw.WriteByte(compression.Unk30);
             bw.WriteByte(0);
             bw.WriteByte(0);
             bw.WriteByte(0);
 
             bw.WriteInt32(0);
             
-            bw.WriteByte(dfltCompression.Unk38);
+            bw.WriteByte(compression.Unk38);
             bw.WriteByte(0);
             bw.WriteByte(0);
             bw.WriteByte(0);
@@ -697,16 +691,11 @@ namespace SoulsFormats
             bw.FillInt32("CompressedSize", (int)(bw.Position - compressedStart));
         }
 
-        private static void CompressDCXKRAK(byte[] data, BinaryWriterEx bw, CompressionData compression)
+        private static void CompressDCXKRAK(byte[] data, BinaryWriterEx bw, DcxKrakCompressionData compression)
         {
-            DcxKrakCompressionData krakCompression = (DcxKrakCompressionData)compression;
-            if (krakCompression == null)
-            {
-                throw new Exception("Provided invalid compression data for compressing DCX KRAK format.");
-            }
             
             byte[] compressed = Oodle.GetOodleCompressor().Compress(data, Oodle.OodleLZ_Compressor.OodleLZ_Compressor_Kraken,
-                (Oodle.OodleLZ_CompressionLevel) krakCompression.CompressionLevel);
+                (Oodle.OodleLZ_CompressionLevel) compression.CompressionLevel);
 
             bw.WriteASCII("DCX\0");
             bw.WriteInt32(0x11000);
@@ -720,7 +709,7 @@ namespace SoulsFormats
             bw.WriteASCII("DCP\0");
             bw.WriteASCII("KRAK");
             bw.WriteInt32(0x20);
-            bw.WriteByte(krakCompression.CompressionLevel);
+            bw.WriteByte(compression.CompressionLevel);
             bw.WriteByte(0);
             bw.WriteByte(0);
             bw.WriteByte(0);
@@ -863,36 +852,39 @@ namespace SoulsFormats
             AC6 = Type.DCX_KRAK,
         }
 
-        public class CompressionData
+        public interface CompressionData
         {
-            public Type Type { get; }
-            
-            public static explicit operator CompressionData(Type type)
-            {
-                if (type == Type.DCX_KRAK || type == Type.DCX_DFLT)
-                {
-                    throw new Exception(
-                        $"The type {type} cannot be converted to CompressionData due to containing required metadata.");
-                }
-                return new CompressionData(type);
-            }
-
-            public CompressionData(Type type)
-            {
-                if (type == Type.DCX_KRAK || type == Type.DCX_DFLT)
-                {
-                    throw new Exception($"The type {type} must be supplied its own CompressionData subclass.");
-                }
-                Type = type;
-            }
-
-            protected CompressionData()
-            {
-                Type = Type.Unknown;
-            }
+            Type Type { get; }
         }
 
-        public class DcxDfltCompressionData : CompressionData
+        public struct UnkCompressionData : CompressionData
+        {
+            public Type Type => Type.Unknown;
+        }
+
+        public struct NoCompressionData : CompressionData
+        {
+            public Type Type => Type.None;
+        }
+
+        public struct DcpDfltCompressionData : CompressionData
+        {
+            public Type Type => Type.DCP_DFLT;
+        }
+        public struct DcpEdgeCompressionData : CompressionData
+        {
+            public Type Type => Type.DCP_EDGE;
+        }
+        public struct ZlibCompressionData : CompressionData
+        {
+            public Type Type => Type.Zlib;
+        }
+        public struct DcxEdgeCompressionData : CompressionData
+        {
+            public Type Type => Type.DCX_EDGE;
+        }
+
+        public struct DcxDfltCompressionData : CompressionData
         {
             public Type Type => Type.DCX_DFLT;
             public int Unk04 { get; }
@@ -911,7 +903,7 @@ namespace SoulsFormats
             }
         }
         
-        public class DcxKrakCompressionData : CompressionData
+        public struct DcxKrakCompressionData : CompressionData
         {
             public Type Type => Type.DCX_KRAK;
             public byte CompressionLevel { get; }
@@ -920,6 +912,11 @@ namespace SoulsFormats
             {
                 CompressionLevel = compressionLevel;
             }
+        }
+        
+        public struct DcxZstdCompressionData : CompressionData
+        {
+            public Type Type => Type.DCX_ZSTD;
         }
     }
 }

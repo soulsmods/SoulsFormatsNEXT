@@ -20,7 +20,7 @@ namespace SoulsFormats
             }
             else
             {
-                compression = new DCX.CompressionData(DCX.Type.None);
+                compression = new DCX.NoCompressionData();
                 return br;
             }
         }

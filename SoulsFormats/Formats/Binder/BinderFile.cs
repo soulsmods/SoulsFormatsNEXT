@@ -61,7 +61,7 @@ namespace SoulsFormats
             ID = id;
             Name = name;
             Bytes = bytes;
-            CompressionData = new DCX.CompressionData(DCX.Type.Zlib);
+            CompressionData = new DCX.ZlibCompressionData();
         }
 
         /// <summary>

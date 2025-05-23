@@ -62,7 +62,7 @@ namespace SoulsFormats
             Flags = flags;
             ID = id;
             Name = name;
-            Compression = new DCX.CompressionData(DCX.Type.Zlib);
+            Compression = new DCX.ZlibCompressionData();
             CompressedSize = compressedSize;
             UncompressedSize = uncompressedSize;
             DataOffset = dataOffset;
@@ -158,7 +158,7 @@ namespace SoulsFormats
         internal BinderFile ReadFileData(BinaryReaderEx br)
         {
             byte[] bytes;
-            DCX.CompressionData compressionData = new DCX.CompressionData(DCX.Type.Zlib);
+            DCX.CompressionData compressionData = new DCX.ZlibCompressionData();
             if (IsCompressed(Flags))
             {
                 bytes = br.GetBytes(DataOffset, (int)CompressedSize);

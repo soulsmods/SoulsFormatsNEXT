@@ -781,7 +781,7 @@ namespace SoulsFormats
         /// <summary>
         /// The type of DCX compression to be used when writing.
         /// </summary>
-        public DCX.CompressionData Compression = new DCX.CompressionData(DCX.Type.None);
+        public DCX.CompressionData Compression = new DCX.NoCompressionData();
 
         /// <summary>
         /// Returns true if the bytes appear to be a DRB.

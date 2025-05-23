@@ -406,7 +406,7 @@ namespace SoulsFormats
 
                 byte[] bytes = Bytes;
                 if (Flags1 == 2 || Flags1 == 3)
-                    bytes = DCX.Compress(bytes, new DCX.CompressionData(DCX.Type.DCP_EDGE));
+                    bytes = DCX.Compress(bytes, new DCX.DcpEdgeCompressionData());
 
                 bw.FillInt32($"FileSize{index}", bytes.Length);
                 bw.WriteBytes(bytes);

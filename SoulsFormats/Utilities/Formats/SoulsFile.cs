@@ -11,7 +11,7 @@ namespace SoulsFormats
         /// <summary>
         /// The type of DCX compression to be used when writing.
         /// </summary>
-        public DCX.CompressionData Compression { get; set; } = new DCX.CompressionData(DCX.Type.None);
+        public DCX.CompressionData Compression { get; set; } = new DCX.NoCompressionData();
 
         #region Is
 
