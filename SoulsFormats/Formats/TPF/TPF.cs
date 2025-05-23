@@ -316,9 +316,9 @@ namespace SoulsFormats
                 Bytes = br.GetBytes(fileOffset, fileSize);
                 if (Flags1 == 2 || Flags1 == 3)
                 {
-                    Bytes = DCX.Decompress(Bytes, out DCX.Type type);
-                    if (type != DCX.Type.DCP_EDGE)
-                        throw new NotImplementedException($"TPF compression is expected to be DCP_EDGE, but it was {type}");
+                    Bytes = DCX.Decompress(Bytes, out DCX.CompressionData compression);
+                    if (compression.Type != DCX.Type.DCP_EDGE)
+                        throw new InvalidDataException($"TPF compression is expected to be DCP_EDGE, but it was {compression.Type}");
                 }
                 //Cubemap fix
                 //Check if this is a DX10 FourCC, check if it's a cubemap
@@ -406,7 +406,7 @@ namespace SoulsFormats
 
                 byte[] bytes = Bytes;
                 if (Flags1 == 2 || Flags1 == 3)
-                    bytes = DCX.Compress(bytes, DCX.Type.DCP_EDGE);
+                    bytes = DCX.Compress(bytes, new DCX.CompressionData(DCX.Type.DCP_EDGE));
 
                 bw.FillInt32($"FileSize{index}", bytes.Length);
                 bw.WriteBytes(bytes);

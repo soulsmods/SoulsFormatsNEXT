@@ -28,9 +28,9 @@ namespace SoulsFormats
         public byte[] Bytes { get; set; }
 
         /// <summary>
-        /// If compressed, which type of compression to use.
+        /// If compressed, information about the compression in use.
         /// </summary>
-        public DCX.Type CompressionType { get; set; }
+        public DCX.CompressionData CompressionData { get; set; }
 
         /// <summary>
         /// Creates a new file with 0 bytes and no ID or name.
@@ -61,7 +61,7 @@ namespace SoulsFormats
             ID = id;
             Name = name;
             Bytes = bytes;
-            CompressionType = DCX.Type.Zlib;
+            CompressionData = new DCX.CompressionData(DCX.Type.Zlib);
         }
 
         /// <summary>
