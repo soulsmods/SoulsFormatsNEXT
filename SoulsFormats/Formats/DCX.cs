@@ -859,39 +859,49 @@ namespace SoulsFormats
             Type Type { get; }
         }
 
+        [Serializable]
         public struct UnkCompressionData : CompressionData
         {
             [XmlText]
             public Type Type => Type.Unknown;
         }
 
+        [Serializable]
         public struct NoCompressionData : CompressionData
         {
             [XmlText]
             public Type Type => Type.None;
         }
 
+        [Serializable]
         public struct DcpDfltCompressionData : CompressionData
         {
             [XmlText]
             public Type Type => Type.DCP_DFLT;
         }
+        
+        [Serializable]
         public struct DcpEdgeCompressionData : CompressionData
         {
             [XmlText]
             public Type Type => Type.DCP_EDGE;
         }
+        
+        [Serializable]
         public struct ZlibCompressionData : CompressionData
         {
             [XmlText]
             public Type Type => Type.Zlib;
         }
+        
+        [Serializable]
         public struct DcxEdgeCompressionData : CompressionData
         {
             [XmlText]
             public Type Type => Type.DCX_EDGE;
         }
 
+        [Serializable]
         public struct DcxDfltCompressionData : CompressionData
         {
             [XmlText]
@@ -917,6 +927,7 @@ namespace SoulsFormats
             }
         }
         
+        [Serializable]
         public struct DcxKrakCompressionData : CompressionData
         {
             [XmlText]
@@ -931,6 +942,7 @@ namespace SoulsFormats
             }
         }
         
+        [Serializable]
         public struct DcxZstdCompressionData : CompressionData
         {
             [XmlText]

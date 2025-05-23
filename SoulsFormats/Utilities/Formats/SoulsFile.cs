@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Xml.Serialization;
 
 namespace SoulsFormats
 {
@@ -11,6 +12,7 @@ namespace SoulsFormats
         /// <summary>
         /// The type of DCX compression to be used when writing.
         /// </summary>
+        [XmlElement]
         public DCX.CompressionData Compression { get; set; } = new DCX.NoCompressionData();
 
         #region Is
