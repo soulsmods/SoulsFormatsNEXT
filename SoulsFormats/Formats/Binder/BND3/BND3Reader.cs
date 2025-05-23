@@ -22,7 +22,7 @@ namespace SoulsFormats
         /// <summary>
         /// Type of compression used, if any.
         /// </summary>
-        public DCX.Type Compression { get; set; }
+        public DCX.CompressionData Compression { get; set; }
 
         /// <summary>
         /// Reads a BND3 from the given path, decompressing if necessary.
@@ -60,7 +60,7 @@ namespace SoulsFormats
 
         private void Read(BinaryReaderEx br)
         {
-            br = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression);
+            br = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionData compression);
             Compression = compression;
             Files = BND3.ReadHeader(this, br);
             DataBR = br;
