@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Xml.Serialization;
 using Org.BouncyCastle.Security;
 
 namespace SoulsFormats
@@ -854,43 +855,56 @@ namespace SoulsFormats
 
         public interface CompressionData
         {
+            [XmlText]
             Type Type { get; }
         }
 
         public struct UnkCompressionData : CompressionData
         {
+            [XmlText]
             public Type Type => Type.Unknown;
         }
 
         public struct NoCompressionData : CompressionData
         {
+            [XmlText]
             public Type Type => Type.None;
         }
 
         public struct DcpDfltCompressionData : CompressionData
         {
+            [XmlText]
             public Type Type => Type.DCP_DFLT;
         }
         public struct DcpEdgeCompressionData : CompressionData
         {
+            [XmlText]
             public Type Type => Type.DCP_EDGE;
         }
         public struct ZlibCompressionData : CompressionData
         {
+            [XmlText]
             public Type Type => Type.Zlib;
         }
         public struct DcxEdgeCompressionData : CompressionData
         {
+            [XmlText]
             public Type Type => Type.DCX_EDGE;
         }
 
         public struct DcxDfltCompressionData : CompressionData
         {
+            [XmlText]
             public Type Type => Type.DCX_DFLT;
+            [XmlAttribute]
             public int Unk04 { get; }
+            [XmlAttribute]
             public int Unk10 { get; }
+            [XmlAttribute]
             public int Unk14 { get; }
+            [XmlAttribute]
             public byte Unk30 { get; }
+            [XmlAttribute]
             public byte Unk38 { get; }
 
             public DcxDfltCompressionData(int unk04, int unk10, int unk14, byte unk30, byte unk38)
@@ -905,7 +919,10 @@ namespace SoulsFormats
         
         public struct DcxKrakCompressionData : CompressionData
         {
+            [XmlText]
             public Type Type => Type.DCX_KRAK;
+            
+            [XmlAttribute]
             public byte CompressionLevel { get; }
 
             public DcxKrakCompressionData (byte compressionLevel)
@@ -916,6 +933,7 @@ namespace SoulsFormats
         
         public struct DcxZstdCompressionData : CompressionData
         {
+            [XmlText]
             public Type Type => Type.DCX_ZSTD;
         }
     }
