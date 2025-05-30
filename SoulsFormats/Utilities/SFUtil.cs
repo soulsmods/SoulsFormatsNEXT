@@ -11,7 +11,7 @@ namespace SoulsFormats
         /// <summary>
         /// Decompresses data and returns a new BinaryReaderEx if necessary.
         /// </summary>
-        public static BinaryReaderEx GetDecompressedBinaryReader(BinaryReaderEx br, out DCX.CompressionData compression)
+        public static BinaryReaderEx GetDecompressedBinaryReader(BinaryReaderEx br, out DCX.CompressionInfo compression)
         {
             if (DCX.Is(br))
             {
@@ -20,7 +20,7 @@ namespace SoulsFormats
             }
             else
             {
-                compression = new DCX.NoCompressionData();
+                compression = new DCX.NoCompressionInfo();
                 return br;
             }
         }

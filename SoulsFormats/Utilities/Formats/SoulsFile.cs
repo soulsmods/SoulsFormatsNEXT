@@ -13,7 +13,7 @@ namespace SoulsFormats
         /// The type of DCX compression to be used when writing.
         /// </summary>
         [XmlIgnore]
-        public DCX.CompressionData Compression { get; set; } = new DCX.NoCompressionData();
+        public DCX.CompressionInfo Compression { get; set; } = new DCX.NoCompressionInfo();
 
         #region Is
 
@@ -115,7 +115,7 @@ namespace SoulsFormats
 
             stream.Position = 0; 
             using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
-            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionData compression))
+            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
             {
                 TFormat file = new TFormat();
                 file.Compression = compression;
@@ -130,7 +130,7 @@ namespace SoulsFormats
         public static TFormat Read(byte[] bytes)
         {
             using (BinaryReaderEx br = new BinaryReaderEx(false, bytes))
-            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionData compression))
+            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
             {
                 TFormat file = new TFormat();
                 file.Compression = compression;
@@ -146,7 +146,7 @@ namespace SoulsFormats
         {
             using (FileStream stream = File.OpenRead(path))
             using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
-            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionData compression))
+            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
             {
                 TFormat file = new TFormat();
                 file.Compression = compression;
@@ -164,7 +164,7 @@ namespace SoulsFormats
         /// </summary>
         private static bool IsReadInternal(BinaryReaderEx br, out TFormat file)
         {
-            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionData compression))
+            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
             {
                 var test = new TFormat();
                 if (test.Is(dbr))
@@ -246,7 +246,7 @@ namespace SoulsFormats
         /// <summary>
         /// Writes file data to a stream, compressing it afterwards if specified.
         /// </summary>
-        private void Write(BinaryWriterEx bw, DCX.CompressionData compression)
+        private void Write(BinaryWriterEx bw, DCX.CompressionInfo compression)
         {
             if (compression.Type == DCX.Type.None)
             {
@@ -274,7 +274,7 @@ namespace SoulsFormats
         /// <summary>
         /// Writes the file to an array of bytes, compressing it as specified.
         /// </summary>
-        public byte[] Write(DCX.CompressionData compression)
+        public byte[] Write(DCX.CompressionInfo compression)
         {
             if (!Validate(out Exception ex))
                 throw ex;
@@ -297,7 +297,7 @@ namespace SoulsFormats
         /// <summary>
         /// Writes the file to the specified path, compressing it as specified.
         /// </summary>
-        public void Write(string path, DCX.CompressionData compression)
+        public void Write(string path, DCX.CompressionInfo compression)
         {
             if (!Validate(out Exception ex))
                 throw ex;

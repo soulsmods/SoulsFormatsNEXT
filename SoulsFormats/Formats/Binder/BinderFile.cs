@@ -30,7 +30,7 @@ namespace SoulsFormats
         /// <summary>
         /// If compressed, information about the compression in use.
         /// </summary>
-        public DCX.CompressionData CompressionData { get; set; }
+        public DCX.CompressionInfo CompressionInfo { get; set; }
 
         /// <summary>
         /// Creates a new file with 0 bytes and no ID or name.
@@ -61,7 +61,7 @@ namespace SoulsFormats
             ID = id;
             Name = name;
             Bytes = bytes;
-            CompressionData = new DCX.ZlibCompressionData();
+            CompressionInfo = new DCX.ZlibCompressionInfo();
         }
 
         /// <summary>

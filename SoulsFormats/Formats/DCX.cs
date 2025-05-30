@@ -72,7 +72,7 @@ namespace SoulsFormats
         /// <summary>
         /// Decompress a <see cref="DCX"/> file from a stream and return the detected <see cref="DCX"/> type.
         /// </summary>
-        public static byte[] Decompress(Stream stream, out CompressionData compression)
+        public static byte[] Decompress(Stream stream, out CompressionInfo compression)
         {
             if (stream.Position != 0)
             {
@@ -97,7 +97,7 @@ namespace SoulsFormats
         /// <summary>
         /// Decompress a <see cref="DCX"/> file from an array of bytes and return the detected <see cref="DCX"/> type.
         /// </summary>
-        public static byte[] Decompress(byte[] data, out CompressionData compression)
+        public static byte[] Decompress(byte[] data, out CompressionInfo compression)
         {
             using (BinaryReaderEx br = new BinaryReaderEx(true, data))
             {
@@ -116,7 +116,7 @@ namespace SoulsFormats
         /// <summary>
         /// Decompress a <see cref="DCX"/> file from the specified path and return the detected <see cref="DCX"/> type.
         /// </summary>
-        public static byte[] Decompress(string path, out CompressionData compression)
+        public static byte[] Decompress(string path, out CompressionInfo compression)
         {
             using (FileStream stream = File.OpenRead(path))
             using (BinaryReaderEx br = new BinaryReaderEx(true, stream, true))
@@ -137,9 +137,9 @@ namespace SoulsFormats
 
         #region Decompress Internal
 
-        internal static byte[] Decompress(BinaryReaderEx br, out CompressionData compression)
+        internal static byte[] Decompress(BinaryReaderEx br, out CompressionInfo compression)
         {
-            compression = new UnkCompressionData();
+            compression = new UnkCompressionInfo();
             br.BigEndian = true;
 
             string magic = br.ReadASCII(4);
@@ -149,10 +149,10 @@ namespace SoulsFormats
                 switch (format)
                 {
                     case "DFLT":
-                        compression = new DcpDfltCompressionData();
+                        compression = new DcpDfltCompressionInfo();
                         break;
                     case "EDGE":
-                        compression = new DcpEdgeCompressionData();
+                        compression = new DcpEdgeCompressionInfo();
                         break;
                 }
             }
@@ -162,7 +162,7 @@ namespace SoulsFormats
                 switch (format)
                 {
                     case "EDGE":
-                        compression = new DcxEdgeCompressionData();
+                        compression = new DcxEdgeCompressionInfo();
                         break;
                     case "DFLT":
                         int unk04 = br.GetInt32(0x4);
@@ -171,14 +171,14 @@ namespace SoulsFormats
                         byte unk30 = br.GetByte(0x30);
                         byte unk38 = br.GetByte(0x38);
 
-                        compression = new DcxDfltCompressionData(unk04, unk10, unk14, unk30, unk38);
+                        compression = new DcxDfltCompressionInfo(unk04, unk10, unk14, unk30, unk38);
                         break;
                     case "KRAK":
                         byte compressionLevel = br.GetByte(0x30);
-                        compression = new DcxKrakCompressionData(compressionLevel);
+                        compression = new DcxKrakCompressionInfo(compressionLevel);
                         break;
                     case "ZSTD":
-                        compression = new DcxZstdCompressionData();
+                        compression = new DcxZstdCompressionInfo();
                         break;
                 }
             }
@@ -188,7 +188,7 @@ namespace SoulsFormats
                 byte b1 = br.GetByte(1);
                 if (b0 == 0x78 && (b1 == 0x01 || b1 == 0x5E || b1 == 0x9C || b1 == 0xDA))
                 {
-                    compression = new ZlibCompressionData();
+                    compression = new ZlibCompressionInfo();
                 }
             }
 
@@ -204,9 +204,9 @@ namespace SoulsFormats
                 case Type.DCX_EDGE:
                     return DecompressDCXEDGE(br);
                 case Type.DCX_DFLT:
-                    return DecompressDCXDFLT(br, (DcxDfltCompressionData) compression);
+                    return DecompressDCXDFLT(br, (DcxDfltCompressionInfo) compression);
                 case Type.DCX_KRAK:
-                    return DecompressDCXKRAK(br, (DcxKrakCompressionData) compression);
+                    return DecompressDCXKRAK(br, (DcxKrakCompressionInfo) compression);
                 case Type.DCX_ZSTD:
                     return DecompressDCXZSTD(br);
                 default:
@@ -373,7 +373,7 @@ namespace SoulsFormats
             return decompressed;
         }
 
-        private static byte[] DecompressDCXDFLT(BinaryReaderEx br, DcxDfltCompressionData compression)
+        private static byte[] DecompressDCXDFLT(BinaryReaderEx br, DcxDfltCompressionInfo compression)
         {
             br.AssertASCII("DCX\0");
             br.AssertInt32(compression.Unk04);
@@ -408,7 +408,7 @@ namespace SoulsFormats
             return ZlibHelper.ReadZlib(br, Convert.ToInt32(br.Length - br.Position));
         }
 
-        private static byte[] DecompressDCXKRAK(BinaryReaderEx br, DcxKrakCompressionData compression)
+        private static byte[] DecompressDCXKRAK(BinaryReaderEx br, DcxKrakCompressionInfo compression)
         {
             br.AssertASCII("DCX\0");
             br.AssertInt32(0x11000);
@@ -479,7 +479,7 @@ namespace SoulsFormats
         /// <summary>
         /// Compress a DCX file to an array of bytes using the specified DCX type.
         /// </summary>
-        public static byte[] Compress(byte[] data, CompressionData compression)
+        public static byte[] Compress(byte[] data, CompressionInfo compression)
         {
             BinaryWriterEx bw = new BinaryWriterEx(true);
             Compress(data, bw, compression);
@@ -489,7 +489,7 @@ namespace SoulsFormats
         /// <summary>
         /// Compress a DCX file to the specified path using the specified DCX type.
         /// </summary>
-        public static void Compress(byte[] data, CompressionData compression, string path)
+        public static void Compress(byte[] data, CompressionInfo compression, string path)
         {
             using (FileStream stream = File.Create(path))
             {
@@ -503,7 +503,7 @@ namespace SoulsFormats
 
         #region Compress Internal
 
-        internal static void Compress(byte[] data, BinaryWriterEx bw, CompressionData compression)
+        internal static void Compress(byte[] data, BinaryWriterEx bw, CompressionInfo compression)
         {
             bw.BigEndian = true;
             switch (compression.Type)
@@ -520,10 +520,10 @@ namespace SoulsFormats
                     CompressDCXEDGE(data, bw);
                     return;
                 case Type.DCX_DFLT:
-                    CompressDCXDFLT(data, bw, (DcxDfltCompressionData)compression);
+                    CompressDCXDFLT(data, bw, (DcxDfltCompressionInfo)compression);
                     return;
                 case Type.DCX_KRAK:
-                    CompressDCXKRAK(data, bw, (DcxKrakCompressionData)compression);
+                    CompressDCXKRAK(data, bw, (DcxKrakCompressionInfo)compression);
                     return;
                 case Type.DCX_ZSTD:
                     CompressDCXZSTD(data, bw);
@@ -651,7 +651,7 @@ namespace SoulsFormats
             bw.FillInt32("CompressedSize", compressedSize);
         }
 
-        private static void CompressDCXDFLT(byte[] data, BinaryWriterEx bw, DcxDfltCompressionData compression)
+        private static void CompressDCXDFLT(byte[] data, BinaryWriterEx bw, DcxDfltCompressionInfo compression)
         {
             bw.WriteASCII("DCX\0");
             
@@ -692,7 +692,7 @@ namespace SoulsFormats
             bw.FillInt32("CompressedSize", (int)(bw.Position - compressedStart));
         }
 
-        private static void CompressDCXKRAK(byte[] data, BinaryWriterEx bw, DcxKrakCompressionData compression)
+        private static void CompressDCXKRAK(byte[] data, BinaryWriterEx bw, DcxKrakCompressionInfo compression)
         {
             
             byte[] compressed = Oodle.GetOodleCompressor().Compress(data, Oodle.OodleLZ_Compressor.OodleLZ_Compressor_Kraken,
@@ -853,49 +853,49 @@ namespace SoulsFormats
             AC6 = Type.DCX_KRAK,
         }
 
-        public interface CompressionData
+        public interface CompressionInfo
         {
             [XmlText]
             Type Type { get; }
         }
 
         [Serializable]
-        public struct UnkCompressionData : CompressionData
+        public struct UnkCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.Unknown;
         }
 
         [Serializable]
-        public struct NoCompressionData : CompressionData
+        public struct NoCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.None;
         }
 
         [Serializable]
-        public struct DcpDfltCompressionData : CompressionData
+        public struct DcpDfltCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.DCP_DFLT;
         }
         
         [Serializable]
-        public struct DcpEdgeCompressionData : CompressionData
+        public struct DcpEdgeCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.DCP_EDGE;
         }
         
         [Serializable]
-        public struct ZlibCompressionData : CompressionData
+        public struct ZlibCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.Zlib;
         }
         
         [Serializable]
-        public struct DcxEdgeCompressionData : CompressionData
+        public struct DcxEdgeCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.DCX_EDGE;
@@ -910,7 +910,7 @@ namespace SoulsFormats
             DCX_DFLT_11000_44_9_15
         }
         [Serializable]
-        public struct DcxDfltCompressionData : CompressionData
+        public struct DcxDfltCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.DCX_DFLT;
@@ -925,7 +925,7 @@ namespace SoulsFormats
             [XmlAttribute]
             public byte Unk38 { get; }
 
-            public DcxDfltCompressionData(int unk04, int unk10, int unk14, byte unk30, byte unk38)
+            public DcxDfltCompressionInfo(int unk04, int unk10, int unk14, byte unk30, byte unk38)
             {
                 Unk04 = unk04;
                 Unk10 = unk10;
@@ -934,7 +934,7 @@ namespace SoulsFormats
                 Unk38 = unk38;
             }
 
-            public DcxDfltCompressionData(DfltCompressionPreset preset)
+            public DcxDfltCompressionInfo(DfltCompressionPreset preset)
             {
                 switch (preset)
                 {
@@ -985,7 +985,7 @@ namespace SoulsFormats
             ArmoredCore6
         }
         [Serializable]
-        public struct DcxKrakCompressionData : CompressionData
+        public struct DcxKrakCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.DCX_KRAK;
@@ -993,12 +993,12 @@ namespace SoulsFormats
             [XmlAttribute]
             public byte CompressionLevel { get; }
 
-            public DcxKrakCompressionData (byte compressionLevel)
+            public DcxKrakCompressionInfo (byte compressionLevel)
             {
                 CompressionLevel = compressionLevel;
             }
 
-            public DcxKrakCompressionData(KrakCompressionPreset preset)
+            public DcxKrakCompressionInfo(KrakCompressionPreset preset)
             {
                 switch (preset)
                 {
@@ -1015,7 +1015,7 @@ namespace SoulsFormats
         }
         
         [Serializable]
-        public struct DcxZstdCompressionData : CompressionData
+        public struct DcxZstdCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.DCX_ZSTD;

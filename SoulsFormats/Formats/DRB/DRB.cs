@@ -781,7 +781,7 @@ namespace SoulsFormats
         /// <summary>
         /// The type of DCX compression to be used when writing.
         /// </summary>
-        public DCX.CompressionData Compression = new DCX.NoCompressionData();
+        public DCX.CompressionInfo Compression = new DCX.NoCompressionInfo();
 
         /// <summary>
         /// Returns true if the bytes appear to be a DRB.
@@ -840,7 +840,7 @@ namespace SoulsFormats
         /// <summary>
         /// Writes file data to a BinaryWriterEx, compressing it afterwards if specified.
         /// </summary>
-        private void Write(BinaryWriterEx bw, DCX.CompressionData compression)
+        private void Write(BinaryWriterEx bw, DCX.CompressionInfo compression)
         {
             if (compression.Type == DCX.Type.None)
             {
@@ -866,7 +866,7 @@ namespace SoulsFormats
         /// <summary>
         /// Writes the file to an array of bytes, compressing it as specified.
         /// </summary>
-        public byte[] Write(DCX.CompressionData compression)
+        public byte[] Write(DCX.CompressionInfo compression)
         {
             BinaryWriterEx bw = new BinaryWriterEx(false);
             Write(bw, compression);
@@ -884,7 +884,7 @@ namespace SoulsFormats
         /// <summary>
         /// Writes the file to the specified path, compressing it as specified.
         /// </summary>
-        public void Write(string path, DCX.CompressionData compression)
+        public void Write(string path, DCX.CompressionInfo compression)
         {
             using (FileStream stream = File.Create(path))
             {

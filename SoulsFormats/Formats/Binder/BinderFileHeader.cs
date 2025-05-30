@@ -25,7 +25,7 @@ namespace SoulsFormats
         /// <summary>
         /// If compressed, which type of compression to use.
         /// </summary>
-        public DCX.CompressionData Compression { get; set; }
+        public DCX.CompressionInfo Compression { get; set; }
 
         /// <summary>
         /// Size of the file after compression (or just the size of the file, if not compressed). Do not modify unless you know what you're doing.
@@ -54,7 +54,7 @@ namespace SoulsFormats
 
         internal BinderFileHeader(BinderFile file) : this(file.Flags, file.ID, file.Name, -1, -1, -1)
         {
-            Compression = file.CompressionData;
+            Compression = file.CompressionInfo;
         }
 
         private BinderFileHeader(FileFlags flags, int id, string name, long compressedSize, long uncompressedSize, long dataOffset)
@@ -62,7 +62,7 @@ namespace SoulsFormats
             Flags = flags;
             ID = id;
             Name = name;
-            Compression = new DCX.ZlibCompressionData();
+            Compression = new DCX.ZlibCompressionInfo();
             CompressedSize = compressedSize;
             UncompressedSize = uncompressedSize;
             DataOffset = dataOffset;
@@ -158,11 +158,11 @@ namespace SoulsFormats
         internal BinderFile ReadFileData(BinaryReaderEx br)
         {
             byte[] bytes;
-            DCX.CompressionData compressionData = new DCX.ZlibCompressionData();
+            DCX.CompressionInfo compressionInfo = new DCX.ZlibCompressionInfo();
             if (IsCompressed(Flags))
             {
                 bytes = br.GetBytes(DataOffset, (int)CompressedSize);
-                bytes = DCX.Decompress(bytes, out compressionData);
+                bytes = DCX.Decompress(bytes, out compressionInfo);
             }
             else
             {
@@ -171,7 +171,7 @@ namespace SoulsFormats
 
             return new BinderFile(Flags, ID, Name, bytes)
             {
-                CompressionData = compressionData,
+                CompressionInfo = compressionInfo,
             };
         }
 
