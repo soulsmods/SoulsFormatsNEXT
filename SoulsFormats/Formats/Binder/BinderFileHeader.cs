@@ -25,7 +25,7 @@ namespace SoulsFormats
         /// <summary>
         /// If compressed, which type of compression to use.
         /// </summary>
-        public DCX.Type CompressionType { get; set; }
+        public DCX.CompressionInfo Compression { get; set; }
 
         /// <summary>
         /// Size of the file after compression (or just the size of the file, if not compressed). Do not modify unless you know what you're doing.
@@ -54,7 +54,7 @@ namespace SoulsFormats
 
         internal BinderFileHeader(BinderFile file) : this(file.Flags, file.ID, file.Name, -1, -1, -1)
         {
-            CompressionType = file.CompressionType;
+            Compression = file.CompressionInfo;
         }
 
         private BinderFileHeader(FileFlags flags, int id, string name, long compressedSize, long uncompressedSize, long dataOffset)
@@ -62,7 +62,7 @@ namespace SoulsFormats
             Flags = flags;
             ID = id;
             Name = name;
-            CompressionType = DCX.Type.Zlib;
+            Compression = new DCX.ZlibCompressionInfo();
             CompressedSize = compressedSize;
             UncompressedSize = uncompressedSize;
             DataOffset = dataOffset;
@@ -158,11 +158,11 @@ namespace SoulsFormats
         internal BinderFile ReadFileData(BinaryReaderEx br)
         {
             byte[] bytes;
-            DCX.Type compressionType = DCX.Type.Zlib;
+            DCX.CompressionInfo compressionInfo = new DCX.ZlibCompressionInfo();
             if (IsCompressed(Flags))
             {
                 bytes = br.GetBytes(DataOffset, (int)CompressedSize);
-                bytes = DCX.Decompress(bytes, out compressionType);
+                bytes = DCX.Decompress(bytes, out compressionInfo);
             }
             else
             {
@@ -171,7 +171,7 @@ namespace SoulsFormats
 
             return new BinderFile(Flags, ID, Name, bytes)
             {
-                CompressionType = compressionType,
+                CompressionInfo = compressionInfo,
             };
         }
 
@@ -239,7 +239,7 @@ namespace SoulsFormats
             UncompressedSize = bytes.LongLength;
             if (IsCompressed(Flags))
             {
-                byte[] compressed = DCX.Compress(bytes, CompressionType);
+                byte[] compressed = DCX.Compress(bytes, Compression);
                 CompressedSize = compressed.LongLength;
                 bw.WriteBytes(compressed);
             }

@@ -69,8 +69,8 @@ namespace SoulsFormats
         {
             using (BinaryReaderEx bhdReader = new BinaryReaderEx(false, bhdPath))
             using (BinaryReaderEx bdtReader = new BinaryReaderEx(false, bdtBytes))
-            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.Type _))
-            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.Type _))
+            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.CompressionInfo _))
+            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.CompressionInfo _))
             {
                 return new BXF3(bhdReaderDecompressed, bdtReaderDecompressed);
             }
@@ -86,8 +86,8 @@ namespace SoulsFormats
         {
             using (BinaryReaderEx bhdReader = new BinaryReaderEx(false, bhdPath))
             using (BinaryReaderEx bdtReader = new BinaryReaderEx(false, bdtBytes))
-            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.Type _))
-            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.Type _))
+            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.CompressionInfo _))
+            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.CompressionInfo _))
             {
                 return new BXF3(bhdReaderDecompressed, bdtReaderDecompressed);
             }
@@ -103,8 +103,8 @@ namespace SoulsFormats
         {
             using (BinaryReaderEx bhdReader = new BinaryReaderEx(false, bhdPath))
             using (BinaryReaderEx bdtReader = new BinaryReaderEx(false, bdtStream, true))
-            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.Type _))
-            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.Type _))
+            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.CompressionInfo _))
+            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.CompressionInfo _))
             {
                 return new BXF3(bhdReaderDecompressed, bdtReaderDecompressed);
             }
@@ -120,8 +120,8 @@ namespace SoulsFormats
         {
             using (BinaryReaderEx bhdReader = new BinaryReaderEx(false, bhdBytes))
             using (BinaryReaderEx bdtReader = new BinaryReaderEx(false, bdtBytes))
-            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.Type _))
-            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.Type _))
+            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.CompressionInfo _))
+            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.CompressionInfo _))
             {
                 return new BXF3(bhdReaderDecompressed, bdtReaderDecompressed);
             }
@@ -137,8 +137,8 @@ namespace SoulsFormats
         {
             using (BinaryReaderEx bhdReader = new BinaryReaderEx(false, bhdBytes))
             using (BinaryReaderEx bdtReader = new BinaryReaderEx(false, bdtPath))
-            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.Type _))
-            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.Type _))
+            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.CompressionInfo _))
+            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.CompressionInfo _))
             {
                 return new BXF3(bhdReaderDecompressed, bdtReaderDecompressed);
             }
@@ -154,8 +154,8 @@ namespace SoulsFormats
         {
             using (BinaryReaderEx bhdReader = new BinaryReaderEx(false, bhdBytes))
             using (BinaryReaderEx bdtReader = new BinaryReaderEx(false, bdtStream, true))
-            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.Type _))
-            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.Type _))
+            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.CompressionInfo _))
+            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.CompressionInfo _))
             {
                 return new BXF3(bhdReaderDecompressed, bdtReaderDecompressed);
             }
@@ -171,8 +171,8 @@ namespace SoulsFormats
         {
             using (BinaryReaderEx bhdReader = new BinaryReaderEx(false, bhdStream, true))
             using (BinaryReaderEx bdtReader = new BinaryReaderEx(false, bdtStream, true))
-            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.Type _))
-            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.Type _))
+            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.CompressionInfo _))
+            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.CompressionInfo _))
             {
                 return new BXF3(bhdReaderDecompressed, bdtReaderDecompressed);
             }
@@ -188,8 +188,8 @@ namespace SoulsFormats
         {
             using (BinaryReaderEx bhdReader = new BinaryReaderEx(false, bhdStream, true))
             using (BinaryReaderEx bdtReader = new BinaryReaderEx(false, bdtPath))
-            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.Type _))
-            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.Type _))
+            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.CompressionInfo _))
+            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.CompressionInfo _))
             {
                 return new BXF3(bhdReaderDecompressed, bdtReaderDecompressed);
             }
@@ -205,8 +205,8 @@ namespace SoulsFormats
         {
             using (BinaryReaderEx bhdReader = new BinaryReaderEx(false, bhdStream, true))
             using (BinaryReaderEx bdtReader = new BinaryReaderEx(false, bdtBytes))
-            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.Type _))
-            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.Type _))
+            using (BinaryReaderEx bhdReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bhdReader, out DCX.CompressionInfo _))
+            using (BinaryReaderEx bdtReaderDecompressed = SFUtil.GetDecompressedBinaryReader(bdtReader, out DCX.CompressionInfo _))
             {
                 return new BXF3(bhdReaderDecompressed, bdtReaderDecompressed);
             }
@@ -371,7 +371,7 @@ namespace SoulsFormats
                 }
 
                 using (BinaryReaderEx br = new BinaryReaderEx(false, fs))
-                using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
+                using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
                 {
                     return IsHeader(brd);
                 }
@@ -389,7 +389,7 @@ namespace SoulsFormats
             }
 
             using (BinaryReaderEx br = new BinaryReaderEx(false, bytes))
-            using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
+            using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
             {
                 return IsHeader(brd);
             }
@@ -406,7 +406,7 @@ namespace SoulsFormats
             }
 
             using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
-            using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
+            using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
             {
                 return IsHeader(brd);
             }
@@ -431,7 +431,7 @@ namespace SoulsFormats
                 }
 
                 using (BinaryReaderEx br = new BinaryReaderEx(false, fs))
-                using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
+                using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
                 {
                     return IsData(brd);
                 }
@@ -449,7 +449,7 @@ namespace SoulsFormats
             }
 
             using (BinaryReaderEx br = new BinaryReaderEx(false, bytes))
-            using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
+            using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
             {
                 return IsData(brd);
             }
@@ -466,7 +466,7 @@ namespace SoulsFormats
             }
 
             using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
-            using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.Type compression))
+            using (BinaryReaderEx brd = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
             {
                 return IsData(brd);
             }
