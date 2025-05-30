@@ -83,6 +83,10 @@ SoulsFormats is a project originally developed by TKGP. This repository is a com
 
 Due to the nature of community contributions, there are no claims made to perfect accuracy of all output. If working with games older than Sekiro, you may prefer to use [the original library](https://github.com/JKAnderson/SoulsFormats).
 
+## License
+
+As with the original project by TKGP, this library is licensed under GPL v3. View the implications for your project using SoulsFormatsNEXT [here](https://www.tldrlegal.com/license/gnu-general-public-license-v3-gpl-3).
+
 ## Credits
 
 * *TKGP* - Original implementation of SoulsFormats
