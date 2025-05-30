@@ -32,7 +32,7 @@ namespace SoulsFormats.Cryptography
             
             
             /// <summary>
-            /// The key for Armored Core 6.
+            /// The key for ELDEN RING Nightreign.
             /// </summary>
             EldenRingNightreign = 3,
         }
