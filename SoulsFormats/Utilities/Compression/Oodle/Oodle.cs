@@ -1,5 +1,6 @@
 ﻿using SoulsFormats.Exceptions;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
@@ -9,6 +10,7 @@ namespace SoulsFormats
     {
         static IntPtr Oodle6Ptr = IntPtr.Zero;
         static IntPtr Oodle8Ptr = IntPtr.Zero;
+        static IntPtr Oodle9Ptr = IntPtr.Zero;
         public static IOodleCompressor GetOodleCompressor()
         {
             if (Oodle6Ptr != IntPtr.Zero)
@@ -19,6 +21,11 @@ namespace SoulsFormats
             if (Oodle8Ptr != IntPtr.Zero)
             {
                 return new Oodle28();
+            }
+            
+            if (Oodle9Ptr != IntPtr.Zero)
+            {
+                return new Oodle29();
             }
 
             IntPtr oodle6Ptr = NativeLibrary.LoadLibrary("oo2core_6_win64");
@@ -36,11 +43,20 @@ namespace SoulsFormats
                 return new Oodle28();
             }
             string oodle8ErrorMessage = NativeLibrary.GetLastError();
+            
+            IntPtr oodle9Ptr = NativeLibrary.LoadLibrary("oo2core_9_win64");
+            if (oodle9Ptr != IntPtr.Zero)
+            {
+                Oodle9Ptr = oodle9Ptr;
+                return new Oodle29();
+            }
+            string oodle9ErrorMessage = NativeLibrary.GetLastError();
 
             throw new NoOodleFoundException($"Could not find a supported version of oo2core.\n"
-                                            + $"Please copy oo2core_6_win64.dll or oo2core_8_win64.dll into the program directory\n"
+                                            + $"Please copy oo2core_6_win64.dll, oo2core_8_win64.dll or oo2core_9_win64.dll into the program directory\n"
                                             + $"Last Error Oodle 6: {oodle6ErrorMessage}\n"
                                             + $"Last Error Oodle 8: {oodle8ErrorMessage}\n"
+                                            + $"Last Error Oodle 9: {oodle9ErrorMessage}\n"
             );
         }
 
@@ -53,6 +69,10 @@ namespace SoulsFormats
             if (Oodle8Ptr != IntPtr.Zero)
             {
                 return Oodle8Ptr;
+            }
+            if (Oodle9Ptr != IntPtr.Zero)
+            {
+                return Oodle9Ptr;
             }
 
             return IntPtr.Zero;
@@ -67,8 +87,11 @@ namespace SoulsFormats
                     return new Oodle26();
                 case 8:
                     return new Oodle28();
+                case 9:
+                    return new Oodle29();
             }
 
+            List<string> errors = new List<string>();
             try
             {
                 Oodle26.OodleLZ_CompressOptions_GetDefault();
@@ -77,21 +100,34 @@ namespace SoulsFormats
             }
             catch (EntryPointNotFoundException ex)
             {
-                try
-                {
-                    Oodle28.OodleLZ_CompressOptions_GetDefault();
-                    _oodleVersion = 8;
-                    return new Oodle28();
-                }
-                catch (EntryPointNotFoundException innerEx)
-                {
-                    throw new NoOodleFoundException(
-                        $"Could not find a supported version of oo2core.\n"
-                        + $"Please copy oo2core_6_win64.dll or oo2core_8_win64.dll into the program directory\n"
-                        + $"{ex.Message}\n"
-                        + $"{innerEx.Message}"
-                    );
-                }
+                errors.Add(ex.Message);
+            }
+            
+            try
+            {
+                Oodle28.OodleLZ_CompressOptions_GetDefault();
+                _oodleVersion = 8;
+                return new Oodle28();
+            }
+            catch (EntryPointNotFoundException ex)
+            {
+                errors.Add(ex.Message);
+            }
+            
+            try
+            {
+                Oodle29.OodleLZ_CompressOptions_GetDefault();
+                _oodleVersion = 9;
+                return new Oodle29();
+            }
+            catch (EntryPointNotFoundException ex)
+            {
+                throw new NoOodleFoundException(
+                    $"Could not find a supported version of oo2core.\n"
+                    + $"Please copy oo2core_6_win64.dll, oo2core_8_win64.dll or oo2core_9_win64.dll into the program directory\n"
+                    + $"{String.Join("\n", errors)}\n"
+                    + $"{ex.Message}"
+                );
             }
         }
 
