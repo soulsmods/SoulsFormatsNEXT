@@ -54,6 +54,7 @@ namespace SoulsFormats
                         case LayoutType.UByte4Norm:
                         case LayoutType.Byte4Norm:
                         case LayoutType.Short2:
+                        case LayoutType.UShort2:
                         case LayoutType.Byte4E:
                         case LayoutType.Half2:
                             return 4;
@@ -204,6 +205,11 @@ namespace SoulsFormats
             /// Four signed shorts.
             /// </summary>
             Short4 = 22,
+
+            /// <summary>
+            /// Two unsigned shorts.
+            /// </summary>
+            UShort2 = 23,
 
             /// <summary>
             /// Four unsigned shorts.
