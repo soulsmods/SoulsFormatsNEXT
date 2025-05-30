@@ -901,6 +901,14 @@ namespace SoulsFormats
             public Type Type => Type.DCX_EDGE;
         }
 
+        public enum DfltCompressionPreset
+        {
+            DCX_DFLT_10000_24_9,
+            DCX_DFLT_10000_44_9,
+            DCX_DFLT_11000_44_8,
+            DCX_DFLT_11000_44_9,
+            DCX_DFLT_11000_44_9_15
+        }
         [Serializable]
         public struct DcxDfltCompressionData : CompressionData
         {
@@ -925,8 +933,57 @@ namespace SoulsFormats
                 Unk30 = unk30;
                 Unk38 = unk38;
             }
+
+            public DcxDfltCompressionData(DfltCompressionPreset preset)
+            {
+                switch (preset)
+                {
+                    case DfltCompressionPreset.DCX_DFLT_10000_24_9:
+                        Unk04 = 0x10000;
+                        Unk10 = 0x24;
+                        Unk14 = 0x2C;
+                        Unk30 = 9;
+                        Unk38 = 0;
+                        break;
+                    case DfltCompressionPreset.DCX_DFLT_10000_44_9:
+                        Unk04 = 0x10000;
+                        Unk10 = 0x44;
+                        Unk14 = 0x4C;
+                        Unk30 = 9;
+                        Unk38 = 0;
+                        break;
+                    case DfltCompressionPreset.DCX_DFLT_11000_44_8:
+                        Unk04 = 0x11000;
+                        Unk10 = 0x44;
+                        Unk14 = 0x4C;
+                        Unk30 = 8;
+                        Unk38 = 0;
+                        break;
+                    case DfltCompressionPreset.DCX_DFLT_11000_44_9:
+                        Unk04 = 0x11000;
+                        Unk10 = 0x44;
+                        Unk14 = 0x4C;
+                        Unk30 = 9;
+                        Unk38 = 0;
+                        break;
+                    case DfltCompressionPreset.DCX_DFLT_11000_44_9_15:
+                        Unk04 = 0x11000;
+                        Unk10 = 0x44;
+                        Unk14 = 0x4C;
+                        Unk30 = 9;
+                        Unk38 = 15;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(preset), preset, null);
+                }
+            }
         }
-        
+
+        public enum KrakCompressionPreset
+        {
+            EldenRing,
+            ArmoredCore6
+        }
         [Serializable]
         public struct DcxKrakCompressionData : CompressionData
         {
@@ -939,6 +996,21 @@ namespace SoulsFormats
             public DcxKrakCompressionData (byte compressionLevel)
             {
                 CompressionLevel = compressionLevel;
+            }
+
+            public DcxKrakCompressionData(KrakCompressionPreset preset)
+            {
+                switch (preset)
+                {
+                    case KrakCompressionPreset.EldenRing:
+                        CompressionLevel = 6;
+                        break;
+                    case KrakCompressionPreset.ArmoredCore6:
+                        CompressionLevel = 9;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(preset), preset, null);
+                }
             }
         }
         
