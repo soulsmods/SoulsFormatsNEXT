@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -151,6 +152,13 @@ namespace SoulsFormats
                 int vertexBuffersOffset1 = br.ReadInt32();
                 int vertexBuffersOffset2 = br.ReadInt32();
                 br.AssertInt32(0);
+
+                if ((vertexBuffersOffset1 < 0 || vertexBuffersOffset1 > br.Length) ||
+                    (vertexBuffersOffset2 < 0 || vertexBuffersOffset2 > br.Length))
+                {
+                    vertexBuffersOffset1 = BinaryPrimitives.ReverseEndianness(vertexBuffersOffset1);
+                    vertexBuffersOffset2 = BinaryPrimitives.ReverseEndianness(vertexBuffersOffset2);
+                }
 
                 if (vertexIndexSize == 16)
                 {

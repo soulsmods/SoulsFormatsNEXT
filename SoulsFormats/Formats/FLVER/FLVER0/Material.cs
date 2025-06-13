@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Buffers.Binary;
+using System.Collections.Generic;
 
 namespace SoulsFormats
 {
@@ -69,11 +70,25 @@ namespace SoulsFormats
                 br.ReadInt32(); // Data length from name offset to end of buffer layouts
                 int layoutHeaderOffset = br.ReadInt32();
 
+                if (layoutHeaderOffset < 0 || layoutHeaderOffset > br.Length)
+                {
+                    layoutHeaderOffset = BinaryPrimitives.ReverseEndianness(layoutHeaderOffset);
+                }
+
                 br.AssertInt32(0);
                 br.AssertInt32(0);
 
-                Name = unicode ? br.GetUTF16(nameOffset) : br.GetShiftJIS(nameOffset);
-                MTD = unicode ? br.GetUTF16(mtdOffset) : br.GetShiftJIS(mtdOffset);
+                if (unicode)
+                {
+                    Name = br.GetUTF16(nameOffset);
+                    MTD = br.GetUTF16(mtdOffset);
+                }
+                else
+                {
+                    Name = br.GetShiftJIS(nameOffset);
+                    MTD = br.GetShiftJIS(mtdOffset);
+                }
+
 
                 br.StepIn(texturesOffset);
                 {
@@ -96,15 +111,24 @@ namespace SoulsFormats
                     br.StepIn(layoutHeaderOffset);
                     {
                         int layoutCount = br.ReadInt32();
+                        if (layoutCount < 0 || layoutCount > br.Length)
+                        {
+                            layoutCount = BinaryPrimitives.ReverseEndianness(layoutCount);
+                        }
 
                         int offsetAssert = (int)br.Position + 0xC;
-                        br.AssertInt32(offsetAssert);
+                        br.AssertInt32(offsetAssert, BinaryPrimitives.ReverseEndianness(offsetAssert));
                         br.AssertInt32(0);
                         br.AssertInt32(0);
                         Layouts = new List<BufferLayout>(layoutCount);
                         for (int i = 0; i < layoutCount; i++)
                         {
                             int layoutOffset = br.ReadInt32();
+                            if (layoutOffset < 0 || layoutOffset > br.Length)
+                            {
+                                layoutOffset = BinaryPrimitives.ReverseEndianness(layoutOffset);
+                            }
+
                             br.StepIn(layoutOffset);
                             {
                                 Layouts.Add(new BufferLayout(br));
