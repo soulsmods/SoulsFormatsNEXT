@@ -1,10 +1,7 @@
-﻿using Org.BouncyCastle.Utilities;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Threading.Tasks;
 
 namespace SoulsFormats
 {
@@ -618,7 +615,7 @@ namespace SoulsFormats
         /// </summary>
         public class AESKey
         {
-            private readonly static Aes AES;
+            private static AesManaged AES = new AesManaged() { Mode = CipherMode.ECB, Padding = PaddingMode.None, KeySize = 128 };
 
             /// <summary>
             /// 16-byte encryption key.
@@ -629,14 +626,6 @@ namespace SoulsFormats
             /// Encrypted sections of the file.
             /// </summary>
             public List<Range> Ranges { get; set; }
-
-            static AESKey()
-            {
-                AES = Aes.Create();
-                AES.Mode = CipherMode.ECB;
-                AES.Padding = PaddingMode.None;
-                AES.KeySize = 128;
-            }
 
             /// <summary>
             /// Creates an AESKey with default values.
@@ -682,76 +671,6 @@ namespace SoulsFormats
                     }
                 }
             }
-
-            /// <summary>
-            /// Decrypt the specified bytes in-place using an existing decryptor.
-            /// </summary>
-            /// <param name="decryptor">The decryptor.</param>
-            /// <param name="bytes">The bytes to decrypt in-place.</param>
-            public void Decrypt(ICryptoTransform decryptor, byte[] bytes)
-                => decryptor.TransformBlock(bytes, 0, bytes.Length, bytes, 0);
-
-            /// <summary>
-            /// Gets the specified range as a byte array.
-            /// </summary>
-            /// <param name="range">The range to get.</param>
-            /// <param name="data">The data to get the range from.</param>
-            /// <returns>A byte array of the range.</returns>
-            public byte[] GetRange(Range range, Stream data)
-            {
-                long length = range.EndOffset - range.StartOffset;
-                if (range.StartOffset < 0 ||
-                    range.StartOffset >= range.EndOffset ||
-                    (range.StartOffset + length) > data.Length)
-                {
-                    return Array.Empty<byte>();
-                }
-
-                int count = (int)length;
-                byte[] bytes = new byte[count];
-                long pos = data.Position;
-                data.Position = range.StartOffset;
-                data.Read(bytes, 0, count);
-                data.Position = pos;
-                return bytes;
-            }
-
-            /// <summary>
-            /// Gets the specified range as a byte array asynchronously.
-            /// </summary>
-            /// <param name="range">The range to get.</param>
-            /// <param name="data">The data to get the range from.</param>
-            /// <returns>A byte array of the range.</returns>
-            public Task<byte[]> GetRangeAsync(Range range, Stream data)
-            {
-                return Core();
-                async Task<byte[]> Core()
-                {
-                    long length = range.EndOffset - range.StartOffset;
-                    if (range.StartOffset < 0 ||
-                        range.StartOffset >= range.EndOffset ||
-                        (range.StartOffset + length) > data.Length)
-                    {
-                        return Array.Empty<byte>();
-                    }
-
-                    int count = (int)length;
-                    byte[] bytes = new byte[count];
-                    long pos = data.Position;
-
-                    data.Position = range.StartOffset;
-                    await data.ReadAsync(bytes, 0, count);
-                    data.Position = pos;
-                    return bytes;
-                }
-            }
-
-            /// <summary>
-            /// Get a decryptor for file data.
-            /// </summary>
-            /// <returns>A decryptor.</returns>
-            public ICryptoTransform GetDecryptor()
-                => AES.CreateDecryptor(Key, new byte[16]);
         }
 
         #endregion
