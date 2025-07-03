@@ -50,7 +50,7 @@ namespace SoulsFormatsExtensions
 
             internal void Read(BinaryReaderEx br, FxrEnvironment env)
             {
-                int commandPool1TableOffset = br.ReadFXR1Varint();
+                int commandPool1TableOffset = ReadFXR1Varint(br);
                 int commandPool1TableCount = br.ReadInt32();
                 br.AssertInt32(commandPool1TableCount);
                 UnkFlag1 = br.ReadByte();
@@ -58,10 +58,10 @@ namespace SoulsFormatsExtensions
                 UnkFlag3 = br.ReadByte();
                 br.AssertByte(0);
 
-                br.AssertFXR1Garbage(); // ???
+                AssertFXR1Garbage(br); // ???
 
-                int commandPool2Offset = br.ReadFXR1Varint();
-                int commandPool3Offset = br.ReadFXR1Varint();
+                int commandPool2Offset = ReadFXR1Varint(br);
+                int commandPool3Offset = ReadFXR1Varint(br);
 
                 br.StepIn(commandPool1TableOffset);
                 FXNodes = new List<FXNode>(commandPool1TableCount);
@@ -100,7 +100,7 @@ namespace SoulsFormatsExtensions
                 bw.WriteByte(UnkFlag2);
                 bw.WriteByte(UnkFlag3);
                 bw.WriteByte(0);
-                bw.WriteFXR1Garbage();
+                WriteFXR1Garbage(bw);
                 env.RegisterPointer(ActionData);
                 env.RegisterPointer(Modifier);
             }

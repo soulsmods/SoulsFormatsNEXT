@@ -29,7 +29,7 @@ namespace SoulsFormatsExtensions
 
             internal void Read(BinaryReaderEx br, FxrEnvironment env)
             {
-                long funcOffset = br.ReadFXR1Varint();
+                long funcOffset = ReadFXR1Varint(br);
                 Node = env.GetFXNode(br, funcOffset);
             }
 

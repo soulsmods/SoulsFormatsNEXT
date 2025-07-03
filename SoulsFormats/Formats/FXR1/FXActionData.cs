@@ -82,7 +82,7 @@ namespace SoulsFormatsExtensions
 
             internal void WriteField(FXField p)
             {
-                currentWriteEnvironment.bw.WriteFXR1Varint(p.Type);
+                WriteFXR1Varint(currentWriteEnvironment.bw, p.Type);
 
                 if (p.IsEmptyPointer())
                 {
@@ -102,7 +102,7 @@ namespace SoulsFormatsExtensions
                 }
 
                 // garbage on end of offset to packed data
-                currentWriteEnvironment.bw.WriteFXR1Garbage();
+                WriteFXR1Garbage(currentWriteEnvironment.bw);
             }
 
             internal void Write(BinaryWriterEx bw, FxrEnvironment env)
@@ -113,13 +113,13 @@ namespace SoulsFormatsExtensions
 
                 bw.WriteInt32(Type);
                 bw.ReserveInt32("ActionData.Size");
-                bw.WriteFXR1Varint(Resources.Count);
+                WriteFXR1Varint(bw, Resources.Count);
 
                 env.RegisterPointerOffset(bw.Position);
-                bw.ReserveFXR1Varint("ActionData.Resources.Numbers");
+                ReserveFXR1Varint(bw, "ActionData.Resources.Numbers");
 
                 env.RegisterPointerOffset(bw.Position);
-                bw.ReserveFXR1Varint("ActionData.Resources.Datas");
+                ReserveFXR1Varint(bw, "ActionData.Resources.Datas");
 
                 env.RegisterPointer(ParentContainer, useExistingPointerOnly: true, assertNotNull: true);
 
@@ -130,13 +130,13 @@ namespace SoulsFormatsExtensions
                 if (bw.VarintLong)
                     bw.Pad(8);
 
-                bw.FillFXR1Varint("ActionData.Resources.Numbers", (int)bw.Position);
+                FillFXR1Varint(bw, "ActionData.Resources.Numbers", (int)bw.Position);
                 for (int i = 0; i < Resources.Count; i++)
                 {
                     bw.WriteInt32(Resources[i].Unk);
                 }
 
-                bw.FillFXR1Varint("ActionData.Resources.Datas", (int)bw.Position);
+                FillFXR1Varint(bw, "ActionData.Resources.Datas", (int)bw.Position);
                 for (int i = 0; i < Resources.Count; i++)
                 {
                     WriteField(Resources[i].Data);
@@ -149,7 +149,7 @@ namespace SoulsFormatsExtensions
                     foreach (var location in kvp.Value)
                     {
                         bw.StepIn(location);
-                        bw.WriteFXR1Varint((int)offsetOfThisField);
+                        WriteFXR1Varint(bw, (int)offsetOfThisField);
                         bw.StepOut();
                     }
 
@@ -178,11 +178,11 @@ namespace SoulsFormatsExtensions
 
                 int subType = br.ReadInt32();
                 int size = br.ReadInt32();
-                int preDataCount = br.ReadFXR1Varint();
-                int offsetToResourceNumbers = br.ReadFXR1Varint();
-                int offsetToResourceNodes = br.ReadFXR1Varint();
+                int preDataCount = ReadFXR1Varint(br);
+                int offsetToResourceNumbers = ReadFXR1Varint(br);
+                int offsetToResourceNodes = ReadFXR1Varint(br);
 
-                int offsetToParentEffect = br.ReadFXR1Varint();
+                int offsetToParentEffect = ReadFXR1Varint(br);
                 var parentEffect = env.GetFXContainer(br, offsetToParentEffect);
 
                 FXActionData data;
@@ -286,7 +286,7 @@ namespace SoulsFormatsExtensions
                     TextureID = br.ReadInt32();
                     BlendMode = br.ReadInt32();
 
-                    br.AssertFXR1Varint(0);
+                    AssertFXR1Varint(br, 0);
 
                     Scale = FXField.Read(br, env);
                     ScaleMult = FXField.Read(br, env);
@@ -325,7 +325,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(TextureID);
                     bw.WriteInt32(BlendMode);
 
-                    bw.WriteFXR1Varint(0);
+                    WriteFXR1Varint(bw, 0);
 
                     WriteField(Scale);
                     WriteField(ScaleMult);
@@ -363,7 +363,7 @@ namespace SoulsFormatsExtensions
                     EmitterDegree = FXField.Read(br, env);
                     EmitterSpread = FXField.Read(br, env);
                     EmitterSpeed = FXField.Read(br, env);
-                    EmitterDirectionMode = br.ReadFXR1Varint();
+                    EmitterDirectionMode = ReadFXR1Varint(br);
                 }
 
                 internal override void InnerWrite(BinaryWriterEx bw, FxrEnvironment env)
@@ -371,7 +371,7 @@ namespace SoulsFormatsExtensions
                     WriteField(EmitterDegree);
                     WriteField(EmitterSpread);
                     WriteField(EmitterSpeed);
-                    bw.WriteFXR1Varint(EmitterDirectionMode);
+                    WriteFXR1Varint(bw, EmitterDirectionMode);
                 }
             }
 
@@ -428,7 +428,7 @@ namespace SoulsFormatsExtensions
                     EmitterSpeed = FXField.Read(br, env);
                     EmitterDistributionMode = br.ReadSingle();
                     Unk3 = br.ReadInt32();
-                    EmitterDirectionMode = br.ReadFXR1Varint();
+                    EmitterDirectionMode = ReadFXR1Varint(br);
                 }
 
                 internal override void InnerWrite(BinaryWriterEx bw, FxrEnvironment env)
@@ -439,7 +439,7 @@ namespace SoulsFormatsExtensions
                     WriteField(EmitterSpeed);
                     bw.WriteSingle(EmitterDistributionMode);
                     bw.WriteInt32(Unk3);
-                    bw.WriteFXR1Varint(EmitterDirectionMode);
+                    WriteFXR1Varint(bw, EmitterDirectionMode);
                 }
             }
 
@@ -557,7 +557,7 @@ namespace SoulsFormatsExtensions
 
                     OrientationMode = br.ReadInt32();
                     BlendMode = br.ReadInt32();
-                    TrailThickness = br.ReadFXR1Varint();
+                    TrailThickness = ReadFXR1Varint(br);
                     Scale1X = FXField.Read(br, env);
                     Scale1Y = FXField.Read(br, env);
                     Scale2X = FXField.Read(br, env);
@@ -567,7 +567,7 @@ namespace SoulsFormatsExtensions
                     TrailLength = br.ReadInt32();
                     Unk10 = br.ReadInt32();
 
-                    br.AssertFXR1Varint(0);
+                    AssertFXR1Varint(br, 0);
 
                     ColorR = FXField.Read(br, env);
                     ColorG = FXField.Read(br, env);
@@ -576,14 +576,14 @@ namespace SoulsFormatsExtensions
                     Unk12 = br.ReadInt32();
                     Unk13 = br.ReadInt32();
 
-                    br.AssertFXR1Varint(0);
+                    AssertFXR1Varint(br, 0);
 
                     Unk14 = FXField.Read(br, env);
                     Unk15 = br.ReadInt32();
                     Unk16 = br.ReadSingle();
                     Unk17_1 = FXField.Read(br, env);
                     Unk17_2 = FXField.Read(br, env);
-                    Unk18 = br.ReadFXR1Varint();
+                    Unk18 = ReadFXR1Varint(br);
 
                     if (br.VarintLong)
                         DS1RData = DS1RExtraNodes.Read(br, env);
@@ -599,7 +599,7 @@ namespace SoulsFormatsExtensions
 
                     bw.WriteInt32(OrientationMode);
                     bw.WriteInt32(BlendMode);
-                    bw.WriteFXR1Varint(TrailThickness);
+                    WriteFXR1Varint(bw, TrailThickness);
                     WriteField(Scale1X);
                     WriteField(Scale1Y);
                     WriteField(Scale2X);
@@ -609,7 +609,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(TrailLength);
                     bw.WriteInt32(Unk10);
 
-                    bw.WriteFXR1Varint(0);
+                    WriteFXR1Varint(bw, 0);
 
                     WriteField(ColorR);
                     WriteField(ColorG);
@@ -618,14 +618,14 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(Unk12);
                     bw.WriteInt32(Unk13);
 
-                    bw.WriteFXR1Varint(0);
+                    WriteFXR1Varint(bw, 0);
 
                     WriteField(Unk14);
                     bw.WriteInt32(Unk15);
                     bw.WriteSingle(Unk16);
                     WriteField(Unk17_1);
                     WriteField(Unk17_2);
-                    bw.WriteFXR1Varint(Unk18);
+                    WriteFXR1Varint(bw, Unk18);
 
                     if (bw.VarintLong)
                         DS1RData.Write(bw, this);
@@ -668,7 +668,7 @@ namespace SoulsFormatsExtensions
                     DistortionMode = br.ReadInt32();
                     ShapeMode = br.ReadInt32();
                     OrientationMode = br.ReadInt32();
-                    BlendMode = br.ReadFXR1Varint();
+                    BlendMode = ReadFXR1Varint(br);
                     ScaleX = FXField.Read(br, env);
                     ScaleY = FXField.Read(br, env);
                     ScaleZ = FXField.Read(br, env);
@@ -682,7 +682,7 @@ namespace SoulsFormatsExtensions
                     ColorG = FXField.Read(br, env);
                     ColorB = FXField.Read(br, env);
                     ColorA = FXField.Read(br, env);
-                    Unk8 = br.ReadFXR1Varint();
+                    Unk8 = ReadFXR1Varint(br);
                 }
 
                 internal override void InnerWrite(BinaryWriterEx bw, FxrEnvironment env)
@@ -695,7 +695,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(DistortionMode);
                     bw.WriteInt32(ShapeMode);
                     bw.WriteInt32(OrientationMode);
-                    bw.WriteFXR1Varint(BlendMode);
+                    WriteFXR1Varint(bw, BlendMode);
                     WriteField(ScaleX);
                     WriteField(ScaleY);
                     WriteField(ScaleZ);
@@ -709,7 +709,7 @@ namespace SoulsFormatsExtensions
                     WriteField(ColorG);
                     WriteField(ColorB);
                     WriteField(ColorA);
-                    bw.WriteFXR1Varint(Unk8);
+                    WriteFXR1Varint(bw, Unk8);
                 }
             }
 
@@ -900,7 +900,7 @@ namespace SoulsFormatsExtensions
                     Unk1 = br.ReadInt32();
                     Unk2 = br.ReadInt32();
                     Unk3_1 = br.ReadInt32();
-                    Unk3_2 = br.ReadFXR1Varint();
+                    Unk3_2 = ReadFXR1Varint(br);
                     Unk4_1 = FXField.Read(br, env);
                     Unk4_2 = FXField.Read(br, env);
                     Unk4_3 = FXField.Read(br, env);
@@ -911,7 +911,7 @@ namespace SoulsFormatsExtensions
                     Unk5 = br.ReadInt32();
                     Unk6 = br.ReadSingle();
 
-                    br.AssertFXR1Varint(0);
+                    AssertFXR1Varint(br, 0);
 
                     Unk7 = FXField.Read(br, env);
                     Unk8 = br.ReadInt32();
@@ -945,7 +945,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(Unk1);
                     bw.WriteInt32(Unk2);
                     bw.WriteInt32(Unk3_1);
-                    bw.WriteFXR1Varint(Unk3_2);
+                    WriteFXR1Varint(bw, Unk3_2);
                     WriteField(Unk4_1);
                     WriteField(Unk4_2);
                     WriteField(Unk4_3);
@@ -956,7 +956,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(Unk5);
                     bw.WriteSingle(Unk6);
 
-                    bw.WriteFXR1Varint(0);
+                    WriteFXR1Varint(bw, 0);
 
                     WriteField(Unk7);
                     bw.WriteInt32(Unk8);
@@ -1035,7 +1035,7 @@ namespace SoulsFormatsExtensions
                     Unk5 = br.ReadInt32();
 
                     if (br.VarintLong)
-                        DS1R_Unk5B = br.ReadFXR1Varint();
+                        DS1R_Unk5B = ReadFXR1Varint(br);
 
                     Unk6_1 = FXField.Read(br, env);
                     Unk6_2 = FXField.Read(br, env);
@@ -1083,7 +1083,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(Unk5);
 
                     if (bw.VarintLong)
-                        bw.WriteFXR1Varint(DS1R_Unk5B);
+                        WriteFXR1Varint(bw, DS1R_Unk5B);
 
                     WriteField(Unk6_1);
                     WriteField(Unk6_2);
@@ -1545,7 +1545,7 @@ namespace SoulsFormatsExtensions
                     br.AssertInt32(0);
                     Unk2 = br.ReadSingle();
                     Unk3 = FXField.Read(br, env);
-                    Unk4 = br.ReadFXR1Varint();
+                    Unk4 = ReadFXR1Varint(br);
                 }
 
                 internal override void InnerWrite(BinaryWriterEx bw, FxrEnvironment env)
@@ -1556,7 +1556,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(0);
                     bw.WriteSingle(Unk2);
                     WriteField(Unk3);
-                    bw.WriteFXR1Varint(Unk4);
+                    WriteFXR1Varint(bw, Unk4);
                 }
             }
 
@@ -1580,7 +1580,7 @@ namespace SoulsFormatsExtensions
                     br.AssertInt32(0);
                     Unk2 = br.ReadSingle();
                     Unk3 = FXField.Read(br, env);
-                    Unk4 = br.ReadFXR1Varint();
+                    Unk4 = ReadFXR1Varint(br);
                     Unk5 = FXField.Read(br, env);
                 }
 
@@ -1592,7 +1592,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(0);
                     bw.WriteSingle(Unk2);
                     WriteField(Unk3);
-                    bw.WriteFXR1Varint(Unk4);
+                    WriteFXR1Varint(bw, Unk4);
                     WriteField(Unk5);
                 }
             }
@@ -1708,7 +1708,7 @@ namespace SoulsFormatsExtensions
                     Unk6 = br.ReadInt32();
                     Unk7 = br.ReadInt32();
                     Unk8 = br.ReadInt32();
-                    DS1R_Unk8B = br.ReadFXR1Varint();
+                    DS1R_Unk8B = ReadFXR1Varint(br);
                     Scale1X = FXField.Read(br, env);
                     Scale1Y = FXField.Read(br, env);
                     Scale1Z = FXField.Read(br, env);
@@ -1741,7 +1741,7 @@ namespace SoulsFormatsExtensions
                     Unk13 = br.ReadInt32();
                     Unk14 = br.ReadInt32();
                     Unk15 = br.ReadSingle();
-                    Unk16 = br.ReadFXR1Varint();
+                    Unk16 = ReadFXR1Varint(br);
 
                     if (br.VarintLong)
                         DS1RData = DS1RExtraNodes.Read(br, env);
@@ -1762,7 +1762,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(Unk6);
                     bw.WriteInt32(Unk7);
                     bw.WriteInt32(Unk8);
-                    bw.WriteFXR1Varint(DS1R_Unk8B);
+                    WriteFXR1Varint(bw, DS1R_Unk8B);
                     WriteField(Scale1X);
                     WriteField(Scale1Y);
                     WriteField(Scale1Z);
@@ -1795,7 +1795,7 @@ namespace SoulsFormatsExtensions
                     bw.WriteInt32(Unk13);
                     bw.WriteInt32(Unk14);
                     bw.WriteSingle(Unk15);
-                    bw.WriteFXR1Varint(Unk16);
+                    WriteFXR1Varint(bw, Unk16);
 
                     if (bw.VarintLong)
                         DS1RData.Write(bw, this);

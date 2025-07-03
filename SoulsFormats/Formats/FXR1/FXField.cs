@@ -37,8 +37,8 @@ namespace SoulsFormatsExtensions
 
             internal static FXField Read(BinaryReaderEx br, FxrEnvironment env)
             {
-                int type = br.ReadFXR1Varint();
-                int offset = br.ReadFXR1Varint();
+                int type = ReadFXR1Varint(br);
+                int offset = ReadFXR1Varint(br);
 
                 FXField v = null;
 

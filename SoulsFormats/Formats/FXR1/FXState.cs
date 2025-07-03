@@ -38,8 +38,8 @@ namespace SoulsFormatsExtensions
 
             internal void Read(BinaryReaderEx br, FxrEnvironment env)
             {
-                int edgesOffset = br.ReadFXR1Varint();
-                int actionsOffset = br.ReadFXR1Varint();
+                int edgesOffset = ReadFXR1Varint(br);
+                int actionsOffset = ReadFXR1Varint(br);
                 int edgeNum = br.ReadInt32();
                 int actionNum = br.ReadInt32();
 

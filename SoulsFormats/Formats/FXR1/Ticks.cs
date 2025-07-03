@@ -39,9 +39,9 @@ namespace SoulsFormatsExtensions
 
             public static List<FloatTick> ReadListInFXNode(BinaryReaderEx br)
             {
-                int timeOffset = br.ReadFXR1Varint();
-                int valueOffset = br.ReadFXR1Varint();
-                int count = br.ReadFXR1Varint();
+                int timeOffset = ReadFXR1Varint(br);
+                int valueOffset = ReadFXR1Varint(br);
+                int count = ReadFXR1Varint(br);
 
                 var ticks = new List<FloatTick>();
 
@@ -76,7 +76,7 @@ namespace SoulsFormatsExtensions
 
                 env.RegisterPointer(times);
                 env.RegisterPointer(flattenedValues);
-                bw.WriteFXR1Varint(ticks.Count);
+                WriteFXR1Varint(bw, ticks.Count);
             }
         }
 
@@ -112,9 +112,9 @@ namespace SoulsFormatsExtensions
 
             public static List<IntTick> ReadListInFXNode(BinaryReaderEx br)
             {
-                int timeOffset = br.ReadFXR1Varint();
-                int valueOffset = br.ReadFXR1Varint();
-                int count = br.ReadFXR1Varint();
+                int timeOffset = ReadFXR1Varint(br);
+                int valueOffset = ReadFXR1Varint(br);
+                int count = ReadFXR1Varint(br);
 
                 var ticks = new List<IntTick>();
 
@@ -149,7 +149,7 @@ namespace SoulsFormatsExtensions
 
                 env.RegisterPointer(times);
                 env.RegisterPointer(flattenedValues);
-                bw.WriteFXR1Varint(ticks.Count);
+                WriteFXR1Varint(bw, ticks.Count);
             }
         }
 
@@ -197,9 +197,9 @@ namespace SoulsFormatsExtensions
 
             public static List<Float3Tick> ReadListInFXNode(BinaryReaderEx br)
             {
-                int timeOffset = br.ReadFXR1Varint();
-                int valueOffset = br.ReadFXR1Varint();
-                int count = br.ReadFXR1Varint();
+                int timeOffset = ReadFXR1Varint(br);
+                int valueOffset = ReadFXR1Varint(br);
+                int count = ReadFXR1Varint(br);
 
                 var ticks = new List<Float3Tick>();
 
@@ -238,7 +238,7 @@ namespace SoulsFormatsExtensions
 
                 env.RegisterPointer(times);
                 env.RegisterPointer(flattenedValues);
-                bw.WriteFXR1Varint(ticks.Count);
+                WriteFXR1Varint(bw, ticks.Count);
             }
         }
 
@@ -257,9 +257,9 @@ namespace SoulsFormatsExtensions
 
             public static List<ColorTick> ReadListInFXNode(BinaryReaderEx br)
             {
-                int timeOffset = br.ReadFXR1Varint();
-                int valueOffset = br.ReadFXR1Varint();
-                int count = br.ReadFXR1Varint();
+                int timeOffset = ReadFXR1Varint(br);
+                int valueOffset = ReadFXR1Varint(br);
+                int count = ReadFXR1Varint(br);
 
                 var ticks = new List<ColorTick>();
 
@@ -300,7 +300,7 @@ namespace SoulsFormatsExtensions
 
                 env.RegisterPointer(times);
                 env.RegisterPointer(flattenedValues);
-                bw.WriteFXR1Varint(ticks.Count);
+                WriteFXR1Varint(bw, ticks.Count);
             }
         }
 
@@ -323,9 +323,9 @@ namespace SoulsFormatsExtensions
 
             public static List<Color3Tick> ReadListInFXNode(BinaryReaderEx br)
             {
-                int timeOffset = br.ReadFXR1Varint();
-                int valueOffset = br.ReadFXR1Varint();
-                int count = br.ReadFXR1Varint();
+                int timeOffset = ReadFXR1Varint(br);
+                int valueOffset = ReadFXR1Varint(br);
+                int count = ReadFXR1Varint(br);
 
                 var ticks = new List<Color3Tick>();
 
@@ -382,7 +382,7 @@ namespace SoulsFormatsExtensions
 
                 env.RegisterPointer(times);
                 env.RegisterPointer(flattenedValues);
-                bw.WriteFXR1Varint(ticks.Count);
+                WriteFXR1Varint(bw, ticks.Count);
             }
         }
     }

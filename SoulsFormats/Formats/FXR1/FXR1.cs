@@ -284,7 +284,7 @@ namespace SoulsFormatsExtensions
             uint longCheck = br.GetUInt32(0xC);
             br.VarintLong = Wide = (longCheck == 0 || longCheck == 0xCDCDCDCD);
 
-            long mainDataOffset = br.ReadFXR1Varint();
+            long mainDataOffset = ReadFXR1Varint(br);
             int metadataTableOffset = br.ReadInt32();
 
             int pointerTableCount = br.ReadInt32();
@@ -453,6 +453,75 @@ namespace SoulsFormatsExtensions
 
             var version = br.GetInt32(4);
             return version == 0x10000 || version == 0x100;
+        }
+
+        static int ReadFXR1Varint(BinaryReaderEx br)
+        {
+            int result = br.ReadInt32();
+            AssertFXR1Garbage(br);
+            return result;
+        }
+
+        static void AssertFXR1Garbage(BinaryReaderEx br)
+        {
+            if (br.VarintLong)
+                br.AssertUInt32(0, 0xCDCDCDCD);
+        }
+
+        static int GetFXR1Varint(BinaryReaderEx br, long offset)
+        {
+            int result = -1;
+            br.StepIn(offset);
+            result = br.ReadInt32();
+            AssertFXR1Garbage(br);
+            br.StepOut();
+            return result;
+        }
+
+        static int AssertFXR1Varint(BinaryReaderEx br, params int[] v)
+        {
+            int result = br.AssertInt32(v);
+            AssertFXR1Garbage(br);
+            return result;
+        }
+
+        static float ReadFXR1Single(BinaryReaderEx br)
+        {
+            float result = br.ReadSingle();
+            AssertFXR1Garbage(br);
+            return result;
+        }
+
+        static void WriteFXR1Garbage(BinaryWriterEx bw)
+        {
+            //if (bw.VarintLong)
+            //    bw.WriteUInt32(0xCDCDCDCD);
+            if (bw.VarintLong)
+                bw.WriteUInt32(0);
+        }
+
+        static void WriteFXR1Varint(BinaryWriterEx bw, int v)
+        {
+            bw.WriteInt32(v);
+            WriteFXR1Garbage(bw);
+        }
+
+        static void ReserveFXR1Varint(BinaryWriterEx bw, string name)
+        {
+            bw.ReserveInt32(name);
+            WriteFXR1Garbage(bw);
+        }
+
+        static void FillFXR1Varint(BinaryWriterEx bw, string name, int v)
+        {
+            bw.FillInt32(name, v);
+            //bw.WriteFXR1Garbage();
+        }
+
+        static void WriteFXR1Single(BinaryWriterEx bw, float v)
+        {
+            bw.WriteSingle(v);
+            WriteFXR1Garbage(bw);
         }
     }
 }

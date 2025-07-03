@@ -323,7 +323,7 @@ namespace SoulsFormatsExtensions
                     }
                     else
                     {
-                        bw.WriteFXR1Varint(0);
+                        WriteFXR1Varint(bw, 0);
                         return;
                     }
                     
@@ -334,7 +334,7 @@ namespace SoulsFormatsExtensions
 
                 if (OffsetsByObject.ContainsKey(pointToObject))
                 {
-                    bw.WriteFXR1Varint((int)OffsetsByObject[pointToObject]);
+                    WriteFXR1Varint(bw, (int)OffsetsByObject[pointToObject]);
                 }
                 else
                 {
@@ -348,7 +348,7 @@ namespace SoulsFormatsExtensions
                         PointerWriteLocations[pointToObject].Add(bw.Position);
 
                     bw.WriteUInt32(0xEEEEEEEE);
-                    bw.WriteFXR1Garbage();
+                    WriteFXR1Garbage(bw);
                 }
             }
 
@@ -477,7 +477,7 @@ namespace SoulsFormatsExtensions
             {
                 foreach (var location in FXNodeOffets.OrderBy(x => x))
                 {
-                    bw.WriteFXR1Varint((int)location);
+                    WriteFXR1Varint(bw, (int)location);
                 }
                 bw.FillInt32(tableCountFillLabel, FXNodeOffets.Count);
             }
@@ -486,7 +486,7 @@ namespace SoulsFormatsExtensions
             {
                 foreach (var offset in PointerOffsets.OrderBy(x => x))
                 {
-                    bw.WriteFXR1Varint((int)offset);
+                    WriteFXR1Varint(bw, (int)offset);
                 }
                 bw.FillInt32(tableCountFillLabel, PointerOffsets.Count);
             }
@@ -497,7 +497,7 @@ namespace SoulsFormatsExtensions
                 DEBUG_PointerTable_Unused = new List<long>(count);
                 for (int i = 0; i < count; i++)
                 {
-                    int next = br.ReadFXR1Varint();
+                    int next = ReadFXR1Varint(br);
                     DEBUG_PointerTable.Add(next);
                     DEBUG_PointerTable_Unused.Add(next);
                 }
