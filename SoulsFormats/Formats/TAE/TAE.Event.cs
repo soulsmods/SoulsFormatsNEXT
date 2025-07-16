@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SoulsFormats.Util;
+using SoulsAssetPipeline;
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace SoulsFormats.Formats.TAE
@@ -256,8 +256,8 @@ namespace SoulsFormats.Formats.TAE
             /// </summary>
             public void SetParameterBytes(bool bigEndian, byte[] parameterBytes, bool lenientOnAssert = false)
             {
-                if (parameterBytes.Length != ParameterBytes.Length)
-                    throw new ArgumentException("Not the same amount of bytes as was originally here.");
+                //if (parameterBytes.Length != ParameterBytes.Length)
+                //    throw new ArgumentException("Not the same amount of bytes as was originally here.");
 
                 ParameterBytes = parameterBytes;
 

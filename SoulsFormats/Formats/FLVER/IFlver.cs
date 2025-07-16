@@ -26,6 +26,11 @@ namespace SoulsFormats
         /// Actual geometry of the model.
         /// </summary>
         IReadOnlyList<IFlverMesh> Meshes { get; }
+
+        /// <summary>
+        /// Checks if the model is a Speedtree model
+        /// </summary>
+        bool IsSpeedtree();
     }
 
     /// <summary>
@@ -79,6 +84,11 @@ namespace SoulsFormats
         /// Index in the flver's material list to apply to this mesh.
         /// </summary>
         int MaterialIndex { get; }
+
+        /// <summary>
+        /// Index of the node representing this mesh in the nodes list.
+        /// </summary>
+        int NodeIndex { get; }
 
         /// <summary>
         /// Points making up the mesh's shape.

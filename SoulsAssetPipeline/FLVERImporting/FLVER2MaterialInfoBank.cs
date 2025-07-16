@@ -108,7 +108,7 @@ namespace SoulsAssetPipeline.FLVERImporting
                         }
 
 
-                        bufferLayout.Add(new FLVER.LayoutMember(memberType, memberSemantic, memberIndex, memberBufferIndex));
+                        bufferLayout.Add(new FLVER.LayoutMember(memberType, memberSemantic, memberIndex, (short)memberBufferIndex, 0));
                     }
                     Buffers.Add(bufferLayout);
                     bufferIndex++;
@@ -290,14 +290,15 @@ namespace SoulsAssetPipeline.FLVERImporting
 
                 AcceptableVertexBufferDeclarations.Clear();
 
-                var vertBufferDeclarations = node.SelectNodes("acceptable_vertex_buffer_declarations/vertex_buffer_declaration");
-                foreach (XmlNode vbnode in vertBufferDeclarations)
-                {
-                    var vb = new VertexBufferDeclaration();
-                    vb.ReadXML(vbnode);
-                    AcceptableVertexBufferDeclarations.Add(vb);
-                }
-
+                //
+                //var vertBufferDeclarations = node.SelectNodes("acceptable_vertex_buffer_declarations/vertex_buffer_declaration");
+                //foreach (XmlNode vbnode in vertBufferDeclarations)
+                //{
+                //    var vb = new VertexBufferDeclaration();
+                //    vb.ReadXML(vbnode);
+                //    AcceptableVertexBufferDeclarations.Add(vb);
+                //}
+                
 
                 TextureChannels.Clear();
 

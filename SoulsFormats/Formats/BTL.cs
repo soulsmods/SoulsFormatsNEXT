@@ -1,4 +1,4 @@
-﻿using System;
+﻿using SoulsFormats.Attributes;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;

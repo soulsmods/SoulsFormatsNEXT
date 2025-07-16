@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using static SoulsFormats.DDS;
 using static SoulsFormats.TPF;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace SoulsFormats
 {
@@ -326,7 +325,7 @@ namespace SoulsFormats
 
         private static int PadTo(int value, int pad)
         {
-            return (int)Math.Ceiling(value / (float)pad) * pad;
+            return Math.Max((int)Math.Ceiling(value / (float)pad) * pad, pad);
         }
 
         private static List<Image> ReadImages(TPFPlatform platform, byte[] bytes, int width, int height, int depth, int mipCount, DXGI_FORMAT dxgiFormat, TPF.TexType type)
@@ -363,8 +362,8 @@ namespace SoulsFormats
                 for (int j = 0; j < mipCount; j++)
                 {
                     int scale = (int)Math.Pow(2, j);
-                    int w = PadTo(finalWidth / scale, 1);
-                    int h = PadTo(finalHeight / scale, 1);
+                    int w = PadTo(finalWidth / scale, pixelBlockSize);
+                    int h = PadTo(finalHeight / scale, pixelBlockSize);
                     long calculatedBufferLength = formatBpp * w * h / 8;
 
                     if (calculatedBufferLength < sourceBytesPerPixelSet)
@@ -403,8 +402,8 @@ namespace SoulsFormats
                 for (int j = 0; j < mipCount; j++)
                 {
                     int scale = (int)Math.Pow(2, j);
-                    int w = PadTo(finalWidth / scale, 1);
-                    int h = PadTo(finalHeight / scale, 1);
+                    int w = PadTo(finalWidth / scale, pixelBlockSize);
+                    int h = PadTo(finalHeight / scale, pixelBlockSize);
                     long calculatedBufferLength = formatBpp * w * h / 8;
 
                     if (calculatedBufferLength < sourceBytesPerPixelSet)
@@ -444,7 +443,7 @@ namespace SoulsFormats
             var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)dxgiFormat;
             DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
             int minBLockDimension = 8 * pixelBlockSize;
-            int minDimension = pixelBlockSize; 
+            int minDimension = pixelBlockSize;
 
             long sliceBufferLength = br.Length / depth;
             List<Image> imageList = new List<Image>();
@@ -468,7 +467,7 @@ namespace SoulsFormats
             }
             else
             {
-                sliceBufferMin = 0x200;
+                sliceBufferMin = sourceBytesPerPixelSet * 0x40;
             }
 
             if (bufferLength < sliceBufferMin)
@@ -625,7 +624,7 @@ namespace SoulsFormats
             DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
             List<Image> imageList = new List<Image>();
             int minBLockDimension = 8;
-            minBLockDimension *= pixelBlockSize > 1 ? 1 : 1; 
+            minBLockDimension *= pixelBlockSize > 1 ? 1 : 1;
             int minDimension = pixelBlockSize;
 
             //Prepare mip set lists
@@ -710,6 +709,14 @@ namespace SoulsFormats
 
         private static long GetDeswizzleSize(int formatBpp, int width, int height, int minBLockDimension, out int deSwizzWidth, out int deSwizzHeight)
         {
+            if (width % minBLockDimension != 0)
+            {
+                width += minBLockDimension - width % minBLockDimension;
+            }
+            if (height % minBLockDimension != 0)
+            {
+                height += minBLockDimension - height % minBLockDimension;
+            }
             deSwizzWidth = width < minBLockDimension ? minBLockDimension : width;
             deSwizzHeight = height < minBLockDimension ? minBLockDimension : height;
             int bufferLengthMin = (formatBpp * deSwizzWidth * deSwizzHeight / 8);

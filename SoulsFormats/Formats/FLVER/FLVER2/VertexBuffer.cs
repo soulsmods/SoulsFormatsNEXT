@@ -11,12 +11,22 @@ namespace SoulsFormats
         public class VertexBuffer
         {
             /// <summary>
+            /// Whether or not the buffer is edge compressed.
+            /// </summary>
+            public bool EdgeCompressed { get; set; }
+
+            /// <summary>
+            /// The index of this buffer into the current vertex stream.<br/>
+            /// Used to combine buffers into a single vertex stream.
+            /// </summary>
+            public int BufferIndex { get; set; }
+
+            /// <summary>
             /// Index to a layout in the FLVER's layout collection.
             /// </summary>
             public int LayoutIndex { get; set; }
 
             internal int VertexSize;
-            internal int BufferIndex;
             internal int VertexCount;
             internal int BufferOffset;
 
@@ -26,15 +36,18 @@ namespace SoulsFormats
             public VertexBuffer(int layoutIndex)
             {
                 LayoutIndex = layoutIndex;
-                VertexSize = -1;
-                BufferIndex = -1;
-                VertexCount = -1;
-                BufferOffset = -1;
             }
 
             internal VertexBuffer(BinaryReaderEx br)
             {
                 BufferIndex = br.ReadInt32();
+                int final = BufferIndex & ~0x60000000;
+                if (final != BufferIndex)
+                {
+                    BufferIndex = final;
+                    EdgeCompressed = true;
+                }
+
                 LayoutIndex = br.ReadInt32();
                 VertexSize = br.ReadInt32();
                 VertexCount = br.ReadInt32();
@@ -44,34 +57,77 @@ namespace SoulsFormats
                 BufferOffset = br.ReadInt32();
             }
 
-            internal void ReadBuffer(BinaryReaderEx br, List<BufferLayout> layouts, List<FLVER.Vertex> vertices, int dataOffset, FLVERHeader header)
+            internal void ReadBuffer(BinaryReaderEx br, List<BufferLayout> layouts, List<FLVER.Vertex> vertices, List<EdgeIndexGroup> edgeIndexBufferGroups, int dataOffset, int version, bool posfilled)
             {
                 BufferLayout layout = layouts[LayoutIndex];
                 if (VertexSize != layout.Size)
-                    throw new InvalidDataException($"Mismatched vertex buffer and buffer layout sizes.");
+                {
+                    //Only try this for DS1
+                    if (version == 0x2000B || version == 0x2000C || version == 0x2000D)
+                    {
+                        if (!layout.DarkSoulsRemasteredFix())
+                        {
+                            throw new InvalidDataException($"Mismatched vertex buffer and buffer layout sizes for Dark Souls Remastered model.");
+                        }
+                    }
+                    else
+                    {
+                        throw new InvalidDataException($"Mismatched vertex buffer and buffer layout sizes.");
+                    }
+                }
 
                 br.StepIn(dataOffset + BufferOffset);
                 {
-                    float uvFactor = 1024;
-                    if (header.Version >= 0x2000F)
-                        uvFactor = 2048;
+                    if (EdgeCompressed)
+                    {
+                        // TODO: EdgeGeom
+                        // Only decompress the edge vertexes if we need a fallback
+                        // It seems edge compressed FLVER models may always have an uncompressed copy of positions
+                        // But this is here just in case
+                        if (!posfilled)
+                        {
+                            int vertexIndex = 0;
 
-                    for (int i = 0; i < vertices.Count; i++)
-                        vertices[i].Read(br, layout, uvFactor);
+                            long start = br.Position;
+                            foreach (var group in edgeIndexBufferGroups)
+                            {
+                                var edgeVertexBuffers = group.ReadEdgeVertexBuffers(br, start);
+                                foreach (EdgeVertexBuffer vertexBuffer in edgeVertexBuffers)
+                                {
+                                    foreach (var position in vertexBuffer.Vertices)
+                                    {
+                                        vertices[vertexIndex].Position = position.Decompress(vertexBuffer.Multiplier, vertexBuffer.Offset);
+                                        vertexIndex++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        float uvFactor = 1024;
+                        if (version >= 0x2000E)
+                            uvFactor = 2048;
+
+                        for (int i = 0; i < vertices.Count; i++)
+                            vertices[i].Read(br, layout, uvFactor);
+                    }
                 }
                 br.StepOut();
 
-                VertexSize = -1;
-                BufferIndex = -1;
-                VertexCount = -1;
-                BufferOffset = -1;
+                // Removed for shared meshes support
+                //VertexSize = -1;
+                //BufferIndex = -1;
+                //VertexCount = -1;
+                //BufferOffset = -1;
             }
 
             internal void Write(BinaryWriterEx bw, FLVERHeader header, int index, int bufferIndex, List<BufferLayout> layouts, int vertexCount)
             {
                 BufferLayout layout = layouts[LayoutIndex];
 
-                bw.WriteInt32(bufferIndex);
+                // TODO: EdgeGeom
+                bw.WriteInt32(/* EdgeCompressed ? bufferIndex | 0x60000000 : */ bufferIndex);
                 bw.WriteInt32(LayoutIndex);
                 bw.WriteInt32(layout.Size);
                 bw.WriteInt32(vertexCount);
@@ -87,8 +143,10 @@ namespace SoulsFormats
                 bw.FillInt32($"VertexBufferOffset{index}", (int)bw.Position - dataStart);
 
                 float uvFactor = 1024;
-                if (header.Version >= 0x2000F)
+                if (header.Version >= 0x2000E)
                     uvFactor = 2048;
+
+                // TODO: EdgeGeom vertices
 
                 foreach (FLVER.Vertex vertex in Vertices)
                     vertex.Write(bw, layout, uvFactor);

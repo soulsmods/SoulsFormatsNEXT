@@ -33,6 +33,7 @@ namespace SoulsFormats
         /// <summary>
         /// Determines format of the file.
         /// </summary>
+        //   0 - Armored Core Formula Front PS2, possibly not used yet
         // 101 - Enchanted Arms, Chromehounds, Armored Core 4/For Answer/V/Verdict Day, Shadow Assault: Tenchu
         // 102 - Demon's Souls
         // 103 - Ninja Blade, Another Century's Episode: R
@@ -40,7 +41,7 @@ namespace SoulsFormats
         // 106 - Elden Ring (deprecated ObjectParam)
         // 201 - Bloodborne
         // 202 - Dark Souls 3
-        // 203 - Elden Ring
+        // 203 - Elden Ring, Armored Core 6
         public short FormatVersion { get; set; }
 
         /// <summary>
@@ -58,6 +59,15 @@ namespace SoulsFormats
         /// different layout that the latest params if the XML paramdef supports it.
         /// </summary>
         public bool VersionAware { get; set; } = false;
+
+        /// <summary>
+        /// Only basic fields are present.<br/>
+        /// This is used in Armored Core Formula Front for PS2.
+        /// </summary>
+        // I wonder if I should just use FormatVersion.
+        // Will need to check out more older games just to be sure though.
+        // Format version is 0 for this, which could just mean it wasn't set or used yet.
+        public bool BasicFields { get; set; }
 
         /// <summary>
         /// Creates a PARAMDEF formatted for DS1.
@@ -108,15 +118,18 @@ namespace SoulsFormats
 
             br.AssertSByte(0, -1); // Big-endian
             Unicode = br.ReadBoolean();
-            br.AssertInt16(101, 102, 103, 104, 106, 201, 202, 203); // Format version
+            br.AssertInt16(0, 101, 102, 103, 104, 106, 201, 202, 203); // Format version
             if (FormatVersion >= 200)
                 br.AssertInt64(0x38);
 
             if (!(FormatVersion < 200 && headerSize == 0x30 || FormatVersion >= 200 && headerSize == 0xFF))
                 throw new InvalidDataException($"Unexpected header size 0x{headerSize:X} for version {FormatVersion}.");
 
+            BasicFields = FormatVersion == 0 && fieldSize == 0x68;
+
             // Please note that for version 103 this value is wrong.
-            if (!(FormatVersion == 101 && fieldSize == 0x8C 
+            if (!(BasicFields
+                || FormatVersion == 101 && fieldSize == 0x8C 
                 || FormatVersion == 102 && fieldSize == 0xAC 
                 || FormatVersion == 103 && fieldSize == 0x6C
                 || FormatVersion == 104 && fieldSize == 0xB0
@@ -136,10 +149,17 @@ namespace SoulsFormats
         /// </summary>
         public override bool Validate(out Exception ex)
         {
-            if (!(FormatVersion == 101 || FormatVersion == 102 || FormatVersion == 103 || FormatVersion == 104 || FormatVersion == 106
-                || FormatVersion == 201 || FormatVersion == 202 || FormatVersion == 203))
+            if (!((BasicFields && (FormatVersion == 0))
+                || FormatVersion == 101
+                || FormatVersion == 102
+                || FormatVersion == 103
+                || FormatVersion == 104
+                || FormatVersion == 106
+                || FormatVersion == 201
+                || FormatVersion == 202
+                || FormatVersion == 203))
             {
-                ex = new InvalidDataException($"Unknown version: {FormatVersion}");
+                ex = new InvalidDataException($"Unsupported version: {FormatVersion}");
                 return false;
             }
 
@@ -179,7 +199,9 @@ namespace SoulsFormats
             bw.WriteInt16(DataVersion);
             bw.WriteInt16((short)Fields.Count);
 
-            if (FormatVersion == 101)
+            if (BasicFields && (FormatVersion == 0))
+                bw.WriteInt16(0x68);
+            else if (FormatVersion == 101)
                 bw.WriteInt16(0x8C);
             else if (FormatVersion == 102)
                 bw.WriteInt16(0xAC);
@@ -195,6 +217,8 @@ namespace SoulsFormats
                 bw.WriteInt16(0x68);
             else if (FormatVersion == 203)
                 bw.WriteInt16(0x88);
+            else
+                throw new InvalidOperationException($"Unsupported format version: {FormatVersion}");
 
             if (FormatVersion >= 202)
             {
@@ -258,8 +282,16 @@ namespace SoulsFormats
         /// </summary>
         public int GetRowSize(ulong version = ulong.MaxValue)
         {
+            return GetFieldsSize(Fields.Count, version);
+        }
+
+        internal int GetFieldsSize(int fieldCount, ulong version = ulong.MaxValue)
+        {
+            if (fieldCount < 0 || fieldCount > Fields.Count)
+                throw new ArgumentException("Count must be from 0 to total fields count.", nameof(fieldCount));
+
             int size = 0;
-            for (int i = 0; i < Fields.Count; i++)
+            for (int i = 0; i < fieldCount; i++)
             {
                 if (VersionAware && !Fields[i].IsValidForRegulationVersion(version))
                     continue;
@@ -273,15 +305,14 @@ namespace SoulsFormats
                 if (ParamUtil.IsBitType(type) && field.BitSize != -1)
                 {
                     int bitOffset = field.BitSize;
-                    DefType bitType = type == DefType.dummy8 ? DefType.u8 : type;
-                    int bitLimit = ParamUtil.GetBitLimit(bitType);
+                    int bitLimit = ParamUtil.GetBitLimit(type);
 
-                    for (; i < Fields.Count - 1; i++)
+                    for (; i < fieldCount - 1; i++)
                     {
                         Field nextField = Fields[i + 1];
                         DefType nextType = nextField.DisplayType;
-                        if (!ParamUtil.IsBitType(nextType) || nextField.BitSize == -1 || bitOffset + nextField.BitSize > bitLimit
-                            || (nextType == DefType.dummy8 ? DefType.u8 : nextType) != bitType)
+                        if (!ParamUtil.IsBitType(nextType) || nextField.BitSize == -1 || ParamUtil.GetBitLimit(nextType) != bitLimit
+                            || bitOffset + nextField.BitSize > bitLimit)
                             break;
                         bitOffset += nextField.BitSize;
                     }
@@ -334,31 +365,38 @@ namespace SoulsFormats
         /// <param name="versionAware">If versionAware is enabled and the PARAMDEFs support it, additional data will be
         /// read such that the PARAMDEFs can be used on older regulations if the regulation version is known. Otherwise,
         /// the PARAMDEFs will be read to support the latest supported regulation version only.</param>
+        /// <param name="validateFields">Whether or not strict field validation occurs.</param>
         /// <returns></returns>
-        public static PARAMDEF XmlDeserialize(string path, bool versionAware = false)
+        public static PARAMDEF XmlDeserialize(string path, bool versionAware = false, bool validateFields = true)
         {
             var xml = new XmlDocument();
             xml.Load(path);
-            return XmlSerializer.Deserialize(xml, versionAware);
+            return XmlSerializer.Deserialize(xml, versionAware, validateFields);
         }
 
         /// <summary>
         /// Writes an XML-formatted PARAMDEF to a file using the current XML version.
         /// </summary>
-        public void XmlSerialize(string path)
+        public void XmlSerialize(string path, bool includeOffsets = false)
         {
-            XmlSerialize(path, XmlSerializer.CURRENT_XML_VERSION);
+            XmlSerialize(path, XmlSerializer.CURRENT_XML_VERSION, includeOffsets);
         }
 
         /// <summary>
         /// Writes an XML-formatted PARAMDEF to a file using the given XML version.
         /// </summary>
-        public void XmlSerialize(string path, int xmlVersion)
+        public void XmlSerialize(string path, int xmlVersion, bool includeOffsets = false)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            var xws = new XmlWriterSettings { Indent = true };
+            var xws = new XmlWriterSettings
+            {
+                Indent = true
+            };
+
             using (var xw = XmlWriter.Create(path, xws))
-                XmlSerializer.Serialize(this, xw, xmlVersion);
+            {
+                XmlSerializer.Serialize(this, xw, xmlVersion, includeOffsets);
+            }
         }
     }
 }

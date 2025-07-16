@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+﻿using SoulsFormats.Compression;
+using System.Collections.Generic;
 
 namespace SoulsFormats
 {
@@ -47,7 +47,7 @@ namespace SoulsFormats
             br.AssertInt32(0x10415);
             int compressedSize = br.ReadInt32();
             int uncompressedSize = br.ReadInt32();
-            byte[] data = SFUtil.ReadZlib(br, compressedSize);
+            byte[] data = ZlibHelper.ReadZlib(br, compressedSize);
 
             br = new BinaryReaderEx(false, data);
             br.AssertInt32(0);
@@ -102,7 +102,7 @@ namespace SoulsFormats
             bw.WriteInt32(0x10415);
             bw.ReserveInt32("CompressedSize");
             bw.WriteInt32(data.Length);
-            int compressedSize = SFUtil.WriteZlib(bw, 0xDA, data);
+            int compressedSize = ZlibHelper.WriteZlib(bw, 0xDA, data);
             bw.FillInt32("CompressedSize", compressedSize);
         }
 

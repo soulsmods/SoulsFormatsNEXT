@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
-#pragma warning disable CS0108, CS0114
 
 namespace SoulsFormats.Formats.Morpheme.MorphemeBundle
 {

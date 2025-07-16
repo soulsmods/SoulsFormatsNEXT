@@ -1,4 +1,4 @@
-﻿namespace SoulsFormats.KF4
+﻿namespace SoulsFormats.Other.KF4
 {
     /// <summary>
     /// Container for character files in King's Field IV. Extension: .chr

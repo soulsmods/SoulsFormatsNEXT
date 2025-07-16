@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 
 namespace SoulsFormats
@@ -78,6 +77,13 @@ namespace SoulsFormats
 
         /// <summary>
         /// Writes TPF data to a BinaryWriterEx.
+        /// 
+        /// Comments from Natsu:
+        /// SoulsFormats(originally) was padding to 4
+        /// The(console)textures pad to 0x80
+        /// SoulsFormats(originally) also did not include the extra padding on the last file which the vanilla console TPFs do for some reason, so I added that
+        /// SoulsFormats(originally) also includes padding in the data size value in the header
+        /// The vanilla TPFs do not, so I skipped adding padding to it
         /// </summary>
         protected override void Write(BinaryWriterEx bw)
         {
@@ -96,17 +102,34 @@ namespace SoulsFormats
             for (int i = 0; i < Textures.Count; i++)
                 Textures[i].WriteName(bw, i, Encoding);
 
+            int texturePaddingSize = 0x4;
+            if (Platform == TPFPlatform.PS3)
+            {
+                bw.Pad(0x100);
+                texturePaddingSize = 0x80;
+            }
+
             long dataStart = bw.Position;
+            long textureDataSize = 0;
             for (int i = 0; i < Textures.Count; i++)
             {
                 // Padding for texture data varies wildly across games,
                 // so don't worry about this too much
                 if (Textures[i].Bytes.Length > 0)
-                    bw.Pad(4);
+                    bw.Pad(texturePaddingSize);
 
-                Textures[i].WriteData(bw, i);
+                textureDataSize += Textures[i].WriteData(bw, i);
             }
-            bw.FillInt32("DataSize", (int)(bw.Position - dataStart));
+            if (Platform == TPFPlatform.PS3)
+            {
+                bw.Pad(texturePaddingSize);
+                bw.FillInt32("DataSize", (int)textureDataSize);
+            }
+            else
+            {
+                bw.FillInt32("DataSize", (int)(bw.Position - dataStart));
+            }
+
         }
 
         /// <summary>
@@ -281,6 +304,7 @@ namespace SoulsFormats
                 }
 
                 uint nameOffset = br.ReadUInt32();
+                //Formerly 'Flags2', as seen in Yabber
                 bool hasFloatStruct = br.AssertInt32(0, 1) == 1;
 
                 if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone || platform == TPFPlatform.PS5)
@@ -292,15 +316,15 @@ namespace SoulsFormats
                 Bytes = br.GetBytes(fileOffset, fileSize);
                 if (Flags1 == 2 || Flags1 == 3)
                 {
-                    Bytes = DCX.Decompress(Bytes, out DCX.Type type);
-                    if (type != DCX.Type.DCP_EDGE)
-                        throw new NotImplementedException($"TPF compression is expected to be DCP_EDGE, but it was {type}");
+                    Bytes = DCX.Decompress(Bytes, out DCX.CompressionInfo compression);
+                    if (compression.Type != DCX.Type.DCP_EDGE)
+                        throw new InvalidDataException($"TPF compression is expected to be DCP_EDGE, but it was {compression.Type}");
                 }
                 //Cubemap fix
                 //Check if this is a DX10 FourCC, check if it's a cubemap
                 //FromSoft erroneously sets the image count for DX10 cubemaps to 6, which causes editors to think there's
                 //an array of cubemaps instead of just 6 images and break. 
-                if (Bytes[0x56] == 0x31 && Bytes[0x57] == 0x30 && Bytes[0x54] == 0x44 && Bytes[0x55] == 0x58
+                if (platform == TPFPlatform.PC && Bytes.Length > 0x8C && Bytes[0x56] == 0x31 && Bytes[0x57] == 0x30 && Bytes[0x54] == 0x44 && Bytes[0x55] == 0x58
                     && Bytes[0x88] == (int)DDS.RESOURCE_MISC.TEXTURECUBE && Bytes[0x8C] == 0x6)
                 {
                     Bytes[0x8C] = 0x1;
@@ -356,6 +380,7 @@ namespace SoulsFormats
                 }
 
                 bw.ReserveUInt32($"FileName{index}");
+                //Formerly 'Flags2', as seen in Yabber
                 bw.WriteInt32(FloatStruct == null ? 0 : 1);
 
                 if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone)
@@ -374,16 +399,19 @@ namespace SoulsFormats
                     bw.WriteShiftJIS(Name, true);
             }
 
-            internal void WriteData(BinaryWriterEx bw, int index)
+            //Returns the final size of the TPF texture that was written, e.g. compressed size if compressed, uncompressed otherwise
+            internal int WriteData(BinaryWriterEx bw, int index)
             {
                 bw.FillUInt32($"FileData{index}", (uint)bw.Position);
 
                 byte[] bytes = Bytes;
                 if (Flags1 == 2 || Flags1 == 3)
-                    bytes = DCX.Compress(bytes, DCX.Type.DCP_EDGE);
+                    bytes = DCX.Compress(bytes, new DCX.DcpEdgeCompressionInfo());
 
                 bw.FillInt32($"FileSize{index}", bytes.Length);
                 bw.WriteBytes(bytes);
+
+                return bytes.Length;
             }
 
             /// <summary>

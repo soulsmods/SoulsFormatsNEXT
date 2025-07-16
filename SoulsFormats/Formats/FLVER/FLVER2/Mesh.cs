@@ -23,6 +23,7 @@ namespace SoulsFormats
             public byte Dynamic
             {
                 get => (byte)(UseBoneWeights ? 1 : 0);
+                set => UseBoneWeights = value == 1;
             }
 
             /// <summary>
@@ -31,7 +32,7 @@ namespace SoulsFormats
             public int MaterialIndex { get; set; }
 
             /// <summary>
-            /// Index of the node representing this mesh in the <see cref="FLVER2.Nodes"/> list.
+            /// Index of the node representing this mesh in the <see cref="Nodes"/> list.
             /// </summary>
             public int NodeIndex { get; set; }
 
@@ -91,7 +92,7 @@ namespace SoulsFormats
                 int boneOffset = br.ReadInt32();
                 int faceSetCount = br.ReadInt32();
                 int faceSetOffset = br.ReadInt32();
-                int vertexBufferCount = br.AssertInt32(1, 2, 3);
+                int vertexBufferCount = br.ReadInt32();
                 int vertexBufferOffset = br.ReadInt32();
                 
                 if (boundingBoxOffset != 0)
@@ -114,10 +115,12 @@ namespace SoulsFormats
                 foreach (int i in faceSetIndices)
                 {
                     if (!faceSetDict.ContainsKey(i))
-                        throw new NotSupportedException("Face set not found or already taken: " + i);
+                        throw new NotSupportedException("Face set not found: " + i);
 
                     FaceSets.Add(faceSetDict[i]);
-                    faceSetDict.Remove(i);
+
+                    // Removed for shared meshes support
+                    //faceSetDict.Remove(i);
                 }
                 faceSetIndices = null;
             }
@@ -128,10 +131,12 @@ namespace SoulsFormats
                 foreach (int i in vertexBufferIndices)
                 {
                     if (!vertexBufferDict.ContainsKey(i))
-                        throw new NotSupportedException("Vertex buffer not found or already taken: " + i);
+                        throw new NotSupportedException("Vertex buffer not found: " + i);
 
                     VertexBuffers.Add(vertexBufferDict[i]);
-                    vertexBufferDict.Remove(i);
+
+                    // Removed for shared meshes support
+                    //vertexBufferDict.Remove(i);
                 }
                 vertexBufferIndices = null;
 
@@ -153,14 +158,6 @@ namespace SoulsFormats
                         }
                     }
                 }
-
-                for (int i = 0; i < VertexBuffers.Count; i++)
-                {
-                    VertexBuffer buffer = VertexBuffers[i];
-                    // This appears to be some kind of flag on edge-compressed vertex buffers
-                    if ((buffer.BufferIndex & ~0x60000000) != i)
-                        throw new FormatException("Unexpected vertex buffer index.");
-                }
             }
 
             internal void ReadVertices(BinaryReaderEx br, int dataOffset, List<BufferLayout> layouts, FLVERHeader header)
@@ -169,14 +166,27 @@ namespace SoulsFormats
                 int uvCap = layoutMembers.Count(m => m.Semantic == FLVER.LayoutSemantic.UV);
                 int tanCap = layoutMembers.Count(m => m.Semantic == FLVER.LayoutSemantic.Tangent);
                 int colorCap = layoutMembers.Count(m => m.Semantic == FLVER.LayoutSemantic.VertexColor);
+                bool posfilled = layoutMembers.Any(m => m.Semantic == FLVER.LayoutSemantic.Position && m.Type != FLVER.LayoutType.EdgeCompressed);
 
-                int vertexCount = VertexBuffers[0].VertexCount;
+                int vertexCount = VertexBuffers.Count > 0 ? VertexBuffers[0].VertexCount : 0;
                 Vertices = new List<FLVER.Vertex>(vertexCount);
                 for (int i = 0; i < vertexCount; i++)
                     Vertices.Add(new FLVER.Vertex(uvCap, tanCap, colorCap));
 
                 foreach (VertexBuffer buffer in VertexBuffers)
-                    buffer.ReadBuffer(br, layouts, Vertices, dataOffset, header);
+                {
+                    // TODO: EdgeGeom
+                    // The other facesets repeat the same edge vertex information so the first one may be all that is needed
+                    var edgeIndexGroups = FaceSets.Count > 0 ? FaceSets[0].EdgeIndexGroups : new List<EdgeIndexGroup>();
+                    buffer.ReadBuffer(br, layouts, Vertices, edgeIndexGroups, dataOffset, header.Version, posfilled);
+                }
+
+                // TODO: EdgeGeom
+                // Destroy unused edge index groups for now
+                foreach (var faceset in FaceSets)
+                {
+                    faceset.EdgeIndexGroups = null;
+                }
             }
 
             internal void Write(BinaryWriterEx bw, int index)
@@ -252,51 +262,51 @@ namespace SoulsFormats
                     return vertices;
                 }
             }
-        }
-        
-        /// <summary>
-        /// An optional bounding box for meshes added in DS2.
-        /// </summary>
-        public class BoundingBoxes
-        {
-            /// <summary>
-            /// Minimum extent of the mesh.
-            /// </summary>
-            public Vector3 Min { get; set; }
 
             /// <summary>
-            /// Maximum extent of the mesh.
+            /// An optional bounding box for meshes added in DS2.
             /// </summary>
-            public Vector3 Max { get; set; }
-
-            /// <summary>
-            /// Unknown; only present in Sekiro.
-            /// </summary>
-            public Vector3 Unk { get; set; }
-
-            /// <summary>
-            /// Creates a BoundingBoxes with default values.
-            /// </summary>
-            public BoundingBoxes()
+            public class BoundingBoxes
             {
-                Min = new Vector3(float.MinValue);
-                Max = new Vector3(float.MaxValue);
-            }
+                /// <summary>
+                /// Minimum extent of the mesh.
+                /// </summary>
+                public Vector3 Min { get; set; }
 
-            internal BoundingBoxes(BinaryReaderEx br, FLVERHeader header)
-            {
-                Min = br.ReadVector3();
-                Max = br.ReadVector3();
-                if (header.Version >= 0x2001A)
-                    Unk = br.ReadVector3();
-            }
+                /// <summary>
+                /// Maximum extent of the mesh.
+                /// </summary>
+                public Vector3 Max { get; set; }
 
-            internal void Write(BinaryWriterEx bw, FLVERHeader header)
-            {
-                bw.WriteVector3(Min);
-                bw.WriteVector3(Max);
-                if (header.Version >= 0x2001A)
-                    bw.WriteVector3(Unk);
+                /// <summary>
+                /// Unknown; only present in Sekiro.
+                /// </summary>
+                public Vector3 Unk { get; set; }
+
+                /// <summary>
+                /// Creates a BoundingBoxes with default values.
+                /// </summary>
+                public BoundingBoxes()
+                {
+                    Min = new Vector3(float.MinValue);
+                    Max = new Vector3(float.MaxValue);
+                }
+
+                internal BoundingBoxes(BinaryReaderEx br, FLVERHeader header)
+                {
+                    Min = br.ReadVector3();
+                    Max = br.ReadVector3();
+                    if (header.Version >= 0x2001A)
+                        Unk = br.ReadVector3();
+                }
+
+                internal void Write(BinaryWriterEx bw, FLVERHeader header)
+                {
+                    bw.WriteVector3(Min);
+                    bw.WriteVector3(Max);
+                    if (header.Version >= 0x2001A)
+                        bw.WriteVector3(Unk);
+                }
             }
         }
     }

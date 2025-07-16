@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using SoulsFormats.Util;
+using SoulsAssetPipeline;
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace SoulsFormats.Formats.TAE

@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-namespace SoulsFormats.Formats.Other.MWC
+namespace SoulsFormats.Other.MWC
 {
     /// <summary>
     /// Metal Wolf Chaos Map Model Data

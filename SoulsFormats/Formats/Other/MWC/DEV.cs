@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
-namespace SoulsFormats.Formats.Other.MWC
+namespace SoulsFormats.Other.MWC
 {
     /// <summary>
     /// Also accounts for the DIV variation. The DEV variation has the header detached while the DIV variation places the header at the beginning of the first data file.

@@ -300,7 +300,7 @@ namespace SoulsAssetPipeline.FLVERImporting
             {
                 var flverMesh = new FLVER2.Mesh();
 
-                flverMesh.BoundingBox = new FLVER2.BoundingBoxes();
+                flverMesh.BoundingBox = new FLVER2.Mesh.BoundingBoxes();
 
 
 
