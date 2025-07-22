@@ -9,6 +9,8 @@ namespace SoulsFormats.Other
         /// </summary>
         public struct VertexBoneWeights
         {
+            private const float Int16MaxValueF = ushort.MaxValue;
+
             private float A, B, C, D;
 
             /// <summary>
@@ -72,6 +74,18 @@ namespace SoulsFormats.Other
             }
 
             /// <summary>
+            /// Read a VertexBoneWeight from a stream.
+            /// </summary>
+            internal static VertexBoneWeights ReadBoneWeightsUInt16(BinaryReaderEx br)
+            {
+                float a = br.ReadUInt16() / Int16MaxValueF;
+                float b = br.ReadUInt16() / Int16MaxValueF;
+                float c = br.ReadUInt16() / Int16MaxValueF;
+                float d = br.ReadUInt16() / Int16MaxValueF;
+                return new VertexBoneWeights(a, b, c, d);
+            }
+
+            /// <summary>
             /// Write this VertexBoneWeight to a stream.
             /// </summary>
             internal void WriteBoneWeights(BinaryWriterEx bw)
@@ -80,6 +94,17 @@ namespace SoulsFormats.Other
                 bw.WriteSingle(B);
                 bw.WriteSingle(C);
                 bw.WriteSingle(D);
+            }
+
+            /// <summary>
+            /// Write this VertexBoneWeight to a stream.
+            /// </summary>
+            internal void WriteBoneWeightsUInt16(BinaryWriterEx bw)
+            {
+                bw.WriteUInt16((ushort)(A * Int16MaxValueF));
+                bw.WriteUInt16((ushort)(B * Int16MaxValueF));
+                bw.WriteUInt16((ushort)(C * Int16MaxValueF));
+                bw.WriteUInt16((ushort)(D * Int16MaxValueF));
             }
         }
     }
