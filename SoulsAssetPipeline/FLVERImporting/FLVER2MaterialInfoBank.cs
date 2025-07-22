@@ -41,15 +41,15 @@ namespace SoulsAssetPipeline.FLVERImporting
             return MaterialDefs[mtd].TextureChannels[channelType];
         }
 
-        public List<GXItem> GetDefaultGXItemsForMTD(string mtd)
+        public List<GXParam> GetDefaultGXItemsForMTD(string mtd)
         {
             if (MaterialDefs.ContainsKey(mtd) && DefaultGXItemDataExamples.ContainsKey(mtd))
             {
-                var gxList = new List<GXItem>();
+                var gxList = new List<GXParam>();
                 var matDef = MaterialDefs[mtd];
                 for (int i = 0; i < matDef.GXItems.Count; i++)
                 {
-                    var gx = new GXItem(matDef.GXItems[i].GXID, matDef.GXItems[i].Unk04, DefaultGXItemDataExamples[mtd][i]);
+                    var gx = new GXParam(matDef.GXItems[i].GXID, matDef.GXItems[i].Unk04, DefaultGXItemDataExamples[mtd][i]);
                     gxList.Add(gx);
                 }
                 return gxList;

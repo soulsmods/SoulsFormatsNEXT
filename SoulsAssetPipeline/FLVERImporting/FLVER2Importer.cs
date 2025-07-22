@@ -253,7 +253,7 @@ namespace SoulsAssetPipeline.FLVERImporting
                         var gxid = materialDefinition.GXItems[i].GXID;
                         var unk04 = materialDefinition.GXItems[i].Unk04;
                         byte[] data = MaterialInfoBankPerGame[settings.Game].DefaultGXItemDataExamples[mtd][i];
-                        gxList.Add(new FLVER2.GXItem(gxid, unk04, data));
+                        gxList.Add(new FLVER2.GXParam(gxid, unk04, data));
                     }
                     flver.GXLists.Add(gxList);
                 }
