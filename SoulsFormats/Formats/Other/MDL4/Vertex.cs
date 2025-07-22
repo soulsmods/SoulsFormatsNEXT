@@ -94,60 +94,81 @@ namespace SoulsFormats.Other
             internal Vertex(BinaryReaderEx br, int version, byte format)
             {
                 UVs = new List<Vector2>();
-                if (version == 0x40001)
+                switch (version)
                 {
-                    if (format == 0)
-                    {
-                        Position = br.ReadVector3();
-                        Normal = Read10BitVector4(br);
-                        Tangent = Read10BitVector4(br);
-                        Bitangent = Read10BitVector4(br);
-                        Color = VertexColor.ReadByteARGB(br);
-                        UVs.Add(br.ReadVector2());
-                        UVs.Add(br.ReadVector2());
-                        UVs.Add(br.ReadVector2());
-                        UVs.Add(br.ReadVector2());
-                        Unk3C = br.ReadInt16();
-                        Unk3E = br.AssertInt16(0);
-                    }
-                    else if (format == 1)
-                    {
-                        Position = br.ReadVector3();
-                        Normal = Read10BitVector4(br);
-                        Tangent = Read10BitVector4(br);
-                        Bitangent = Read10BitVector4(br);
-                        Color = VertexColor.ReadByteARGB(br);
-                        UVs.Add(br.ReadVector2());
-                        UVs.Add(br.ReadVector2());
-                        UVs.Add(br.ReadVector2());
-                        UVs.Add(br.ReadVector2());
-                        BoneIndices = VertexBoneIndices.ReadBoneIndices(br);
-                        BoneWeights = VertexBoneWeights.ReadBoneWeights(br);
-                    }
-                    else if (format == 2)
-                    {
-                        Color = VertexColor.ReadByteARGB(br);
-                        UVs.Add(br.ReadVector2());
-                        UVs.Add(br.ReadVector2());
-                        UVs.Add(br.ReadVector2());
-                        UVs.Add(br.ReadVector2());
-                        BoneIndices = VertexBoneIndices.ReadBoneIndices(br);
-                        BoneWeights = VertexBoneWeights.ReadBoneWeights(br);
-                    }
-                }
-                else if (version == 0x40002)
-                {
-                    if (format == 0)
-                    {
-                        Position = br.ReadVector3();
-                        Normal = ReadSByteVector4Normal(br);
-                        Tangent = ReadSByteVector4(br);
-                        Color = VertexColor.ReadByteARGB(br);
-                        UVs.Add(ReadShortUV(br));
-                        UVs.Add(ReadShortUV(br));
-                        UVs.Add(ReadShortUV(br));
-                        UVs.Add(ReadShortUV(br));
-                    }
+                    case 0x40001:
+                        switch (format)
+                        {
+                            case 0:
+                                Position = br.ReadVector3();
+                                Normal = Read10BitVector4(br);
+                                Tangent = Read10BitVector4(br);
+                                Bitangent = Read10BitVector4(br);
+                                Color = VertexColor.ReadByteARGB(br);
+                                UVs.Add(br.ReadVector2());
+                                UVs.Add(br.ReadVector2());
+                                UVs.Add(br.ReadVector2());
+                                UVs.Add(br.ReadVector2());
+                                Unk3C = br.ReadInt16();
+                                Unk3E = br.AssertInt16(0);
+                                break;
+                            case 1:
+                                Position = br.ReadVector3();
+                                Normal = Read10BitVector4(br);
+                                Tangent = Read10BitVector4(br);
+                                Bitangent = Read10BitVector4(br);
+                                Color = VertexColor.ReadByteARGB(br);
+                                UVs.Add(br.ReadVector2());
+                                UVs.Add(br.ReadVector2());
+                                UVs.Add(br.ReadVector2());
+                                UVs.Add(br.ReadVector2());
+                                BoneIndices = VertexBoneIndices.ReadBoneIndices(br);
+                                BoneWeights = VertexBoneWeights.ReadBoneWeights(br);
+                                break;
+                            case 2:
+                                Color = VertexColor.ReadByteARGB(br);
+                                UVs.Add(br.ReadVector2());
+                                UVs.Add(br.ReadVector2());
+                                UVs.Add(br.ReadVector2());
+                                UVs.Add(br.ReadVector2());
+                                BoneIndices = VertexBoneIndices.ReadBoneIndices(br);
+                                BoneWeights = VertexBoneWeights.ReadBoneWeights(br);
+                                break;
+                            default:
+                                throw new NotSupportedException($"{nameof(MDL4)} {nameof(Vertex)} reading {nameof(format)} {format} is not supported for {nameof(version)} {version}");
+                        }
+                        break;
+                    case 0x40002:
+                        switch (format)
+                        {
+                            case 0:
+                                Position = br.ReadVector3();
+                                Normal = ReadSByteVector4Normal(br);
+                                Tangent = ReadSByteVector4(br);
+                                Color = VertexColor.ReadByteARGB(br);
+                                UVs.Add(ReadShortUV(br));
+                                UVs.Add(ReadShortUV(br));
+                                UVs.Add(ReadShortUV(br));
+                                UVs.Add(ReadShortUV(br));
+                                break;
+                            case 1:
+                                Position = br.ReadVector3();
+                                Normal = ReadSByteVector4Normal(br);
+                                Tangent = ReadSByteVector4(br);
+                                Color = VertexColor.ReadByteARGB(br);
+                                UVs.Add(ReadShortUV(br));
+                                UVs.Add(ReadShortUV(br));
+                                UVs.Add(ReadShortUV(br));
+                                UVs.Add(ReadShortUV(br));
+                                BoneIndices = VertexBoneIndices.ReadBoneIndicesInverseSByte(br);
+                                BoneWeights = VertexBoneWeights.ReadBoneWeightsUInt16(br);
+                                break;
+                            default:
+                                throw new NotSupportedException($"{nameof(MDL4)} {nameof(Vertex)} reading {nameof(format)} {format} is not supported for {nameof(version)} {version}");
+                        }
+                        break;
+                    default:
+                        throw new NotSupportedException($"{nameof(MDL4)} {nameof(Vertex)} reading {nameof(version)} {version} is not supported.");
                 }
             }
 
@@ -156,64 +177,81 @@ namespace SoulsFormats.Other
             /// </summary>
             internal void Write(BinaryWriterEx bw, int version, byte format)
             {
-                if (version == 0x40001)
+                switch (version)
                 {
-                    if (format == 0)
-                    {
-                        bw.WriteVector3(Position);
-                        Write10BitVector4(bw, Normal);
-                        Write10BitVector4(bw, Tangent);
-                        Write10BitVector4(bw, Bitangent);
-                        Color.WriteByteARGB(bw);
-                        bw.WriteVector2(UVs[0]);
-                        bw.WriteVector2(UVs[1]);
-                        bw.WriteVector2(UVs[2]);
-                        bw.WriteVector2(UVs[3]);
-                        bw.WriteInt16(Unk3C);
-                        bw.WriteInt16(Unk3E);
-                    }
-                    else if (format == 1)
-                    {
-                        bw.WriteVector3(Position);
-                        Write10BitVector4(bw, Normal);
-                        Write10BitVector4(bw, Tangent);
-                        Write10BitVector4(bw, Bitangent);
-                        Color.WriteByteARGB(bw);
-                        bw.WriteVector2(UVs[0]);
-                        bw.WriteVector2(UVs[1]);
-                        bw.WriteVector2(UVs[2]);
-                        bw.WriteVector2(UVs[3]);
-                        BoneIndices.WriteBoneIndices(bw);
-                        BoneWeights.WriteBoneWeights(bw);
-                    }
-                    else if (format == 2)
-                    {
-                        Color.WriteByteARGB(bw);
-                        bw.WriteVector2(UVs[0]);
-                        bw.WriteVector2(UVs[1]);
-                        bw.WriteVector2(UVs[2]);
-                        bw.WriteVector2(UVs[3]);
-                        BoneIndices.WriteBoneIndices(bw);
-                        BoneWeights.WriteBoneWeights(bw);
-                    }
-                }
-                else if (version == 0x40002)
-                {
-                    if (format == 0)
-                    {
-                        bw.WriteVector3(Position);
-                        WriteSByteVector4Normal(bw, Normal);
-                        WriteSByteVector4(bw, Tangent);
-                        Color.WriteByteARGB(bw);
-                        WriteShortUV(bw, UVs[0]);
-                        WriteShortUV(bw, UVs[1]);
-                        WriteShortUV(bw, UVs[2]);
-                        WriteShortUV(bw, UVs[3]);
-                    }
-                    else
-                    {
-                        throw new NotImplementedException($"Vertex format {format} not implemented for version {version}.");
-                    }
+                    case 0x40001:
+                        switch (format)
+                        {
+                            case 0:
+                                bw.WriteVector3(Position);
+                                Write10BitVector4(bw, Normal);
+                                Write10BitVector4(bw, Tangent);
+                                Write10BitVector4(bw, Bitangent);
+                                Color.WriteByteARGB(bw);
+                                bw.WriteVector2(UVs[0]);
+                                bw.WriteVector2(UVs[1]);
+                                bw.WriteVector2(UVs[2]);
+                                bw.WriteVector2(UVs[3]);
+                                bw.WriteInt16(Unk3C);
+                                bw.WriteInt16(Unk3E);
+                                break;
+                            case 1:
+                                bw.WriteVector3(Position);
+                                Write10BitVector4(bw, Normal);
+                                Write10BitVector4(bw, Tangent);
+                                Write10BitVector4(bw, Bitangent);
+                                Color.WriteByteARGB(bw);
+                                bw.WriteVector2(UVs[0]);
+                                bw.WriteVector2(UVs[1]);
+                                bw.WriteVector2(UVs[2]);
+                                bw.WriteVector2(UVs[3]);
+                                BoneIndices.WriteBoneIndices(bw);
+                                BoneWeights.WriteBoneWeights(bw);
+                                break;
+                            case 2:
+                                Color.WriteByteARGB(bw);
+                                bw.WriteVector2(UVs[0]);
+                                bw.WriteVector2(UVs[1]);
+                                bw.WriteVector2(UVs[2]);
+                                bw.WriteVector2(UVs[3]);
+                                BoneIndices.WriteBoneIndices(bw);
+                                BoneWeights.WriteBoneWeights(bw);
+                                break;
+                            default:
+                                throw new NotSupportedException($"{nameof(MDL4)} {nameof(Vertex)} writing {nameof(format)} {format} is not supported for {nameof(version)} {version}");
+                        }
+                        break;
+                    case 0x40002:
+                        switch (format)
+                        {
+                            case 0:
+                                bw.WriteVector3(Position);
+                                WriteSByteVector4Normal(bw, Normal);
+                                WriteSByteVector4(bw, Tangent);
+                                Color.WriteByteARGB(bw);
+                                WriteShortUV(bw, UVs[0]);
+                                WriteShortUV(bw, UVs[1]);
+                                WriteShortUV(bw, UVs[2]);
+                                WriteShortUV(bw, UVs[3]);
+                                break;
+                            case 1:
+                                bw.WriteVector3(Position);
+                                WriteSByteVector4Normal(bw, Normal);
+                                WriteSByteVector4(bw, Tangent);
+                                Color.WriteByteARGB(bw);
+                                WriteShortUV(bw, UVs[0]);
+                                WriteShortUV(bw, UVs[1]);
+                                WriteShortUV(bw, UVs[2]);
+                                WriteShortUV(bw, UVs[3]);
+                                BoneIndices.WriteBoneIndicesInverseSByte(bw);
+                                BoneWeights.WriteBoneWeightsUInt16(bw);
+                                break;
+                            default:
+                                throw new NotSupportedException($"{nameof(MDL4)} {nameof(Vertex)} writing {nameof(format)} {format} is not supported for {nameof(version)} {version}");
+                        }
+                        break;
+                    default:
+                        throw new NotSupportedException($"{nameof(MDL4)} {nameof(Vertex)} writing {nameof(version)} {version} is not supported.");
                 }
             }
 

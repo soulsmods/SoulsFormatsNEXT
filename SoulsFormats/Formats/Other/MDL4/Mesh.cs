@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace SoulsFormats.Other
 {
@@ -35,7 +36,8 @@ namespace SoulsFormats.Other
             public bool Unk03;
 
             /// <summary>
-            /// Unknown.
+            /// Unknown.<br/>
+            /// NodeIndex?
             /// </summary>
             public short Unk08;
 
@@ -95,20 +97,41 @@ namespace SoulsFormats.Other
                 br.StepIn(dataOffset + bufferOffset);
                 {
                     int vertexSize = 0;
-                    if (version == 0x40001)
+                    switch (version)
                     {
-                        if (VertexFormat == 0)
-                            vertexSize = 0x40;
-                        else if (VertexFormat == 1)
-                            vertexSize = 0x54;
-                        else if (VertexFormat == 2)
-                            vertexSize = 0x3C;
+                        case 0x40001:
+                            switch (VertexFormat)
+                            {
+                                case 0:
+                                    vertexSize = 0x40;
+                                    break;
+                                case 1:
+                                    vertexSize = 0x54;
+                                    break;
+                                case 2:
+                                    vertexSize = 0x3C;
+                                    break;
+                                default:
+                                    throw new NotSupportedException($"{nameof(MDL4)} {nameof(Mesh)} reading {nameof(VertexFormat)} {VertexFormat} is not supported for {nameof(version)} {version}");
+                            }
+                            break;
+                        case 0x40002:
+                            switch (VertexFormat)
+                            {
+                                case 0:
+                                    vertexSize = 0x28;
+                                    break;
+                                case 1:
+                                    vertexSize = 0x34;
+                                    break;
+                                default:
+                                    throw new NotSupportedException($"{nameof(MDL4)} {nameof(Mesh)} reading {nameof(VertexFormat)} {VertexFormat} is not supported for {nameof(version)} {version}");
+                            }
+                            break;
+                        default:
+                            throw new NotSupportedException($"{nameof(MDL4)} {nameof(Mesh)} reading {nameof(version)} {version} is not supported.");
                     }
-                    else if (version == 0x40002)
-                    {
-                        if (VertexFormat == 0)
-                            vertexSize = 0x28;
-                    }
+
                     int vertexCount = bufferLength / vertexSize;
                     Vertices = new List<Vertex>(vertexCount);
                     for (int i = 0; i < vertexCount; i++)
