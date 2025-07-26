@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using SoulsFormats;
 
-namespace SoulsFormats
+namespace SoulsFormats.Formats.MQB
 {
     /// <summary>
     /// A cutscene definition format which dates back to at least Armored Core V, short for MovieSequencer Binary. Extension: .mqb
@@ -155,24 +155,24 @@ namespace SoulsFormats
             bw.WriteInt32(0);
             bw.WriteInt32(0);
 
-            var allCustomData = new List<CustomData>();
-            var customDataValueOffsets = new List<long>();
+            var allParameters = new List<Parameter>();
+            var ParameterValueOffsets = new List<long>();
 
             for (int i = 0; i < Resources.Count; i++)
-                Resources[i].Write(bw, i, allCustomData, customDataValueOffsets);
+                Resources[i].Write(bw, i, allParameters, ParameterValueOffsets);
 
-            var offsetsByDispos = new Dictionary<Disposition, long>();
+            var offsetsByEvents = new Dictionary<Event, long>();
             for (int i = 0; i < Cuts.Count; i++)
-                Cuts[i].Write(bw, Version, offsetsByDispos, i, allCustomData, customDataValueOffsets);
+                Cuts[i].Write(bw, Version, offsetsByEvents, i, allParameters, ParameterValueOffsets);
 
             for (int i = 0; i < Cuts.Count; i++)
                 Cuts[i].WriteTimelines(bw, Version, i);
 
             for (int i = 0; i < Cuts.Count; i++)
-                Cuts[i].WriteTimelineCustomData(bw, i, allCustomData, customDataValueOffsets);
+                Cuts[i].WriteTimelineParameters(bw, i, allParameters, ParameterValueOffsets);
 
             for (int i = 0; i < Cuts.Count; i++)
-                Cuts[i].WriteDisposOffsets(bw, offsetsByDispos, i);
+                Cuts[i].WriteEventOffsets(bw, offsetsByEvents, i);
 
             bw.FillVarint("ResourcePathsOffset", bw.Position);
             for (int i = 0; i < Resources.Count; i++)
@@ -199,11 +199,11 @@ namespace SoulsFormats
                 bw.Pad(4);
             }
 
-            for (int i = 0; i < allCustomData.Count; i++)
-                allCustomData[i].WriteSequences(bw, i, customDataValueOffsets[i]);
+            for (int i = 0; i < allParameters.Count; i++)
+                allParameters[i].WriteSequences(bw, i, ParameterValueOffsets[i]);
 
-            for (int i = 0; i < allCustomData.Count; i++)
-                allCustomData[i].WriteSequencePoints(bw, i);
+            for (int i = 0; i < allParameters.Count; i++)
+                allParameters[i].WriteSequencePoints(bw, i);
         }
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
     }
