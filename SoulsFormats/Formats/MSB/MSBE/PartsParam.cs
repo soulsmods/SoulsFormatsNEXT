@@ -1,13 +1,9 @@
-﻿using System;
+﻿using SoulsFormats.Attributes;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using System.Runtime.Serialization;
 using System.Xml.Serialization;
-using SoulsFormats;
-using SoulsFormats.Attributes;
-
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace SoulsFormats
 {

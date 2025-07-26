@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using SoulsFormats;
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
 namespace SoulsFormats
 {
@@ -99,6 +98,14 @@ namespace SoulsFormats
             return names;
         }
 
+        internal static string[] FindNames<T>(List<T> list, ushort[] indices) where T : IMsbEntry
+        {
+            var names = new string[indices.Length];
+            for (int i = 0; i < indices.Length; i++)
+                names[i] = FindName(list, indices[i]);
+            return names;
+        }
+
         internal static string[] FindNames<T>(List<T> list, short[] indices) where T : IMsbEntry
         {
             var names = new string[indices.Length];
@@ -148,6 +155,14 @@ namespace SoulsFormats
         {
             var indices = new int[names.Length];
             for (int i = 0; i < names.Length; i++)
+                indices[i] = FindIndex(list, names[i]);
+            return indices;
+        }
+
+        internal static int[] FindIndices<T>(List<T> list, List<string> names) where T : IMsbEntry
+        {
+            var indices = new int[names.Count];
+            for (int i = 0; i < names.Count; i++)
                 indices[i] = FindIndex(list, names[i]);
             return indices;
         }
