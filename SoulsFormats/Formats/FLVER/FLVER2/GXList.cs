@@ -4,6 +4,7 @@ using System.Linq;
 
 namespace SoulsFormats
 {
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
     public partial class FLVER2
     {
         /// <summary>
@@ -29,7 +30,7 @@ namespace SoulsFormats
                 TerminatorID = int.MaxValue;
             }
 
-            internal GXList(BinaryReaderEx br, FLVERHeader header) : base()
+            internal GXList(BinaryReaderEx br, FLVER2.FLVERHeader header) : base()
             {
                 if (header.Version < 0x20010)
                 {
@@ -53,7 +54,7 @@ namespace SoulsFormats
                 }
             }
 
-            internal void Write(BinaryWriterEx bw, FLVERHeader header)
+            internal void Write(BinaryWriterEx bw, FLVER2.FLVERHeader header)
             {
                 if (header.Version < 0x20010)
                 {
@@ -73,16 +74,16 @@ namespace SoulsFormats
 
             public void ApplyGXListDef(GXListDef gxListDef)
             {
-                foreach (GXParam exParam in this)
+                foreach (GXParam gxParam in this)
                 {
-                    GXListDef.EXParamDef exParamDef = gxListDef.FirstOrDefault(x => 
-                        x.ID.Equals(exParam.ID) && x.Unk04 == exParam.Unk04);
-                    if (exParamDef == null) continue;
+                    GXListDef.GXParamDef gxParamDef = gxListDef.FirstOrDefault(x => 
+                        x.ID.Equals(gxParam.ID) && x.Unk04 == gxParam.Unk04);
+                    if (gxParamDef == null) continue;
 
                     List<GXValue> values = new List<GXValue>();
                     
-                    BinaryReaderEx br = new BinaryReaderEx(false, exParam.Data);
-                    foreach (GXListDef.ValueDef valueDef in exParamDef.Items)
+                    BinaryReaderEx br = new BinaryReaderEx(false, gxParam.Data);
+                    foreach (GXListDef.ValueDef valueDef in gxParamDef.Items)
                     {
                         object val = null;
                         switch (valueDef.Type)
@@ -104,7 +105,7 @@ namespace SoulsFormats
                         
                     }
                     
-                    exParam.Values = values;
+                    gxParam.Values = values;
                 }
             }
         }
@@ -154,7 +155,7 @@ namespace SoulsFormats
                 Data = data;
             }
 
-            internal GXParam(BinaryReaderEx br, FLVERHeader header)
+            internal GXParam(BinaryReaderEx br, FLVER2.FLVERHeader header)
             {
                 if (header.Version <= 0x20010)
                 {
@@ -169,7 +170,7 @@ namespace SoulsFormats
                 Data = br.ReadBytes(length - 0xC);
             }
 
-            internal void Write(BinaryWriterEx bw, FLVERHeader header)
+            internal void Write(BinaryWriterEx bw, FLVER2.FLVERHeader header)
             {
                 if (header.Version <= 0x20010)
                 {
