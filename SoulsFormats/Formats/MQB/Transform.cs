@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using SoulsFormats;
 
-namespace SoulsFormats
+namespace SoulsFormats.Formats.MQB
 {
     public partial class MQB
     {
