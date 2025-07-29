@@ -22,14 +22,14 @@ namespace SoulsFormats
             /// If it is <see langword="false"/> each <see cref="FLVER.Vertex"/> specifies a single node to bind to using its <see cref="FLVER.Vertex.NormalW"/>.
             /// The mesh is assumed to not be in bind pose and the transform of the bound node is applied to each vertex.
             /// </summary>
-            public bool UseBoneWeights { get; set; }
+            public bool UseBoneWeights
+            {
+                get => Dynamic == 1;
+                set => Dynamic = 0;
+            }
 
             /// <inheritdoc cref="IFlverMesh.Dynamic"/>
-            public byte Dynamic
-            {
-                get => (byte)(UseBoneWeights ? 1 : 0);
-                set => UseBoneWeights = value == 1;
-            }
+            public byte Dynamic { get; set; }
 
             /// <summary>
             /// Index of the material used by all triangles in this mesh.
@@ -62,9 +62,30 @@ namespace SoulsFormats
             public short[] BoneIndices { get; private set; }
 
             /// <summary>
-            /// Unknown.
+            /// The number of used bone indices.
             /// </summary>
-            public short Unk46 { get; set; }
+            /// <remarks>
+            /// Abstracted away as a getter property for now.<br/>
+            /// Is a part of the raw FLVER1 API, but seldom set elsewhere.
+            /// </remarks>
+            public ushort UsedBoneCount
+            {
+                get
+                {
+                    ushort count = 0;
+                    for (int i = 0; i < BoneIndices.Length; i++)
+                    {
+                        if (BoneIndices[i] < 0)
+                        {
+                            return count;
+                        }
+
+                        count++;
+                    }
+
+                    return count;
+                }
+            }
 
             /// <summary>
             /// Indexes of the vertices of this <see cref="Mesh"/>.
@@ -87,7 +108,7 @@ namespace SoulsFormats
             /// </summary>
             public Mesh()
             {
-                UseBoneWeights = false;
+                Dynamic = 0;
                 MaterialIndex = 0;
                 CullBackfaces = true;
                 TriangleStrip = false;
@@ -104,7 +125,7 @@ namespace SoulsFormats
             /// </summary>
             public Mesh(Mesh mesh)
             {
-                UseBoneWeights = mesh.UseBoneWeights;
+                Dynamic = mesh.Dynamic;
                 MaterialIndex = mesh.MaterialIndex;
                 CullBackfaces = mesh.CullBackfaces;
                 TriangleStrip = mesh.TriangleStrip;
@@ -115,7 +136,6 @@ namespace SoulsFormats
                 for (int i = 0; i < MaxBoneCount; i++)
                     BoneIndices[i] = mesh.BoneIndices[i];
 
-                Unk46 = mesh.Unk46;
                 for (int i = 0; i < mesh.Indices.Count; i++)
                     Indices[i] = mesh.Indices[i];
                 for (int i = 0; i < mesh.Vertices.Count; i++)
@@ -135,7 +155,7 @@ namespace SoulsFormats
             /// <exception cref="NotSupportedException">There was more than one vertex buffer.</exception>
             internal Mesh(BinaryReaderEx br, int dataOffset, int vertexIndexSize, int version, List<Material> materials)
             {
-                UseBoneWeights = br.ReadBoolean();
+                Dynamic = br.ReadByte(); // Is set to 2 on mesh 4 of "c26_001_00.flver" in ACER.
                 MaterialIndex = br.ReadByte();
                 CullBackfaces = br.ReadBoolean();
                 TriangleStrip = br.ReadBoolean();
@@ -144,7 +164,31 @@ namespace SoulsFormats
                 int vertexCount = br.ReadInt32();
                 NodeIndex = br.ReadInt16();
                 BoneIndices = br.ReadInt16s(MaxBoneCount);
-                Unk46 = br.ReadInt16();
+
+                if (version >= 0x10002)
+                {
+                    // Validate used bone count
+                    short usedBoneCount = br.ReadInt16();
+                    if (usedBoneCount < 0)
+                        throw new Exception($"{nameof(usedBoneCount)} had a negative count.");
+
+                    if (usedBoneCount > MaxBoneCount)
+                        throw new Exception($"{nameof(usedBoneCount)} had more than the maximum bone count of {MaxBoneCount}.");
+
+                    for (int i = 0; i < usedBoneCount; i++)
+                        if (BoneIndices[i] < 0)
+                            throw new Exception($"{nameof(usedBoneCount)} specified more bones existing than there actually were.");
+
+                    for (int i = usedBoneCount; i < MaxBoneCount; i++)
+                        if (BoneIndices[i] > -1)
+                            throw new Exception($"{nameof(usedBoneCount)} specified less bones existing than there actually were.");
+                }
+                else
+                {
+                    // Used bone count seems to always be 0 in older versions
+                    br.AssertInt16(0);
+                }
+
                 br.ReadInt32(); // Vertex indices length
                 int vertexIndicesOffset = br.ReadInt32();
                 int bufferDataLength = br.ReadInt32();
@@ -214,8 +258,9 @@ namespace SoulsFormats
                     BufferLayout layout = materials[MaterialIndex].Layouts[LayoutIndex];
 
                     float uvFactor = 1024;
+
                     // NB hack
-                    if (version == 0x12 || !br.BigEndian)
+                    if (version >= 0x12 || !br.BigEndian)
                         uvFactor = 2048;
 
                     Vertices = new List<FLVER.Vertex>(vertexCount);
@@ -234,8 +279,9 @@ namespace SoulsFormats
             /// </summary>
             /// <param name="bw">The stream.</param>
             /// <param name="material">The material this mesh uses.</param>
+            /// <param name="version">The version of the model.</param>
             /// <param name="index">The index of this Mesh for reserving offset values to be filled later.</param>
-            internal void Write(BinaryWriterEx bw, Material material, int index)
+            internal void Write(BinaryWriterEx bw, Material material, int version, int index)
             {
                 bw.WriteByte(Dynamic);
                 bw.WriteByte(MaterialIndex);
@@ -246,7 +292,29 @@ namespace SoulsFormats
                 bw.WriteInt32(Vertices.Count);
                 bw.WriteInt16(NodeIndex);
                 bw.WriteInt16s(BoneIndices);
-                bw.WriteInt16(Unk46);
+
+                if (version >= 0x10002)
+                {
+                    // Fill in used bone count
+                    short usedBoneCount = 0;
+                    for (int i = 0; i < BoneIndices.Length; i++)
+                    {
+                        if (BoneIndices[i] == -1)
+                        {
+                            break;
+                        }
+
+                        usedBoneCount++;
+                    }
+
+                    bw.WriteInt16(usedBoneCount);
+                }
+                else
+                {
+                    // Used bone count seems to always be 0 in older versions
+                    bw.WriteInt16(0);
+                }
+
                 bw.WriteInt32(Indices.Count * 2);
                 bw.ReserveInt32($"VertexIndicesOffset{index}");
                 bw.WriteInt32(material.Layouts[LayoutIndex].Size * Vertices.Count);
@@ -336,11 +404,11 @@ namespace SoulsFormats
             /// Get a list of faces as index arrays.
             /// </summary>
             /// <param name="version">The FLVER version.</param>
-            /// <param name="doCheckFlip">Whether or not to do the check flip fix.</param>
             /// <param name="includeDegenerateFaces">Whether or not to include degenerate faces.</param>
-            public List<int[]> GetFaceIndices(int version, bool doCheckFlip, bool includeDegenerateFaces)
+            /// <param name="doCheckFlip">Whether or not to do the check flip fix.</param>
+            public List<int[]> GetFaceIndices(int version, bool includeDegenerateFaces, bool doCheckFlip)
             {
-                List<int> indices = Triangulate(version, doCheckFlip, includeDegenerateFaces);
+                List<int> indices = Triangulate(version, includeDegenerateFaces, doCheckFlip);
                 var faces = new List<int[]>();
                 for (int i = 0; i < indices.Count; i += 3)
                 {
@@ -444,17 +512,17 @@ namespace SoulsFormats
                                     checkFlip = false;
                                 }
 
-                                if (!flip)
+                                if (flip)
                                 {
-                                    triangles.Add(vi1);
-                                    triangles.Add(vi2);
                                     triangles.Add(vi3);
+                                    triangles.Add(vi2);
+                                    triangles.Add(vi1);
                                 }
                                 else
                                 {
-                                    triangles.Add(vi3);
-                                    triangles.Add(vi2);
                                     triangles.Add(vi1);
+                                    triangles.Add(vi2);
+                                    triangles.Add(vi3);
                                 }
                             }
                             flip = !flip;

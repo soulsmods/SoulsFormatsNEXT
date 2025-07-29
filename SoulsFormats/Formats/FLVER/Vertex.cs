@@ -333,7 +333,7 @@ namespace SoulsFormats
                         }
                         else if (member.Type == LayoutType.Byte4Norm)
                         {
-                            Tangents.Add(ReadByteNormXYZW(br));
+                            Tangents.Add(ReadSByteNormWZYX(br));
                         }
                         else if (member.Type == LayoutType.Short4Norm)
                         {
@@ -400,6 +400,15 @@ namespace SoulsFormats
 
             private static Vector4 ReadByteNormXYZW(BinaryReaderEx br)
                 => new Vector4(ReadByteNorm(br), ReadByteNorm(br), ReadByteNorm(br), ReadByteNorm(br));
+
+            private static Vector4 ReadSByteNormWZYX(BinaryReaderEx br)
+            {
+                float w = ReadSByteNorm(br);
+                float z = ReadSByteNorm(br);
+                float y = ReadSByteNorm(br);
+                float x = ReadSByteNorm(br);
+                return new Vector4(x, y, z, w);
+            }
 
             private static float ReadSByteNorm(BinaryReaderEx br)
                 => br.ReadSByte() / 127f;
@@ -674,7 +683,7 @@ namespace SoulsFormats
                         }
                         else if (member.Type == LayoutType.Byte4Norm)
                         {
-                            WriteByteNormXYZW(bw, tangent);
+                            WriteSByteNormWZYX(bw, tangent);
                         }
                         else if (member.Type == LayoutType.Short4Norm)
                         {
@@ -755,6 +764,14 @@ namespace SoulsFormats
 
             private static void WriteSByteNormZYX(BinaryWriterEx bw, Vector3 value)
             {
+                WriteSByteNorm(bw, value.Z);
+                WriteSByteNorm(bw, value.Y);
+                WriteSByteNorm(bw, value.X);
+            }
+
+            private static void WriteSByteNormWZYX(BinaryWriterEx bw, Vector4 value)
+            {
+                WriteSByteNorm(bw, value.W);
                 WriteSByteNorm(bw, value.Z);
                 WriteSByteNorm(bw, value.Y);
                 WriteSByteNorm(bw, value.X);

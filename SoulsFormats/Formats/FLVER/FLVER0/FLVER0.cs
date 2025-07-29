@@ -207,7 +207,7 @@ namespace SoulsFormats
                 Nodes[i].Write(bw, i);
 
             for (int i = 0; i < Meshes.Count; i++)
-                Meshes[i].Write(bw, Materials[Meshes[i].MaterialIndex], i);
+                Meshes[i].Write(bw, Materials[Meshes[i].MaterialIndex], Header.Version, i);
 
             for (int i = 0; i < Materials.Count; i++)
                 Materials[i].WriteSubStructs(bw, Header.Unicode, i, Header.Version);

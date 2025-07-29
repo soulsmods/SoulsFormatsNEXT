@@ -30,6 +30,7 @@ namespace SoulsFormats
          23 - DXT5
          24 - BC4
          25 - DXT1
+         26 - 8-bit pallette indices per pixel, swizzled on PS3
          33 - DXT5
         100 - BC6H_UF16
         102 - BC7_UNORM
@@ -63,6 +64,7 @@ namespace SoulsFormats
             [23] = DXGI_FORMAT.BC3_UNORM,
             [24] = DXGI_FORMAT.BC4_UNORM,
             [25] = DXGI_FORMAT.BC1_UNORM,
+            [26] = DXGI_FORMAT.A8_UNORM,
             [29] = DXGI_FORMAT.BC1_UNORM,
             [33] = DXGI_FORMAT.BC3_UNORM,
             [100] = DXGI_FORMAT.BC6H_UF16,
@@ -119,6 +121,7 @@ namespace SoulsFormats
             [10] = 4,
             [16] = 1,
             [22] = 8,
+            [26] = 1,
             [105] = 4,
         };
 
@@ -156,6 +159,11 @@ namespace SoulsFormats
         {
             if (SFEncoding.ASCII.GetString(texture.Bytes, 0, 4) == "DDS ")
                 return texture.Bytes;
+
+            if (texture.Header.DXGIFormat == (int)DXGI_FORMAT.UNKNOWN)
+            {
+                throw new InvalidOperationException($"Cannot headerize texture with unknown {nameof(DXGI_FORMAT)}.");
+            }
 
             var dds = new DDS();
             byte format = texture.Format;
@@ -292,7 +300,7 @@ namespace SoulsFormats
                 if (type == TPF.TexType.Cubemap)
                     dds.header10.miscFlag = RESOURCE_MISC.TEXTURECUBE;
             }
-            var images = RebuildPixelData(texture.Bytes, (DXGI_FORMAT)texture.Header.DXGIFormat, width, height, depth, mipCount, type, texture.Platform);
+            var images = RebuildPixelData(texture.Bytes, (DXGI_FORMAT)texture.Header.DXGIFormat, width, height, depth, mipCount, type, texture.Platform, texture.Format);
 
             //Failsafe for if whatever reason we don't read all of the mipmaps
             if (images.Count > 0)
@@ -316,9 +324,9 @@ namespace SoulsFormats
             return (int)Math.Ceiling(Math.Log(Math.Max(width, height), 2)) + 1;
         }
 
-        private static List<Image> RebuildPixelData(byte[] bytes, DXGI_FORMAT dxgiFormat, short width, short height, int depth, int mipCount, TPF.TexType type, TPFPlatform platform)
+        private static List<Image> RebuildPixelData(byte[] bytes, DXGI_FORMAT dxgiFormat, short width, short height, int depth, int mipCount, TPF.TexType type, TPFPlatform platform, byte format)
         {
-            List<Image> images = ReadImages(platform, bytes, width, height, depth, mipCount, dxgiFormat, type);
+            List<Image> images = ReadImages(platform, bytes, width, height, depth, mipCount, dxgiFormat, type, format);
 
             return images;
         }
@@ -328,7 +336,7 @@ namespace SoulsFormats
             return Math.Max((int)Math.Ceiling(value / (float)pad) * pad, pad);
         }
 
-        private static List<Image> ReadImages(TPFPlatform platform, byte[] bytes, int width, int height, int depth, int mipCount, DXGI_FORMAT dxgiFormat, TPF.TexType type)
+        private static List<Image> ReadImages(TPFPlatform platform, byte[] bytes, int width, int height, int depth, int mipCount, DXGI_FORMAT dxgiFormat, TPF.TexType type, byte format)
         {
             switch (platform)
             {
@@ -337,7 +345,7 @@ namespace SoulsFormats
                 case TPFPlatform.Xbone:
                     throw new NotImplementedException();
                 case TPFPlatform.PS3:
-                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat);
+                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat, format);
                 case TPFPlatform.PS4:
                     return ReadPS4Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat, type);
                 case TPFPlatform.PS5:
@@ -345,7 +353,7 @@ namespace SoulsFormats
                 case TPFPlatform.PC:
                 default:
                     //Similar to original SF behavior, probably not necessary.
-                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat);
+                    return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat, format);
             }
         }
 
@@ -389,7 +397,7 @@ namespace SoulsFormats
             return images;
         }
 
-        private static List<Image> ReadPS3Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, DXGI_FORMAT dxgiFormat)
+        private static List<Image> ReadPS3Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, DXGI_FORMAT dxgiFormat, byte format)
         {
             var pixelFormat = (DrSwizzler.DDS.DXEnums.DXGIFormat)dxgiFormat;
             DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize(pixelFormat, out int sourceBytesPerPixelSet, out int pixelBlockSize, out int formatBpp);
@@ -412,7 +420,9 @@ namespace SoulsFormats
                     }
 
                     byte[] mip = br.ReadBytes((int)calculatedBufferLength);
-                    if (dxgiFormat == DXGI_FORMAT.R8G8B8A8_UNORM)
+                    if (dxgiFormat == DXGI_FORMAT.R8G8B8A8_UNORM ||
+                        format == 9 ||
+                        format == 26)
                     {
                         mip = DrSwizzler.Deswizzler.PS3Deswizzle(mip, w, h, pixelFormat);
                     }
