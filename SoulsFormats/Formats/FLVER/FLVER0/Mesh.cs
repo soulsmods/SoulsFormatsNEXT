@@ -25,7 +25,7 @@ namespace SoulsFormats
             public bool UseBoneWeights
             {
                 get => Dynamic == 1;
-                set => Dynamic = 0;
+                set => Dynamic = (byte)(value ? 1 : 0);
             }
 
             /// <inheritdoc cref="IFlverMesh.Dynamic"/>
