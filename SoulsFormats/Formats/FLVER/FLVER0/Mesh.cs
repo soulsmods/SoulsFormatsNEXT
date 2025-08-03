@@ -390,7 +390,7 @@ namespace SoulsFormats
                     vertex.PrepareWrite();
 
                 float uvFactor = 1024;
-                if (!bw.BigEndian)
+                if (flv.Header.Version >= 0x12 || !bw.BigEndian)
                     uvFactor = 2048;
 
                 foreach (FLVER.Vertex vertex in Vertices)
