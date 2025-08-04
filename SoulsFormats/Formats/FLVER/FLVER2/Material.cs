@@ -70,7 +70,7 @@ namespace SoulsFormats
                 numStringBytes += MTD.Length + 1;
                 foreach (Texture texture in Textures)
                 {
-                    numStringBytes += texture.Type.Length + 1;
+                    numStringBytes += texture.ParamName.Length + 1;
                     numStringBytes += texture.Path.Length + 1;
                 }
                 

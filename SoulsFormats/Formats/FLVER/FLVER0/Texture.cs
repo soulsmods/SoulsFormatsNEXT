@@ -8,9 +8,9 @@
         public class Texture : IFlverTexture
         {
             /// <summary>
-            /// Indicates the type of texture map this is.
+            /// Indicates the param name of this texture map which much match to one inside the material file.
             /// </summary>
-            public string Type { get; set; }
+            public string ParamName { get; set; }
 
             /// <summary>
             /// Network path to the texture file; only the filename without extension is actually used.
@@ -22,18 +22,18 @@
             /// </summary>
             public Texture()
             {
-                Type = string.Empty;
+                ParamName = string.Empty;
                 Path = string.Empty;
             }
 
             /// <summary>
             /// Create a new texture with the specified type and path.
             /// </summary>
-            /// <param name="type">Indicates the type of texture map.</param>
+            /// <param name="paramName">Indicates the type of texture map.</param>
             /// <param name="path">The name of the texture file.</param>
-            public Texture(string type, string path)
+            public Texture(string paramName, string path)
             {
-                Type = type;
+                ParamName = paramName;
                 Path = path;
             }
 
@@ -43,7 +43,7 @@
             public Texture(Texture texture)
             {
                 texture.Path = Path;
-                texture.Type = Type;
+                texture.ParamName = ParamName;
             }
 
             /// <summary>
@@ -58,9 +58,9 @@
 
                 Path = useUnicode ? br.GetUTF16(pathOffset) : br.GetShiftJIS(pathOffset);
                 if (typeOffset > 0)
-                    Type = useUnicode ? br.GetUTF16(typeOffset) : br.GetShiftJIS(typeOffset);
+                    ParamName = useUnicode ? br.GetUTF16(typeOffset) : br.GetShiftJIS(typeOffset);
                 else
-                    Type = null;
+                    ParamName = null;
             }
 
             /// <summary>
@@ -86,9 +86,9 @@
                     bw.WriteShiftJIS(Path, true);
                 bw.FillInt32($"Type_Offset{materialIndex}_{textureIndex}", (int)bw.Position);
                 if (useUnicode)
-                    bw.WriteUTF16(Type, true);
+                    bw.WriteUTF16(ParamName, true);
                 else
-                    bw.WriteShiftJIS(Type, true);
+                    bw.WriteShiftJIS(ParamName, true);
             }
         }
     }
