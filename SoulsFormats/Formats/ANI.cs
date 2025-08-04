@@ -598,7 +598,7 @@ namespace SoulsFormats
                     /// </summary>
                     /// <param name="translations">The positions array from the <see cref="ANI"/> itself.</param>
                     /// <returns>The translation of this <see cref="Frame"/>.</returns>
-                    public Vector3 GetTranslation(Vector3[] translations)
+                    public Vector3 GetTranslation(List<Vector3> translations)
                     {
                         return translations[TranslationIndex];
                     }
@@ -608,7 +608,7 @@ namespace SoulsFormats
                     /// </summary>
                     /// <param name="rotations">The rotations array from the <see cref="ANI"/> itself.</param>
                     /// <returns>The rotation of this <see cref="Frame"/>.</returns>
-                    public Vector3 GetRotation(Vector3[] rotations)
+                    public Vector3 GetRotation(List<Vector3> rotations)
                     {
                         return rotations[RotationIndex];
                     }
