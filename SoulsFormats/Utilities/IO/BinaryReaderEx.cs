@@ -183,6 +183,18 @@ namespace SoulsFormats
         {
             Stream.Position += count;
         }
+        
+        // From SoulsAssetPipeline -> BinaryReaderWriterExtensions.cs by Meowmaritus
+        public long GetNextPaddedOffsetAfterCurrentField(int currentFieldLength, int align)
+        {
+            long pos = Position;
+            pos += currentFieldLength;
+            if (align <= 0)
+                return pos;
+            if (pos % align > 0)
+                pos += align - (pos % align);
+            return pos;
+        }
 
         #region Boolean
         /// <summary>

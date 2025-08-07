@@ -6,43 +6,38 @@ using System.Runtime.InteropServices;
 
 namespace SoulsFormats
 {
+    /// <summary>
+    /// Class for handling the Oodle compression library included with FromSoftware games.
+    /// </summary>
     public class Oodle
     {
-        static IntPtr Oodle6Ptr = IntPtr.Zero;
-        static IntPtr Oodle8Ptr = IntPtr.Zero;
-        static IntPtr Oodle9Ptr = IntPtr.Zero;
+        /// <summary>
+        /// Pointer to Oodle version 9, provided by Nightreign.
+        /// </summary>
+        public static IntPtr Oodle9Ptr = IntPtr.Zero;
+        /// <summary>
+        /// Pointer to Oodle version 8, provided by Armored Core 6.
+        /// </summary>
+        public static IntPtr Oodle8Ptr = IntPtr.Zero;
+        /// <summary>
+        /// Pointer to Oodle version 6, provided by ELDEN RING and Sekiro.
+        /// </summary>
+        public static IntPtr Oodle6Ptr = IntPtr.Zero;
+
         public static IOodleCompressor GetOodleCompressor()
         {
-            if (Oodle6Ptr != IntPtr.Zero)
-            {
-                return new Oodle26();
-            }
-
-            if (Oodle8Ptr != IntPtr.Zero)
-            {
-                return new Oodle28();
-            }
-            
             if (Oodle9Ptr != IntPtr.Zero)
             {
                 return new Oodle29();
             }
-
-            IntPtr oodle6Ptr = NativeLibrary.LoadLibrary("oo2core_6_win64");
-            if (oodle6Ptr != IntPtr.Zero)
+            if (Oodle8Ptr != IntPtr.Zero)
             {
-                Oodle6Ptr = oodle6Ptr;
-                return new Oodle26();
-            }
-            string oodle6ErrorMessage = NativeLibrary.GetLastError();
-
-            IntPtr oodle8Ptr = NativeLibrary.LoadLibrary("oo2core_8_win64");
-            if (oodle8Ptr != IntPtr.Zero)
-            {
-                Oodle8Ptr = oodle8Ptr;
                 return new Oodle28();
             }
-            string oodle8ErrorMessage = NativeLibrary.GetLastError();
+            if (Oodle6Ptr != IntPtr.Zero)
+            {
+                return new Oodle26();
+            }
             
             IntPtr oodle9Ptr = NativeLibrary.LoadLibrary("oo2core_9_win64");
             if (oodle9Ptr != IntPtr.Zero)
@@ -52,27 +47,43 @@ namespace SoulsFormats
             }
             string oodle9ErrorMessage = NativeLibrary.GetLastError();
 
+            IntPtr oodle8Ptr = NativeLibrary.LoadLibrary("oo2core_8_win64");
+            if (oodle8Ptr != IntPtr.Zero)
+            {
+                Oodle8Ptr = oodle8Ptr;
+                return new Oodle28();
+            }
+            string oodle8ErrorMessage = NativeLibrary.GetLastError();
+
+            IntPtr oodle6Ptr = NativeLibrary.LoadLibrary("oo2core_6_win64");
+            if (oodle6Ptr != IntPtr.Zero)
+            {
+                Oodle6Ptr = oodle6Ptr;
+                return new Oodle26();
+            }
+            string oodle6ErrorMessage = NativeLibrary.GetLastError();
+
             throw new NoOodleFoundException($"Could not find a supported version of oo2core.\n"
-                                            + $"Please copy oo2core_6_win64.dll, oo2core_8_win64.dll or oo2core_9_win64.dll into the program directory\n"
-                                            + $"Last Error Oodle 6: {oodle6ErrorMessage}\n"
+                                            + $"Please copy oo2core_9_win64.dll, oo2core_8_win64.dll or oo2core_6_win64.dll into the program directory\n"
+                                            + $"Last Error Oodle 9: {oodle6ErrorMessage}\n"
                                             + $"Last Error Oodle 8: {oodle8ErrorMessage}\n"
-                                            + $"Last Error Oodle 9: {oodle9ErrorMessage}\n"
+                                            + $"Last Error Oodle 6: {oodle9ErrorMessage}\n"
             );
         }
 
         public IntPtr GetOodlePtr()
         {
-            if (Oodle6Ptr != IntPtr.Zero)
+            if (Oodle9Ptr != IntPtr.Zero)
             {
-                return Oodle6Ptr;
+                return Oodle9Ptr;
             }
             if (Oodle8Ptr != IntPtr.Zero)
             {
                 return Oodle8Ptr;
             }
-            if (Oodle9Ptr != IntPtr.Zero)
+            if (Oodle6Ptr != IntPtr.Zero)
             {
-                return Oodle9Ptr;
+                return Oodle6Ptr;
             }
 
             return IntPtr.Zero;
@@ -83,20 +94,20 @@ namespace SoulsFormats
         {
             switch (_oodleVersion)
             {
-                case 6:
-                    return new Oodle26();
-                case 8:
-                    return new Oodle28();
                 case 9:
                     return new Oodle29();
+                case 8:
+                    return new Oodle28();
+                case 6:
+                    return new Oodle26();
             }
 
             List<string> errors = new List<string>();
             try
             {
                 Oodle26.OodleLZ_CompressOptions_GetDefault();
-                _oodleVersion = 6;
-                return new Oodle26();
+                _oodleVersion = 9;
+                return new Oodle29();
             }
             catch (EntryPointNotFoundException ex)
             {
@@ -117,14 +128,14 @@ namespace SoulsFormats
             try
             {
                 Oodle29.OodleLZ_CompressOptions_GetDefault();
-                _oodleVersion = 9;
-                return new Oodle29();
+                _oodleVersion = 6;
+                return new Oodle26();
             }
             catch (EntryPointNotFoundException ex)
             {
                 throw new NoOodleFoundException(
                     $"Could not find a supported version of oo2core.\n"
-                    + $"Please copy oo2core_6_win64.dll, oo2core_8_win64.dll or oo2core_9_win64.dll into the program directory\n"
+                    + $"Please copy oo2core_9_win64.dll, oo2core_8_win64.dll or oo2core_6_win64.dll into the program directory\n"
                     + $"{String.Join("\n", errors)}\n"
                     + $"{ex.Message}"
                 );
