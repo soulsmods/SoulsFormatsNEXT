@@ -60,7 +60,7 @@ namespace SoulsFormats.Other
             }
 
             /// <summary>
-            /// Reads a vertex bone indices array from a BinaryReaderEx.
+            /// Reads a vertex bone indices array.
             /// </summary>
             internal static VertexBoneIndices ReadBoneIndices(BinaryReaderEx br)
             {
@@ -72,7 +72,19 @@ namespace SoulsFormats.Other
             }
 
             /// <summary>
-            /// Writes vertex bone indice arrays to a BinaryWriterEx.
+            /// Reads a vertex bone indices array.
+            /// </summary>
+            internal static VertexBoneIndices ReadBoneIndicesInverseSByte(BinaryReaderEx br)
+            {
+                sbyte d = br.ReadSByte();
+                sbyte c = br.ReadSByte();
+                sbyte b = br.ReadSByte();
+                sbyte a = br.ReadSByte();
+                return new VertexBoneIndices(a, b, c, d);
+            }
+
+            /// <summary>
+            /// Writes vertex bone indice arrays.
             /// </summary>
             internal void WriteBoneIndices(BinaryWriterEx bw)
             {
@@ -80,6 +92,17 @@ namespace SoulsFormats.Other
                 bw.WriteInt16(B);
                 bw.WriteInt16(C);
                 bw.WriteInt16(D);
+            }
+
+            /// <summary>
+            /// Writes vertex bone indice arrays.
+            /// </summary>
+            internal void WriteBoneIndicesInverseSByte(BinaryWriterEx bw)
+            {
+                bw.WriteSByte((sbyte)D);
+                bw.WriteSByte((sbyte)C);
+                bw.WriteSByte((sbyte)B);
+                bw.WriteSByte((sbyte)A);
             }
         }
     }

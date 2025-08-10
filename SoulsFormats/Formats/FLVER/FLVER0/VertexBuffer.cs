@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 
 namespace SoulsFormats
@@ -58,6 +59,13 @@ namespace SoulsFormats
                 LayoutIndex = br.ReadInt32();
                 BufferLength = br.ReadInt32();
                 BufferOffset = br.ReadInt32();
+                if ((BufferLength < 0 || BufferLength > br.Length) ||
+                    (BufferOffset < 0 || BufferOffset > br.Length))
+                {
+                    BufferLength = BinaryPrimitives.ReverseEndianness(BufferLength);
+                    BufferOffset = BinaryPrimitives.ReverseEndianness(BufferOffset);
+                }
+
                 br.AssertInt32(0);
             }
 
@@ -68,6 +76,12 @@ namespace SoulsFormats
             {
                 int bufferCount = br.ReadInt32();
                 int buffersOffset = br.ReadInt32();
+                if ((bufferCount < 0 || bufferCount > br.Length) ||
+                    (buffersOffset < 0 || buffersOffset > br.Length))
+                {
+                    bufferCount = BinaryPrimitives.ReverseEndianness(bufferCount);
+                    buffersOffset = BinaryPrimitives.ReverseEndianness(buffersOffset);
+                }
 
                 br.AssertInt32(0);
                 br.AssertInt32(0);

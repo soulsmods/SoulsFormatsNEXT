@@ -60,9 +60,9 @@ namespace SoulsFormats
     public interface IFlverTexture
     {
         /// <summary>
-        /// Indicates the type of texture map this is.
+        /// Indicates the param name of this texture map which much match to one inside the material file.
         /// </summary>
-        string Type { get; }
+        string ParamName { get; }
 
         /// <summary>
         /// Network path to the texture file; only the filename without extension is actually used.
