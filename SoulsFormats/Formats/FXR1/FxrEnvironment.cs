@@ -1,9 +1,8 @@
-﻿using SoulsFormats;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SoulsFormatsExtensions
+namespace SoulsFormats
 {
     public partial class FXR1
     {

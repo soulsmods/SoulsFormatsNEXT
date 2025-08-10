@@ -1,6 +1,4 @@
-﻿using SoulsFormats;
-
-namespace SoulsFormatsExtensions
+﻿namespace SoulsFormats
 {
     public partial class FXR1
     {

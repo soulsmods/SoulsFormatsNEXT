@@ -1,6 +1,6 @@
 ﻿using System.Xml.Serialization;
 
-namespace SoulsFormatsExtensions
+namespace SoulsFormats
 {
     public partial class FXR1
     {
