@@ -185,8 +185,11 @@ namespace SoulsFormats
                 }
                 else
                 {
-                    // Used bone count seems to always be 0 in older versions
-                    br.AssertInt16(0);
+                    // Used bone count is not always 0 in the older versions, but mostly is
+                    // In model/ene/e4140/e4140.flv of Armored Core: For Answer on PS3,
+                    // Version 0x14,
+                    // It is set to 1 in little endian (despite being a big endian platform) with 1 bone index in the list.
+                    br.ReadInt16();
                 }
 
                 br.ReadInt32(); // Vertex indices length
