@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace SoulsFormats
@@ -597,6 +598,12 @@ namespace SoulsFormats
                     return $"{DisplayType} {InternalName}[{ArrayLength}]";
                 else
                     return $"{DisplayType} {InternalName}";
+            }
+
+            public bool FitsGameVersion(ulong version)
+            {
+                return version == 0 || FirstRegulationVersion <= version && (RemovedRegulationVersion == 0 ||
+                    RemovedRegulationVersion > version);
             }
         }
     }
