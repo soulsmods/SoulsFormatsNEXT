@@ -385,6 +385,38 @@ namespace SoulsFormats
         }
 
         /// <summary>
+        /// Applies a paramdef only if its param type, and data version match this param's. Returns true if applied.
+        /// </summary>
+        public bool ApplyRegulationVersionedParamdefSomewhatCarefully(PARAMDEF paramdef, ulong version)
+        {
+            if (!paramdef.VersionAware)
+                throw new Exception("PARAMDEF must be version aware to apply with a regulation version");
+            // Using headerless rows as a heuristic here may be a bad idea
+            if ((ParamType == paramdef.ParamType || string.IsNullOrEmpty(ParamType))
+                && (HeaderlessRows || (ParamdefDataVersion == paramdef.DataVersion)))
+            {
+                ApplyRegulationVersionedParamdef(paramdef, version);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Applies the first paramdef in the sequence whose param type, and data version match this param's, if any. Returns true if applied.
+        /// </summary>
+        /// <param name="paramdefs">The version aware paramdefs to apply</param>
+        /// <param name="version">The regulation version of the param that the paramdef is being applied to</param>
+        public bool ApplyRegulationVersionedParamdefSomewhatCarefully(IEnumerable<PARAMDEF> paramdefs, ulong version)
+        {
+            foreach (PARAMDEF paramdef in paramdefs)
+            {
+                if (paramdef.VersionAware && ApplyRegulationVersionedParamdefSomewhatCarefully(paramdef, version))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Applies a versioned paramdef only if its param type, data version, and row size match this param's. Returns
         /// true if applied.
         /// </summary>
@@ -398,6 +430,19 @@ namespace SoulsFormats
             {
                 ApplyRegulationVersionedParamdef(paramdef, version);
                 return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Applies the first paramdef in the sequence whose param type, data version, and row size match this param's, if any. Returns true if applied.
+        /// </summary>
+        public bool ApplyRegulationVersionedParamdefCarefully(IEnumerable<PARAMDEF> paramdefs, ulong version)
+        {
+            foreach (PARAMDEF paramdef in paramdefs)
+            {
+                if (paramdef.VersionAware && ApplyRegulationVersionedParamdefCarefully(paramdef, version))
+                    return true;
             }
             return false;
         }
