@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-namespace SoulsFormats.Formats.TAE
+namespace SoulsFormats
 {
     public partial class TAE
     {
