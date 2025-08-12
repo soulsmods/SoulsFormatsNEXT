@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SoulsFormats
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+namespace SoulsFormats.Formats.TAE
 {
-    public partial class TAE
+    public partial class TAE : SoulsFile<TAE>
     {
         /// <summary>
         /// An action or effect triggered at a certain time during an animation.

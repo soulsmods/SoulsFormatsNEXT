@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using SoulsFormats;
 
-namespace SoulsFormats
+namespace SoulsFormats.Formats.MQB
 {
     /// <summary>
     /// A cutscene definition format which dates back to at least Armored Core V, short for MovieSequencer Binary. Extension: .mqb

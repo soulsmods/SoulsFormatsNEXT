@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
+using SoulsFormats;
 
-namespace SoulsFormats
+namespace SoulsFormats.Formats.MQB
 {
     public partial class MQB
     {

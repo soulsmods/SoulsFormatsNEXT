@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SoulsFormats
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+namespace SoulsFormats.Formats.TAE
 {
     /// <summary>
     /// Controls when different events happen during animations. Extension: .tae
