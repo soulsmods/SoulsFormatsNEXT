@@ -4,7 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Numerics;
 
-namespace SoulsFormats.Formats.MQB
+namespace SoulsFormats
 {
     public partial class MQB
     {
