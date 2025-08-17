@@ -141,7 +141,7 @@ namespace SoulsFormats
             br.AssertInt32(0);
             br.AssertInt32(0);
 
-            if (Header.Version >= 0x2001A)
+            if (Header.Version >= 0x20014)
             {
                 Header.Unk68 = br.AssertInt16(0, 1, 2, 3, 4, 5);
                 Header.SpecialModifier = br.AssertInt16(0, -32768);
