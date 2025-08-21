@@ -330,16 +330,15 @@ namespace SoulsFormats
                         CopyParametersToBytes(containingTae.BigEndian);
                     }
                     Type = eventType;
-                    Array.Resize(ref ParameterBytes, template[containingTae.EventBank][Type].GetAllParametersByteCount());
+                    Array.Resize(ref ParameterBytes, template[containingBank.Value][Type].GetAllParametersByteCount());
                     Parameters = new ParameterContainer(animID, eventIndex,
-                        containingTae.BigEndian, ParameterBytes, template[containingTae.EventBank][Type]);
+                        containingTae.BigEndian, ParameterBytes, template[containingBank.Value][Type]);
                 }
                 else
                 {
                     if (ValidateEventBank)
                         throw new InvalidOperationException($"Event bank {containingTae.EventBank} does not contains event type {eventType} in the TAE template.");
-                    else
-                        throw new InvalidOperationException($"No event bank found in the TAE template which contains event type {eventType}.");
+                    throw new InvalidOperationException($"No event bank found in the TAE template which contains event type {eventType}.");
                 }
             }
 
