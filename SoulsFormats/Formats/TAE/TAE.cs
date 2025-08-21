@@ -10,6 +10,11 @@ namespace SoulsFormats
     public partial class TAE : SoulsFile<TAE>
     {
         /// <summary>
+        /// If disabled, will attempt to fetch event templates from any bank in the template.
+        /// </summary>
+        public static bool ValidateEventBank { get; set; } = true;
+
+        /// <summary>
         /// Which format this file is.
         /// </summary>
         public enum TAEFormat
@@ -114,7 +119,7 @@ namespace SoulsFormats
             if (template.Game != Format)
                 throw new InvalidOperationException($"Template is for {template.Game} but this TAE is for {Format}.");
 
-            if (template.ContainsKey(EventBank))
+            if (template.ContainsKey(EventBank) || !ValidateEventBank)
             {
                 foreach (var anim in Animations)
                 {

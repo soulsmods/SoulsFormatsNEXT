@@ -310,8 +310,20 @@ namespace SoulsFormats
             internal void ApplyTemplate(TAE containingTae, TAE.Template template,
                 long animID, int eventIndex, int eventType)
             {
-                
-                if (template[containingTae.EventBank].ContainsKey(eventType))
+                long? containingBank = null;
+                if (ValidateEventBank)
+                {
+                    containingBank = containingTae.EventBank;
+                }
+                else
+                {
+                    var potentialBanks = template.Where(t => t.Value.ContainsKey(eventType)).ToList();
+                    if (potentialBanks.Any())
+                    {
+                        containingBank = potentialBanks.First().Key;
+                    }
+                }
+                if (containingBank != null && template.ContainsKey(containingBank.Value) && template[containingBank.Value].ContainsKey(eventType))
                 {
                     if (Parameters != null)
                     {
@@ -321,7 +333,13 @@ namespace SoulsFormats
                     Array.Resize(ref ParameterBytes, template[containingTae.EventBank][Type].GetAllParametersByteCount());
                     Parameters = new ParameterContainer(animID, eventIndex,
                         containingTae.BigEndian, ParameterBytes, template[containingTae.EventBank][Type]);
-
+                }
+                else
+                {
+                    if (ValidateEventBank)
+                        throw new InvalidOperationException($"Event bank {containingTae.EventBank} does not contains event type {eventType} in the TAE template.");
+                    else
+                        throw new InvalidOperationException($"No event bank found in the TAE template which contains event type {eventType}.");
                 }
             }
 
