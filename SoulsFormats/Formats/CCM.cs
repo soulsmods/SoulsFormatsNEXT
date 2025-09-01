@@ -55,6 +55,14 @@ namespace SoulsFormats
         public Dictionary<int, Glyph> Glyphs { get; set; }
 
         /// <summary>
+        /// Create a new <see cref="CCM"/>.
+        /// </summary>
+        public CCM()
+        {
+            Glyphs = new Dictionary<int, Glyph>();
+        }
+
+        /// <summary>
         /// Deserializes file data from a stream.
         /// </summary>
         protected override void Read(BinaryReaderEx br)
