@@ -251,7 +251,7 @@ namespace SoulsFormats
         /// <summary>
         /// Returns true if the data appears to be a <see cref="BND2"/>.
         /// </summary>
-        protected override bool Is(BinaryReaderEx br)
+        internal static bool IsFormat(BinaryReaderEx br)
         {
             if (br.Length < 32)
                 return false;
@@ -289,6 +289,12 @@ namespace SoulsFormats
             bool expectedUnk1C = unk1C == 0;
             return validMagic && expectedFileVersion && validNamesOffset && expectedUnk1B && expectedUnk1C;
         }
+
+        /// <summary>
+        /// Returns true if the data appears to be a <see cref="BND2"/>.
+        /// </summary>
+        protected override bool Is(BinaryReaderEx br)
+            => IsFormat(br);
 
         /// <summary>
         /// Reads a <see cref="BND2"/> from a stream.

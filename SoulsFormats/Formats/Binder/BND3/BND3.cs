@@ -55,16 +55,16 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Checks whether the data appears to be a file of this format.
+        /// Returns true if the data appears to be a <see cref="BND3"/>.
+        /// </summary>
+        internal static bool IsFormat(BinaryReaderEx br)
+            => br.Length >= 4 && br.GetASCII(0, 4) == "BND3";
+
+        /// <summary>
+        /// Returns true if the data appears to be a <see cref="BND3"/>.
         /// </summary>
         protected override bool Is(BinaryReaderEx br)
-        {
-            if (br.Length < 4)
-                return false;
-
-            string magic = br.GetASCII(0, 4);
-            return magic == "BND3";
-        }
+            => IsFormat(br);
 
         /// <summary>
         /// Deserializes file data from a stream.
