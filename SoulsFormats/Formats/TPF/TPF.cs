@@ -258,7 +258,7 @@ namespace SoulsFormats
                         break;
                     case TPFPlatform.PS4:
                         Bytes = Headerizer.WritePS4Images(images, dds, Type);
-                        Header.Unk2 = 0xD;
+                        Header.Remap = 0xD;
                         break;
                     case TPFPlatform.PS5:
                         //Bytes = WritePS5Images(images);
@@ -284,7 +284,14 @@ namespace SoulsFormats
                     Header.Height = br.ReadInt16();
 
                     //Set it here for use later so we have it one consistent place
-                    Header.DXGIFormat = (int)Headerizer.textureFormatMap[Format];
+                    if (Headerizer.textureFormatMap.TryGetValue(Format, out DDS.DXGI_FORMAT dxgiFormat))
+                    {
+                        Header.DXGIFormat = (int)dxgiFormat;
+                    }
+                    else
+                    {
+                        Header.DXGIFormat = (int)DDS.DXGI_FORMAT.UNKNOWN;
+                    }
 
                     if (platform == TPFPlatform.Xbox360)
                     {
@@ -294,7 +301,7 @@ namespace SoulsFormats
                     {
                         Header.Unk1 = br.ReadInt32();
                         if (flag2 != 0)
-                            Header.Unk2 = br.AssertInt32(0, 0x69E0, 0xAAE4);
+                            Header.Remap = br.ReadInt32();
                     }
                     else if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone || platform == TPFPlatform.PS5)
                     {
@@ -370,7 +377,7 @@ namespace SoulsFormats
                     {
                         bw.WriteInt32(Header.Unk1);
                         if (flag2 != 0)
-                            bw.WriteInt32(Header.Unk2);
+                            bw.WriteInt32(Header.Remap);
                     }
                     else if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone || platform == TPFPlatform.PS5)
                     {
@@ -519,9 +526,18 @@ namespace SoulsFormats
             public int Unk1 { get; set; }
 
             /// <summary>
-            /// Unknown; 0x0 or 0xAAE4 in DeS, 0xD in DS3.
+            /// Unknown; 0xD in DS3.
             /// </summary>
             public int Unk2 { get; set; }
+
+            /// <summary>
+            /// A value for remapping color channel order on PS3.<br/>
+            /// The first 16-bits appear to be seldom used; They represent XYXY or XXXY remapping for special texture formats.<br/>
+            /// The last 16-bits are split into two bits each.<br/>
+            /// The first 4 of these values determine whether to output 0 (0% color), output 1 (100% color), or remap the color using the last 4 values.<br/>
+            /// The last 4 of these values determine what channel to remap another channel to, based on ARGB ordering.
+            /// </summary>
+            public int Remap { get; set; }
 
             /// <summary>
             /// Microsoft DXGI_FORMAT.

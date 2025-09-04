@@ -511,7 +511,7 @@ namespace SoulsFormats
         /// <summary>
         /// Whether or not the data appears to be a header file.
         /// </summary>
-        private static bool IsHeader(BinaryReaderEx br) => br.Remaining >= 4 && br.GetASCII(br.Position, 4) == "BHF4";
+        internal static bool IsHeader(BinaryReaderEx br) => br.Remaining >= 4 && br.GetASCII(br.Position, 4) == "BHF4";
 
         /// <summary>
         /// Whether or not the data appears to be a data file.

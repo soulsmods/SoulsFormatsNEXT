@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 
 namespace SoulsFormats
 {
@@ -28,6 +29,11 @@ namespace SoulsFormats
         /// Whether or not the FMG uses UTF16 encoding.
         /// </summary>
         public bool Unicode { get; set; }
+
+        /// <summary>
+        /// Whether or not to add an MD5 hash to the top of the FMG file (Gundam Unicorn).
+        /// </summary>
+        public bool Md5 { get; set; }
 
         /// <summary>
         /// Whether or not to reuse offsets to save space on duplicate entries.
@@ -61,6 +67,12 @@ namespace SoulsFormats
         /// </summary>
         protected override void Read(BinaryReaderEx br)
         {
+            if (br.GetByte(0) != 0)
+            {
+                Md5 = true;
+                br.Position += 16; // Skip MD5
+            }
+
             br.AssertByte(0);
             br.BigEndian = BigEndian = br.ReadBoolean();
             Version = br.ReadEnum8<FMGVersion>();
@@ -82,6 +94,8 @@ namespace SoulsFormats
             }
 
             long stringOffsetsOffset = br.ReadVarint();
+            if (Md5)
+                stringOffsetsOffset += 16;
             br.AssertVarint(0);
 
             Entries = new List<Entry>(groupCount);
@@ -101,6 +115,8 @@ namespace SoulsFormats
                     for (int j = 0; j < lastID - firstID + 1; j++)
                     {
                         long stringOffset = br.ReadVarint();
+                        if (Md5)
+                            stringOffset += 16;
 
                         int id = firstID + j;
                         string text = null;
@@ -189,6 +205,16 @@ namespace SoulsFormats
             }
 
             bw.FillInt32("FileSize", (int)bw.Position);
+
+            if (Md5)
+            {
+                byte[] data = bw.ToArray(); // Get current data
+                bw.Position = 0; // Return to start
+
+                // Overwrite with MD5 and data
+                bw.WriteBytes(MD5.Create().ComputeHash(data));
+                bw.WriteBytes(data);
+            }
         }
 
         private void WriteStringsReuseOffsets(BinaryWriterEx bw)

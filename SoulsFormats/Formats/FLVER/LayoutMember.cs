@@ -81,7 +81,7 @@ namespace SoulsFormats
             /// <summary>
             /// Creates a <see cref="LayoutMember"/> with the specified values.
             /// </summary>
-            public LayoutMember(LayoutType type, LayoutSemantic semantic, int index = 0, short stream = 0, short specialModifier = 0)
+            public LayoutMember(LayoutType type, LayoutSemantic semantic, int index = 0, int stream = 0, short specialModifier = 0)
             {
                 Stream = stream;
                 SpecialModifier = specialModifier;
