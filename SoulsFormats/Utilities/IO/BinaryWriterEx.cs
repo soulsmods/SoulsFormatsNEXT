@@ -117,6 +117,26 @@ namespace SoulsFormats
         }
 
         /// <summary>
+        /// Get currently written data as an array of bytes.
+        /// </summary>
+        public byte[] ToArray()
+        {
+            if (Length > int.MaxValue)
+            {
+                throw new Exception($"Stream too large to turn into an array: {Length} > {int.MaxValue}");
+            }
+
+            byte[] bytes = new byte[Length];
+            using (var ms = new MemoryStream(bytes))
+            {
+                StepIn(0);
+                Stream.CopyTo(ms);
+                StepOut();
+                return bytes;
+            }
+        }
+
+        /// <summary>
         /// Verify that all reservations are filled, close the stream, and return the written data as an array of bytes.
         /// </summary>
         public byte[] FinishBytes()
