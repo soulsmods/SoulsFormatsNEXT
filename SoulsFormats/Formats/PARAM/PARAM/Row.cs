@@ -275,6 +275,7 @@ namespace SoulsFormats
                     cells[i] = new Cell(field, value);
                 }
 
+                cells = cells.Where(a => a != null).ToArray();
                 checkOrphanedBits();
                 Cells = cells;
             }
