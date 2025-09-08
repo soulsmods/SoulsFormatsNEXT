@@ -173,18 +173,18 @@ namespace SoulsFormats.Cryptography
                 cryptor.Padding = PaddingMode.None;
                 cryptor.KeySize = 256;
                 cryptor.BlockSize = 128;
-                try
+
+                //Epic Encryption Technology
+                int blockSize = 16;
+                int remainder = encryptedContent.Length % blockSize;
+                if (remainder != 0)
                 {
-                    using (CryptoStream cs = new CryptoStream(ms,
-                               cryptor.CreateDecryptor(RegulationKeyDictionary[key], iv), CryptoStreamMode.Write))
-                    {
-                        cs.Write(encryptedContent, 0, encryptedContent.Length);
-                    }
+                    Array.Resize(ref encryptedContent, encryptedContent.Length + (blockSize - remainder));
                 }
-                catch (CryptographicException ex)
+
+                using (CryptoStream cs = new CryptoStream(ms, cryptor.CreateDecryptor(RegulationKeyDictionary[key], iv), CryptoStreamMode.Write))
                 {
-                    if (!BinaryReaderEx.IsFlexible)
-                        throw;
+                    cs.Write(encryptedContent, 0, encryptedContent.Length);
                 }
 
                 return ms.ToArray();
