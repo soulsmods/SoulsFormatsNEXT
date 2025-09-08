@@ -173,10 +173,18 @@ namespace SoulsFormats.Cryptography
                 cryptor.Padding = PaddingMode.None;
                 cryptor.KeySize = 256;
                 cryptor.BlockSize = 128;
-
-                using (CryptoStream cs = new CryptoStream(ms, cryptor.CreateDecryptor(RegulationKeyDictionary[key], iv), CryptoStreamMode.Write))
+                try
                 {
-                    cs.Write(encryptedContent, 0, encryptedContent.Length);
+                    using (CryptoStream cs = new CryptoStream(ms,
+                               cryptor.CreateDecryptor(RegulationKeyDictionary[key], iv), CryptoStreamMode.Write))
+                    {
+                        cs.Write(encryptedContent, 0, encryptedContent.Length);
+                    }
+                }
+                catch (CryptographicException ex)
+                {
+                    if (!BinaryReaderEx.IsFlexible)
+                        throw;
                 }
 
                 return ms.ToArray();
