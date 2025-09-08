@@ -1,9 +1,10 @@
-﻿using SoulsFormats.Compression;
+﻿using Org.BouncyCastle.Security;
+using SoulsFormats.Compression;
 using System;
 using System.IO;
 using System.IO.Compression;
 using System.Xml.Serialization;
-using Org.BouncyCastle.Security;
+using ZstdNet;
 
 namespace SoulsFormats
 {
@@ -178,7 +179,8 @@ namespace SoulsFormats
                         compression = new DcxKrakCompressionInfo(compressionLevel);
                         break;
                     case "ZSTD":
-                        compression = new DcxZstdCompressionInfo();
+                        byte zstdCompressionLevel = br.GetByte(0x30);
+                        compression = new DcxZstdCompressionInfo(zstdCompressionLevel);
                         break;
                 }
             }
@@ -208,7 +210,7 @@ namespace SoulsFormats
                 case Type.DCX_KRAK:
                     return DecompressDCXKRAK(br, (DcxKrakCompressionInfo) compression);
                 case Type.DCX_ZSTD:
-                    return DecompressDCXZSTD(br);
+                    return DecompressDCXZSTD(br, (DcxZstdCompressionInfo) compression);
                 default:
                     throw new FormatException($"Unknown DCX format {compression.Type}.");
             }
@@ -420,7 +422,7 @@ namespace SoulsFormats
             uint uncompressedSize = br.ReadUInt32();
             uint compressedSize = br.ReadUInt32();
             br.AssertASCII("DCP\0");
-            br.AssertASCII("KRAK");
+            br.AssertASCII("KRAK"); // game assert KRAK
             br.AssertInt32(0x20);
             br.AssertByte(compression.CompressionLevel);
             br.AssertByte(0);
@@ -438,7 +440,7 @@ namespace SoulsFormats
         }
 
         // Written by ClayAmore
-        private static byte[] DecompressDCXZSTD(BinaryReaderEx br)
+        private static byte[] DecompressDCXZSTD(BinaryReaderEx br, DcxZstdCompressionInfo compression)
         {
             br.AssertASCII("DCX\0");
             br.AssertInt32(0x11000);
@@ -454,7 +456,7 @@ namespace SoulsFormats
             br.AssertASCII("DCP\0");
             br.AssertASCII("ZSTD");
             br.AssertInt32(0x20);
-            br.ReadByte(); // compression level
+            br.AssertByte(compression.CompressionLevel);
             br.AssertByte(0);
             br.AssertByte(0);
             br.AssertByte(0);
@@ -526,7 +528,7 @@ namespace SoulsFormats
                     CompressDCXKRAK(data, bw, (DcxKrakCompressionInfo)compression);
                     return;
                 case Type.DCX_ZSTD:
-                    CompressDCXZSTD(data, bw);
+                    CompressDCXZSTD(data, bw, (DcxZstdCompressionInfo)compression);
                     return;
                 case Type.Unknown:
                     throw new ArgumentException("You cannot compress a DCX with an unknown type.");
@@ -695,7 +697,7 @@ namespace SoulsFormats
         private static void CompressDCXKRAK(byte[] data, BinaryWriterEx bw, DcxKrakCompressionInfo compression)
         {
             
-            byte[] compressed = Oodle.GetOodleCompressor().Compress(data, Oodle.OodleLZ_Compressor.OodleLZ_Compressor_Kraken,
+            byte[] compressed = Oodle.GetOodleCompressor().Compress(data, compression.OodleCompressorType,
                 (Oodle.OodleLZ_CompressionLevel) compression.CompressionLevel);
 
             bw.WriteASCII("DCX\0");
@@ -724,9 +726,9 @@ namespace SoulsFormats
             bw.Pad(0x10);
         }
 
-        private static void CompressDCXZSTD(byte[] data, BinaryWriterEx bw, int compressionLevel = 15)
+        private static void CompressDCXZSTD(byte[] data, BinaryWriterEx bw, DcxZstdCompressionInfo compression)
         {
-            byte[] compressed = ZstdHelper.WriteZstd(data, compressionLevel);
+            byte[] compressed = ZstdHelper.WriteZstd(data, compression.CompressionLevel);
 
             bw.WriteASCII("DCX\0");
             bw.WriteInt32(0x11000);
@@ -740,7 +742,7 @@ namespace SoulsFormats
             bw.WriteASCII("DCP\0");
             bw.WriteASCII("ZSTD");
             bw.WriteInt32(0x20);
-            bw.WriteByte((byte)compressionLevel);
+            bw.WriteByte(compression.CompressionLevel);
             bw.WriteByte(0);
             bw.WriteByte(0);
             bw.WriteByte(0);
@@ -993,9 +995,14 @@ namespace SoulsFormats
             [XmlAttribute]
             public byte CompressionLevel { get; }
 
-            public DcxKrakCompressionInfo (byte compressionLevel)
+            [XmlAttribute]
+            public Oodle.OodleLZ_Compressor OodleCompressorType { get; }
+
+            public DcxKrakCompressionInfo(byte compressionLevel,
+                Oodle.OodleLZ_Compressor oodleCompressorType = Oodle.OodleLZ_Compressor.OodleLZ_Compressor_Kraken)
             {
                 CompressionLevel = compressionLevel;
+                OodleCompressorType = oodleCompressorType;
             }
 
             public DcxKrakCompressionInfo(KrakCompressionPreset preset)
@@ -1004,9 +1011,11 @@ namespace SoulsFormats
                 {
                     case KrakCompressionPreset.EldenRing:
                         CompressionLevel = 6;
+                        OodleCompressorType = Oodle.OodleLZ_Compressor.OodleLZ_Compressor_Kraken;
                         break;
                     case KrakCompressionPreset.ArmoredCore6:
                         CompressionLevel = 9;
+                        OodleCompressorType = Oodle.OodleLZ_Compressor.OodleLZ_Compressor_Kraken;
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(preset), preset, null);
@@ -1019,6 +1028,15 @@ namespace SoulsFormats
         {
             [XmlText]
             public Type Type => Type.DCX_ZSTD;
+
+            [XmlAttribute]
+            public byte CompressionLevel { get; }
+
+            public DcxZstdCompressionInfo(byte compressionLevel)
+            {
+                CompressionLevel = compressionLevel;
+            }
+
         }
     }
 }
