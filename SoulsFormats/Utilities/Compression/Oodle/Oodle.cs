@@ -6,23 +6,48 @@ using System.Runtime.InteropServices;
 
 namespace SoulsFormats
 {
+    public enum OodleVersion
+    {
+        Oodle9,
+        Oodle8,
+        Oodle6
+    }
     /// <summary>
     /// Class for handling the Oodle compression library included with FromSoftware games.
     /// </summary>
     public class Oodle
     {
+        public static Dictionary<OodleVersion, IntPtr> OodlePtrs = new Dictionary<OodleVersion, IntPtr>
+        {
+            {OodleVersion.Oodle9, IntPtr.Zero},
+            {OodleVersion.Oodle8, IntPtr.Zero},
+            {OodleVersion.Oodle6, IntPtr.Zero},
+        };
         /// <summary>
         /// Pointer to Oodle version 9, provided by Nightreign.
         /// </summary>
-        public static IntPtr Oodle9Ptr = IntPtr.Zero;
+        public static IntPtr Oodle9Ptr
+        {
+            get { return OodlePtrs[OodleVersion.Oodle9]; }
+            set { OodlePtrs[OodleVersion.Oodle9] = value; }
+        }
+
         /// <summary>
         /// Pointer to Oodle version 8, provided by Armored Core 6.
         /// </summary>
-        public static IntPtr Oodle8Ptr = IntPtr.Zero;
+        public static IntPtr Oodle8Ptr
+        {
+            get { return OodlePtrs[OodleVersion.Oodle8]; }
+            set { OodlePtrs[OodleVersion.Oodle8] = value; }
+        }
         /// <summary>
         /// Pointer to Oodle version 6, provided by ELDEN RING and Sekiro.
         /// </summary>
-        public static IntPtr Oodle6Ptr = IntPtr.Zero;
+        public static IntPtr Oodle6Ptr
+        {
+            get { return OodlePtrs[OodleVersion.Oodle6]; }
+            set { OodlePtrs[OodleVersion.Oodle6] = value; }
+        }
 
         public static IOodleCompressor GetOodleCompressor()
         {
@@ -65,25 +90,18 @@ namespace SoulsFormats
 
             throw new NoOodleFoundException($"Could not find a supported version of oo2core.\n"
                                             + $"Please copy oo2core_9_win64.dll, oo2core_8_win64.dll or oo2core_6_win64.dll into the program directory\n"
-                                            + $"Last Error Oodle 9: {oodle6ErrorMessage}\n"
+                                            + $"Last Error Oodle 9: {oodle9ErrorMessage}\n"
                                             + $"Last Error Oodle 8: {oodle8ErrorMessage}\n"
-                                            + $"Last Error Oodle 6: {oodle9ErrorMessage}\n"
+                                            + $"Last Error Oodle 6: {oodle6ErrorMessage}\n"
             );
         }
 
         public IntPtr GetOodlePtr()
         {
-            if (Oodle9Ptr != IntPtr.Zero)
+            foreach (IntPtr oodlePtr in OodlePtrs.Values)
             {
-                return Oodle9Ptr;
-            }
-            if (Oodle8Ptr != IntPtr.Zero)
-            {
-                return Oodle8Ptr;
-            }
-            if (Oodle6Ptr != IntPtr.Zero)
-            {
-                return Oodle6Ptr;
+                if (oodlePtr != IntPtr.Zero)
+                    return oodlePtr;
             }
 
             return IntPtr.Zero;
