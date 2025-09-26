@@ -258,7 +258,7 @@ namespace SoulsFormats
                         break;
                     case TPFPlatform.PS4:
                         Bytes = Headerizer.WritePS4Images(images, dds, Type);
-                        Header.Remap = 0xD;
+                        Header.Unk2 = 0xD;
                         break;
                     case TPFPlatform.PS5:
                         //Bytes = WritePS5Images(images);
