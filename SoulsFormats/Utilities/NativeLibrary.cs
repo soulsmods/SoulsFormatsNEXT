@@ -107,7 +107,6 @@ namespace SoulsFormats
             }
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                Console.WriteLine("Loading Linux Library " + path);
                 return Libdl.LoadLibrary(path);
             }
             throw new PlatformNotSupportedException($"Unsupported Platform {RuntimeInformation.OSDescription}");
