@@ -49,7 +49,7 @@ namespace SoulsFormats
         /// <param name="lrm">= NULL</param>
         /// <param name="scratchMem">= NULL</param>
         /// <param name="scratchSize">= 0</param>
-        [DllImport("oo2core_6_win64", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("oo2core_6_win64", EntryPoint = "OodleLZ_Compress", CallingConvention = CallingConvention.StdCall)]
         private static extern long Win64_OodleLZ_Compress(
             Oodle.OodleLZ_Compressor compressor,
             [MarshalAs(UnmanagedType.LPArray)]
@@ -74,7 +74,7 @@ namespace SoulsFormats
         /// <param name="lrm">= NULL</param>
         /// <param name="scratchMem">= NULL</param>
         /// <param name="scratchSize">= 0</param>
-        [DllImport("liboo2corelinux64.so.6", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("liboo2corelinux64.so.6", EntryPoint = "OodleLZ_Compress", CallingConvention = CallingConvention.StdCall)]
         private static extern long Linux_OodleLZ_Compress(
             Oodle.OodleLZ_Compressor compressor,
             [MarshalAs(UnmanagedType.LPArray)]

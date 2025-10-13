@@ -107,10 +107,10 @@ namespace SoulsFormats
             => OodleLZ_Compress(compressor, rawBuf, rawLen, compBuf, level,
                 IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0);
 
-        [DllImport("oo2core_9_win64", EntryPoint = "CompressOptions_GetDefault", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("oo2core_9_win64", EntryPoint = "OodleLZ_CompressOptions_GetDefault", CallingConvention = CallingConvention.StdCall)]
         private static extern IntPtr Win64_OodleLZ_CompressOptions_GetDefault();
 
-        [DllImport("liboo2corelinux64.so.9", EntryPoint = "CompressOptions_GetDefault", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("liboo2corelinux64.so.9", EntryPoint = "OodleLZ_CompressOptions_GetDefault", CallingConvention = CallingConvention.StdCall)]
         private static extern IntPtr Linux_OodleLZ_CompressOptions_GetDefault();
 
         public static IntPtr OodleLZ_CompressOptions_GetDefault() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
