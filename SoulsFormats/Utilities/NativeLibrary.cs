@@ -120,7 +120,7 @@ namespace SoulsFormats
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                var error = NativeLibrary.GetLastError();
+                var error = Kernel32.GetLastError();
                 return new Win32Exception(error).Message;
             }
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
