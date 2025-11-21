@@ -107,6 +107,9 @@ namespace SoulsFormats
             {
                 bw.Pad(0x100);
                 texturePaddingSize = 0x80;
+            } else if (Platform == TPFPlatform.PS4)
+            {
+                bw.Pad(0x10);
             }
 
             long dataStart = bw.Position;
