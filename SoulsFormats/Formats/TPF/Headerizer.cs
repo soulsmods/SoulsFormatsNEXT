@@ -153,12 +153,35 @@ namespace SoulsFormats
         private static byte[] DX10Formats = { 6, 100, 102, 106, 107, 112, 113, 115 };
 
         /// <summary>
-        /// By default, we'll assume no swizzling, PC type. Bear in mind Demon's Souls and Dark Souls 1 do NOT use PS3 swizzling and should be assigned 'PC'!
+        /// *Deprecated handling* 
+        /// Please use Headerize overload with extension string
         /// </summary>
         public static byte[] Headerize(Texture texture)
         {
-            if (SFEncoding.ASCII.GetString(texture.Bytes, 0, 4) == "DDS ")
+            var headerizedBytes = Headerize(texture, out string extension);
+            if(extension != ".dds")
+            {
+                throw new Exception($"File is type {extension}, please retrieve extension string from the newer method!");
+            }
+
+            return headerizedBytes;
+        }
+
+        /// <summary>
+        /// By default, we'll assume no swizzling, PC type. Bear in mind Demon's Souls and Dark Souls 1 do NOT use PS3 swizzling and should be assigned 'PC'!
+        /// </summary>
+        public static byte[] Headerize(Texture texture, out string extension)
+        {
+            extension = ".dds";
+
+            var potentialMagic = SFEncoding.ASCII.GetString(texture.Bytes, 0, 4);
+            if (potentialMagic == "DDS ")
                 return texture.Bytes;
+            else if (potentialMagic == "GNF ")
+            {
+                extension = ".gnf";
+                return texture.Bytes;
+            }
 
             if (texture.Header.DXGIFormat == (int)DXGI_FORMAT.UNKNOWN)
             {
@@ -390,12 +413,20 @@ namespace SoulsFormats
                     image.subImages.Add(mip);
 
                     //Skip all but the first mip unless someone wants to finish it offer more properly.
-                    break;
+                    //break;
                 }
                 images.Add(image);
             }
             return images;
         }
+        /*
+        /// <summary>
+        /// Based on https://github.com/xenia-canary/xenia-canary/blob/15008ccecc495fb52d6c66cea0d48b71e19032c1/src/xenia/gpu/texture_util.cc#L108
+        /// </summary>
+        private static bool GetPackedMipOffset(int width, int height, int depth, )
+        {
+
+        }*/
 
         private static List<Image> ReadPS3Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, DXGI_FORMAT dxgiFormat, byte format)
         {
