@@ -107,6 +107,9 @@ namespace SoulsFormats
             {
                 bw.Pad(0x100);
                 texturePaddingSize = 0x80;
+            } else if (Platform == TPFPlatform.PS4)
+            {
+                bw.Pad(0x10);
             }
 
             long dataStart = bw.Position;
@@ -200,7 +203,7 @@ namespace SoulsFormats
 
             /// <summary>
             /// Create a new Texture with the specified information; Cubemap and Mipmaps are determined based on bytes.
-            /// We assume that the input texture is a standard pc .dds file
+            /// We assume that the input texture is a standard pc .dds file or a Dark Souls Remastered PS4 .gnf
             /// </summary>
             public Texture(string name, byte format, byte flags1, byte[] bytes, TPFPlatform platform)
             {
@@ -220,7 +223,8 @@ namespace SoulsFormats
                 Mipmaps = (byte)dds.dwMipMapCount;
                 Platform = platform;
 
-                if (Platform == TPFPlatform.PC)
+                var potentialMagic = SFEncoding.ASCII.GetString(bytes, 0, 4);
+                if (Platform == TPFPlatform.PC || potentialMagic == "GNF ")
                 {
                     Bytes = bytes;
                     return;
@@ -422,11 +426,20 @@ namespace SoulsFormats
             }
 
             /// <summary>
-            /// Attempt to create a full DDS file from headerless console textures. Very very very poor support at the moment.
+            /// *Deprecated, please use HeaderizeExt instead*
+            /// Attempt to create a full DDS file from headerless console textures.
             /// </summary>
             public byte[] Headerize()
             {
                 return Headerizer.Headerize(this);
+            }
+
+            /// <summary>
+            /// Attempt to create a full DDS file from headerless console textures.
+            /// </summary>
+            public byte[] HeaderizeExt(out string extension)
+            {
+                return Headerizer.Headerize(this, out extension);
             }
 
             /// <summary>
