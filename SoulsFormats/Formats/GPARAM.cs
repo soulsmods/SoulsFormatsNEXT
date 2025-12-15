@@ -892,7 +892,7 @@ namespace SoulsFormats
             {
             }
 
-            private protected override string ReadValue(BinaryReaderEx br) => br.ReadUTF16();
+            private protected override string ReadValue(BinaryReaderEx br) => br.ReadUTF16(); //TODO: no gparam exist that has this type, whether it works correctly is unconfirmed
 
             private protected override void WriteValue(BinaryWriterEx bw, string value)
             {
