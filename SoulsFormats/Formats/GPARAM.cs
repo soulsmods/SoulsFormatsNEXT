@@ -10,27 +10,54 @@ using System.Runtime.CompilerServices;
 #nullable disable
 namespace SoulsFormats
 {
+    /// <summary>
+    /// A graphics config file used since DS2. Extensions: .fltparam, .gparam
+    /// </summary>
     public class GPARAM : SoulsFile<GPARAM>
     {
+        /// <summary>
+        /// Indicates the format of the GPARAM.
+        /// </summary>
         public GPARAM.GparamVersion Version { get; set; }
 
-        public bool Unk0d { get; set; }
+        /// <summary>
+        /// Unknown.
+        /// </summary>
+        public bool Unk0D { get; set; }
 
+        /// <summary>
+        /// Unknown; in DS2, some number of entries.
+        /// </summary>
         public int Count14 { get; set; }
 
+        /// <summary>
+        /// List of Graphics Parameters.
+        /// </summary>
         public List<GPARAM.Param> Params { get; set; }
 
+        /// <summary>
+        /// Unknown.
+        /// </summary>
         public byte[] Data30 { get; set; }
 
+        /// <summary>
+        /// List of unknowns.
+        /// </summary>
         public List<GPARAM.UnkParamExtra> UnkParamExtras { get; set; }
 
+        /// <summary>
+        /// Unknown.
+        /// </summary>
         public float Unk40 { get; set; }
 
+        /// <summary>
+        /// Unknown.
+        /// </summary>
         public float Unk50 { get; set; }
 
         public GPARAM()
         {
-            this.Unk0d = true;
+            this.Unk0D = true;
             this.Params = new List<GPARAM.Param>();
         }
 
@@ -46,7 +73,7 @@ namespace SoulsFormats
             br.AssertASCII("f\0i\0l\0t\0");
             this.Version = br.ReadEnum32<GPARAM.GparamVersion>();
             int num1 = (int)br.AssertByte(new byte[1]);
-            this.Unk0d = br.ReadBoolean();
+            this.Unk0D = br.ReadBoolean();
             int num2 = (int)br.AssertInt16(new short[1]);
             int num3 = br.ReadInt32();
             this.Count14 = br.ReadInt32();
@@ -100,7 +127,7 @@ namespace SoulsFormats
             bw.WriteUTF16("filt");
             bw.WriteUInt32((uint)this.Version);
             bw.WriteByte((byte)0);
-            bw.WriteBoolean(this.Unk0d);
+            bw.WriteBoolean(this.Unk0D);
             bw.WriteInt16((short)0);
             bw.WriteInt32(this.Params.Count);
             bw.WriteInt32(this.Count14);
@@ -210,12 +237,24 @@ namespace SoulsFormats
             String = 16, // 0x0F
         }
 
+        /// <summary>
+        /// A field of a param.
+        /// </summary>
         public interface IField
         {
+            /// <summary>
+            /// Key for this field.
+            /// </summary>
             string Key { get; set; }
 
+            /// <summary>
+            /// Name of the field.
+            /// </summary>
             string Name { get; set; }
 
+            /// <summary>
+            /// A set of values this field has.
+            /// </summary>
             IReadOnlyList<GPARAM.IFieldValue> Values { get; }
 
             internal static GPARAM.IField Read(
@@ -295,13 +334,29 @@ namespace SoulsFormats
 
         public abstract class Field<T> : GPARAM.IField, GPARAM.IFieldWriteable
         {
+            /// <summary>
+            /// Key for this field.
+            /// </summary>
             public string Key { get; set; }
 
+            /// <summary>
+            /// Name of the field.
+            /// </summary>
             public string Name { get; set; }
 
+            /// <summary>
+            /// A set of values this field has.
+            /// </summary>
             public List<GPARAM.FieldValue<T>> Values { get; set; }
 
+            /// <summary>
+            /// The number of values this field holds.
+            /// </summary>
             public short Capacity { get; set; }
+
+            /// <summary>
+            /// Unknown.
+            /// </summary>
             public short Unk { get; set; }
 
             IReadOnlyList<GPARAM.IFieldValue> GPARAM.IField.Values
@@ -914,10 +969,26 @@ namespace SoulsFormats
             }
         }
 
+        /// <summary>
+        /// GPARAM file version.
+        /// </summary>
         public enum GparamVersion : uint
         {
+            /// <summary>
+            /// Initial version, in Dark Souls 2
+            /// </summary>
+            V2 = 2, //TODO: confirm if DS2 works, i dont have it so if anyone could check pls <3
+            /// <summary>
+            /// Bloodborne and later
+            /// </summary>
             V3 = 3,
+            /// <summary>
+            /// Sekiro and later
+            /// </summary>
             V5 = 5,
+            /// <summary>
+            /// Armored Core 6 and later
+            /// </summary>
             V6 = 6
         }
 
@@ -937,14 +1008,29 @@ namespace SoulsFormats
             public int Comments;
         }
 
+        /// <summary>
+        /// A graphics param.
+        /// </summary>
         public class Param
         {
+            /// <summary>
+            /// List of fields for this param.
+            /// </summary>
             public List<GPARAM.IField> Fields { get; set; }
 
+            /// <summary>
+            /// Key for this param.
+            /// </summary>
             public string Key { get; set; }
 
+            /// <summary>
+            /// Name of this param.
+            /// </summary>
             public string Name { get; set; }
 
+            /// <summary>
+            /// A set of comments -- might be empty.
+            /// </summary>
             public List<string> Comments { get; set; }
 
             public Param()
