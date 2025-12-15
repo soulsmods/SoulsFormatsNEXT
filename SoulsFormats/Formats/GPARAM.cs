@@ -1,805 +1,1191 @@
-﻿using System;
+﻿using SoulsFormats;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
+// TKGP's latest version of GPARAM
+#nullable disable
 namespace SoulsFormats
 {
-    // Source: YabberAvocado zip in ?ServerName?
-    // TODO: Rebuild this based on TK's original GPARAM with TK's new coremats template.
-    // Decompiled with JetBrains decompiler
-    // Type: SoulsFormats.GPARAM
-    // Assembly: SoulsFormats, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
-    // MVID: 91F4CB12-0CD3-441D-AE68-51FE09D1AE40
-    // Assembly location: SoulsFormats.dll
-    // Decompiled Source cleaned by Natsu
-
-    /// <summary>
-    /// A graphics config file used since DS2. Extensions: .fltparam, .gparam
-    /// </summary>
     public class GPARAM : SoulsFile<GPARAM>
     {
-        /// <summary>
-        /// Indicates the format of the GPARAM.
-        /// </summary>
-        public GPGame Game;
+        public GPARAM.GparamVersion Version { get; set; }
 
-        /// <summary>
-        /// Unknown.
-        /// </summary>
-        public bool Unk0D;
+        public bool Unk0d { get; set; }
 
-        /// <summary>
-        /// Unknown; in DS2, number of entries in UnkBlock2.
-        /// </summary>
-        public int Unk14;
+        public int Count14 { get; set; }
 
-        /// <summary>
-        /// Unknown.
-        /// </summary>
-        public float Unk40;
+        public List<GPARAM.Param> Params { get; set; }
 
-        /// <summary>
-        /// Unknown; only present in Sekiro.
-        /// </summary>
-        public float Unk50;
+        public byte[] Data30 { get; set; }
 
-        /// <summary>
-        /// Groups of params in this file.
-        /// </summary>
-        public List<Group> Groups;
+        public List<GPARAM.UnkParamExtra> UnkParamExtras { get; set; }
 
-        /// <summary>
-        /// Unknown.
-        /// </summary>
-        public byte[] UnkBlock2;
+        public float Unk40 { get; set; }
 
-        /// <summary>
-        /// Unknown.
-        /// </summary>
-        public List<Unk3> Unk3s;
+        public float Unk50 { get; set; }
 
-        /// <summary>
-        /// Creates a new empty GPARAM formatted for Sekiro.
-        /// </summary>
         public GPARAM()
         {
-            Game = GPGame.Sekiro;
-            Groups = new List<Group>();
-            UnkBlock2 = new byte[0];
-            Unk3s = new List<Unk3>();
+            this.Unk0d = true;
+            this.Params = new List<GPARAM.Param>();
         }
 
-        /// <inheritdoc/>
+
         protected override bool Is(BinaryReaderEx br)
         {
-            if (br.Length < 4L)
-                return false;
-
-            string magic = br.GetASCII(0, 4);
-            return magic == "filt" || magic == "f\0i\0";
+            return br.Length >= 4L && br.GetASCII(0L, 8) == "f\0i\0l\0t\0";
         }
 
-        /// <inheritdoc/>
         protected override void Read(BinaryReaderEx br)
         {
             br.BigEndian = false;
-
-            // Don't @ me.
-            if (br.AssertASCII("filt", "f\0i\0") == "f\0i\0")
-                br.AssertASCII("l\0t\0");
-
-            Game = br.ReadEnum32<GPGame>();
-            br.AssertByte(0);
-            Unk0D = br.ReadBoolean();
-            br.AssertInt16(0);
-            int groupCount = br.ReadInt32();
-            Unk14 = br.ReadInt32();
-
-            // Header size or group header headers offset, you decide
-            br.AssertInt32(0x40, 0x50, 0x54);
-
-            Offsets offsets = new Offsets();
-            offsets.GroupHeaders = br.ReadInt32();
-            offsets.ParamHeaderOffsets = br.ReadInt32();
-            offsets.ParamHeaders = br.ReadInt32();
-            offsets.Values = br.ReadInt32();
-            offsets.ValueIDs = br.ReadInt32();
-            offsets.Unk2 = br.ReadInt32();
-
-            int unk3Count = br.ReadInt32();
-            offsets.Unk3 = br.ReadInt32();
-            offsets.Unk3ValueIDs = br.ReadInt32();
-            Unk40 = br.ReadSingle();
-            if (Game == GPGame.DarkSouls3 || Game == GPGame.Sekiro)
+            br.AssertASCII("f\0i\0l\0t\0");
+            this.Version = br.ReadEnum32<GPARAM.GparamVersion>();
+            int num1 = (int)br.AssertByte(new byte[1]);
+            this.Unk0d = br.ReadBoolean();
+            int num2 = (int)br.AssertInt16(new short[1]);
+            int num3 = br.ReadInt32();
+            this.Count14 = br.ReadInt32();
+            GPARAM.BaseOffsets baseOffsets;
+            baseOffsets.ParamOffsets = br.ReadInt32();
+            baseOffsets.Params = br.ReadInt32();
+            baseOffsets.FieldOffsets = br.ReadInt32();
+            baseOffsets.Fields = br.ReadInt32();
+            baseOffsets.Values = br.ReadInt32();
+            baseOffsets.ValueIds = br.ReadInt32();
+            baseOffsets.Unk30 = br.ReadInt32();
+            int capacity = br.ReadInt32();
+            baseOffsets.ParamExtras = br.ReadInt32();
+            baseOffsets.ParamExtraIds = br.ReadInt32();
+            this.Unk40 = br.ReadSingle();
+            baseOffsets.ParamCommentsOffsets = br.ReadInt32();
+            baseOffsets.CommentOffsets = br.ReadInt32();
+            baseOffsets.Comments = br.ReadInt32();
+            if (this.Version >= GPARAM.GparamVersion.V5)
+                this.Unk50 = br.ReadSingle();
+            int[] int32s1 = br.GetInt32s((long)baseOffsets.ParamOffsets, num3);
+            this.Params = new List<GPARAM.Param>(num3);
+            foreach (int num4 in int32s1)
             {
-                offsets.CommentOffsetsOffsets = br.ReadInt32();
-                offsets.CommentOffsets = br.ReadInt32();
-                offsets.Comments = br.ReadInt32();
+                br.Position = (long)(baseOffsets.Params + num4);
+                this.Params.Add(new GPARAM.Param(br, this.Version, baseOffsets));
             }
-
-            if (Game == GPGame.Sekiro)
-                Unk50 = br.ReadSingle();
-
-            Groups = new List<Group>(groupCount);
-            for (int i = 0; i < groupCount; ++i)
-                Groups.Add(new Group(br, Game, i, offsets));
-
-            UnkBlock2 = br.GetBytes(offsets.Unk2, offsets.Unk3 - offsets.Unk2);
-            br.Position = offsets.Unk3;
-            Unk3s = new List<Unk3>(unk3Count);
-            for (int i = 0; i < unk3Count; ++i)
-                Unk3s.Add(new Unk3(br, Game, offsets));
-
-            if (Game == GPGame.DarkSouls3 || Game == GPGame.Sekiro)
+            br.Position = (long)baseOffsets.Unk30;
+            this.Data30 = br.ReadBytes(baseOffsets.ParamExtras - baseOffsets.Unk30);
+            br.Position = (long)baseOffsets.ParamExtras;
+            this.UnkParamExtras = new List<GPARAM.UnkParamExtra>(capacity);
+            for (int index = 0; index < capacity; ++index)
+                this.UnkParamExtras.Add(new GPARAM.UnkParamExtra(br, this.Version, baseOffsets));
+            int[] int32s2 = br.GetInt32s((long)baseOffsets.ParamCommentsOffsets, num3);
+            for (int index = 0; index < num3; ++index)
             {
-                int[] commentOffsetsOffsets = br.GetInt32s(offsets.CommentOffsetsOffsets, groupCount);
-                int commentOffsetsLength = offsets.Comments - offsets.CommentOffsets;
-                for (int i = 0; i < groupCount; ++i)
+                int offset = baseOffsets.CommentOffsets + int32s2[index];
+                int num5 = ((index >= num3 - 1 ? baseOffsets.Comments : baseOffsets.CommentOffsets + int32s2[index + 1]) - offset) / 4;
+                int[] int32s3 = br.GetInt32s((long)offset, num5);
+                List<string> stringList = new List<string>(num5);
+                foreach (int num6 in int32s3)
+                    stringList.Add(br.GetUTF16((long)(baseOffsets.Comments + num6)));
+                this.Params[index].Comments = stringList;
+            }
+        }
+
+        protected override void Write(BinaryWriterEx bw)
+        {
+            GPARAM.BaseOffsets baseOffsets = new GPARAM.BaseOffsets();
+            bw.BigEndian = false;
+            bw.WriteUTF16("filt");
+            bw.WriteUInt32((uint)this.Version);
+            bw.WriteByte((byte)0);
+            bw.WriteBoolean(this.Unk0d);
+            bw.WriteInt16((short)0);
+            bw.WriteInt32(this.Params.Count);
+            bw.WriteInt32(this.Count14);
+            bw.ReserveInt32("ParamOffsetsBase");
+            bw.ReserveInt32("ParamsBase");
+            bw.ReserveInt32("FieldOffsetsBase");
+            bw.ReserveInt32("FieldsBase");
+            bw.ReserveInt32("ValuesBase");
+            bw.ReserveInt32("ValueIdsBase");
+            bw.ReserveInt32("Unk30Base");
+            bw.WriteInt32(this.UnkParamExtras.Count);
+            bw.ReserveInt32("ParamExtrasBase");
+            bw.ReserveInt32("ParamExtraIdsBase");
+            bw.WriteSingle(this.Unk40);
+            bw.ReserveInt32("ParamCommentsOffsetsBase");
+            bw.ReserveInt32("CommentOffsetsBase");
+            bw.ReserveInt32("CommentsBase");
+            if (this.Version >= GPARAM.GparamVersion.V5)
+                bw.WriteSingle(this.Unk50);
+            baseOffsets.ParamOffsets = (int)bw.Position;
+            bw.FillInt32("ParamOffsetsBase", baseOffsets.ParamOffsets);
+            DefaultInterpolatedStringHandler interpolatedStringHandler;
+            for (int index = 0; index < this.Params.Count; ++index)
+            {
+                BinaryWriterEx binaryWriterEx = bw;
+                interpolatedStringHandler = new DefaultInterpolatedStringHandler(13, 1);
+                interpolatedStringHandler.AppendLiteral("ParamOffset[");
+                interpolatedStringHandler.AppendFormatted<int>(index);
+                interpolatedStringHandler.AppendLiteral("]");
+                string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                binaryWriterEx.ReserveInt32(stringAndClear);
+            }
+            baseOffsets.Params = (int)bw.Position;
+            bw.FillInt32("ParamsBase", baseOffsets.Params);
+            for (int index = 0; index < this.Params.Count; ++index)
+            {
+                BinaryWriterEx binaryWriterEx = bw;
+                interpolatedStringHandler = new DefaultInterpolatedStringHandler(13, 1);
+                interpolatedStringHandler.AppendLiteral("ParamOffset[");
+                interpolatedStringHandler.AppendFormatted<int>(index);
+                interpolatedStringHandler.AppendLiteral("]");
+                string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                int num = (int)bw.Position - baseOffsets.Params;
+                binaryWriterEx.FillInt32(stringAndClear, num);
+                this.Params[index].Write(bw, index);
+                bw.Pad(4);
+            }
+            baseOffsets.FieldOffsets = (int)bw.Position;
+            bw.FillInt32("FieldOffsetsBase", baseOffsets.FieldOffsets);
+            for (int index = 0; index < this.Params.Count; ++index)
+                this.Params[index].WriteFieldOffsets(bw, baseOffsets, index);
+            baseOffsets.Fields = (int)bw.Position;
+            bw.FillInt32("FieldsBase", baseOffsets.Fields);
+            for (int index = 0; index < this.Params.Count; ++index)
+                this.Params[index].WriteFields(bw, Version, baseOffsets, index);
+            baseOffsets.Values = (int)bw.Position;
+            bw.FillInt32("ValuesBase", baseOffsets.Values);
+            for (int index = 0; index < this.Params.Count; ++index)
+                this.Params[index].WriteValues(bw, baseOffsets, index);
+            baseOffsets.ValueIds = (int)bw.Position;
+            bw.FillInt32("ValueIdsBase", baseOffsets.ValueIds);
+            for (int index = 0; index < this.Params.Count; ++index)
+                this.Params[index].WriteValueIds(bw, this.Version, baseOffsets, index);
+            baseOffsets.Unk30 = (int)bw.Position;
+            bw.FillInt32("Unk30Base", baseOffsets.Unk30);
+            bw.WriteBytes(this.Data30);
+            bw.Pad(4);
+            baseOffsets.ParamExtras = (int)bw.Position;
+            bw.FillInt32("ParamExtrasBase", baseOffsets.ParamExtras);
+            for (int index = 0; index < this.UnkParamExtras.Count; ++index)
+                this.UnkParamExtras[index].Write(bw, this.Version, index);
+            baseOffsets.ParamExtraIds = (int)bw.Position;
+            bw.FillInt32("ParamExtraIdsBase", baseOffsets.ParamExtraIds);
+            for (int index = 0; index < this.UnkParamExtras.Count; ++index)
+                this.UnkParamExtras[index].WriteIds(bw, baseOffsets, index);
+            baseOffsets.ParamCommentsOffsets = (int)bw.Position;
+            bw.FillInt32("ParamCommentsOffsetsBase", baseOffsets.ParamCommentsOffsets);
+            for (int index = 0; index < this.Params.Count; ++index)
+                this.Params[index].WriteCommentOffsetsOffset(bw, index);
+            baseOffsets.CommentOffsets = (int)bw.Position;
+            bw.FillInt32("CommentOffsetsBase", baseOffsets.CommentOffsets);
+            for (int index = 0; index < this.Params.Count; ++index)
+                this.Params[index].WriteCommentOffsets(bw, baseOffsets, index);
+            baseOffsets.Comments = (int)bw.Position;
+            bw.FillInt32("CommentsBase", baseOffsets.Comments);
+            for (int index = 0; index < this.Params.Count; ++index)
+                this.Params[index].WriteComments(bw, baseOffsets, index);
+        }
+
+        public enum FieldType : byte
+        {
+            Sbyte = 1,
+            Short = 2,
+            Int = 3,
+            Long = 4,
+            Byte = 5,
+            Ushort = 6,
+            Uint = 7,
+            Ulong = 8,
+            Float = 9,
+            Double = 10,
+            Bool = 11, // 0x0B
+            Vec2 = 12, // 0x0C
+            Vec3 = 13, // 0x0D
+            Vec4 = 14, // 0x0E
+            Color = 15, // 0x0F
+            String = 16, // 0x0F
+        }
+
+        public interface IField
+        {
+            string Key { get; set; }
+
+            string Name { get; set; }
+
+            IReadOnlyList<GPARAM.IFieldValue> Values { get; }
+
+            internal static GPARAM.IField Read(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+            {
+                GPARAM.FieldType enum8;
+                if (version < GparamVersion.V6)
                 {
-                    int commentCount = i != groupCount - 1 ? (commentOffsetsOffsets[i + 1] - commentOffsetsOffsets[i]) / 4 : (commentOffsetsLength - commentOffsetsOffsets[i]) / 4;
-                    br.Position = offsets.CommentOffsets + commentOffsetsOffsets[i];
-                    for (int j = 0; j < commentCount; ++j)
-                    {
-                        int commentOffset = br.ReadInt32();
-                        string comment = br.GetUTF16(offsets.Comments + commentOffset);
-                        Groups[i].Comments.Add(comment);
-                    }
+                    enum8 = br.GetEnum8<GPARAM.FieldType>(br.Position + 8L);
+                }
+                else
+                {
+                    enum8 = br.GetEnum8<GPARAM.FieldType>(br.Position + 10L);
+                }
+                switch (enum8)
+                {
+                    case GPARAM.FieldType.Sbyte:
+                        return (GPARAM.IField)new GPARAM.SbyteField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Short:
+                        return (GPARAM.IField)new GPARAM.ShortField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Int:
+                        return (GPARAM.IField)new GPARAM.IntField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Long:
+                        return (GPARAM.IField)new GPARAM.LongField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Byte:
+                        return (GPARAM.IField)new GPARAM.ByteField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Ushort:
+                        return (GPARAM.IField)new GPARAM.UshortField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Uint:
+                        return (GPARAM.IField)new GPARAM.UintField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Ulong:
+                        return (GPARAM.IField)new GPARAM.UlongField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Float:
+                        return (GPARAM.IField)new GPARAM.FloatField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Double:
+                        return (GPARAM.IField)new GPARAM.DoubleField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Bool:
+                        return (GPARAM.IField)new GPARAM.BoolField(br, version, baseOffsets);
+                    case GPARAM.FieldType.Vec2:
+                        return (GPARAM.IField)new GPARAM.Vector2Field(br, version, baseOffsets);
+                    case GPARAM.FieldType.Vec3:
+                        return (GPARAM.IField)new GPARAM.Vector3Field(br, version, baseOffsets);
+                    case GPARAM.FieldType.Vec4:
+                        return (GPARAM.IField)new GPARAM.Vector4Field(br, version, baseOffsets);
+                    case GPARAM.FieldType.Color:
+                        return (GPARAM.IField)new GPARAM.ColorField(br, version, baseOffsets);
+                    case GPARAM.FieldType.String:
+                        return (GPARAM.IField)new GPARAM.StringField(br, version, baseOffsets);
+                    default:
+                        DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(20, 1);
+                        interpolatedStringHandler.AppendLiteral("Unknown field type: ");
+                        interpolatedStringHandler.AppendFormatted<GPARAM.FieldType>(enum8);
+                        throw new NotImplementedException(interpolatedStringHandler.ToStringAndClear());
                 }
             }
         }
 
-        /// <inheritdoc/>
-        protected override void Write(BinaryWriterEx bw)
+        internal interface IFieldWriteable
         {
-            bw.BigEndian = false;
-            if (Game == GPGame.DarkSouls2)
-                bw.WriteASCII("filt");
-            else
-                bw.WriteUTF16("filt");
+            void Write(BinaryWriterEx bw, GPARAM.GparamVersion version, int paramIndex, int fieldIndex);
 
-            bw.WriteUInt32((uint)Game);
-            bw.WriteByte(0);
-            bw.WriteBoolean(Unk0D);
-            bw.WriteInt16(0);
-            bw.WriteInt32(Groups.Count);
-            bw.WriteInt32(Unk14);
-            bw.ReserveInt32("HeaderSize");
+            void WriteValues(
+              BinaryWriterEx bw,
+              GPARAM.BaseOffsets baseOffsets,
+              int paramIndex,
+              int fieldIndex);
 
-            bw.ReserveInt32("GroupHeadersOffset");
-            bw.ReserveInt32("ParamHeaderOffsetsOffset");
-            bw.ReserveInt32("ParamHeadersOffset");
-            bw.ReserveInt32("ValuesOffset");
-            bw.ReserveInt32("ValueIDsOffset");
-            bw.ReserveInt32("UnkOffset2");
+            void WriteValueIds(
+              BinaryWriterEx bw,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets,
+              int paramIndex,
+              int fieldIndex);
+        }
 
-            bw.WriteInt32(Unk3s.Count);
-            bw.ReserveInt32("UnkOffset3");
-            bw.ReserveInt32("Unk3ValuesOffset");
-            bw.WriteSingle(Unk40);
-            if (Game == GPGame.DarkSouls3 || Game == GPGame.Sekiro)
+        public abstract class Field<T> : GPARAM.IField, GPARAM.IFieldWriteable
+        {
+            public string Key { get; set; }
+
+            public string Name { get; set; }
+
+            public List<GPARAM.FieldValue<T>> Values { get; set; }
+
+            public short Capacity { get; set; }
+            public short Unk { get; set; }
+
+            IReadOnlyList<GPARAM.IFieldValue> GPARAM.IField.Values
             {
-                bw.ReserveInt32("CommentOffsetsOffsetsOffset");
-                bw.ReserveInt32("CommentOffsetsOffset");
-                bw.ReserveInt32("CommentsOffset");
+                get => (IReadOnlyList<GPARAM.IFieldValue>)this.Values;
             }
 
-            if (Game == GPGame.Sekiro)
-                bw.WriteSingle(Unk50);
-
-            bw.FillInt32("HeaderSize", (int)bw.Position);
-            for (int i = 0; i < Groups.Count; ++i)
-                Groups[i].WriteHeaderOffset(bw, i);
-
-            int groupHeadersOffset = (int)bw.Position;
-            bw.FillInt32("GroupHeadersOffset", groupHeadersOffset);
-            for (int i = 0; i < Groups.Count; ++i)
-                Groups[i].WriteHeader(bw, Game, i, groupHeadersOffset);
-
-            int paramHeaderOffsetsOffset = (int)bw.Position;
-            bw.FillInt32("ParamHeaderOffsetsOffset", paramHeaderOffsetsOffset);
-            for (int i = 0; i < Groups.Count; ++i)
-                Groups[i].WriteParamHeaderOffsets(bw, i, paramHeaderOffsetsOffset);
-
-            int paramHeadersOffset = (int)bw.Position;
-            bw.FillInt32("ParamHeadersOffset", paramHeadersOffset);
-            for (int i = 0; i < Groups.Count; ++i)
-                Groups[i].WriteParamHeaders(bw, Game, i, paramHeadersOffset);
-
-            int valuesOffset = (int)bw.Position;
-            bw.FillInt32("ValuesOffset", valuesOffset);
-            for (int i = 0; i < Groups.Count; ++i)
-                Groups[i].WriteValues(bw, i, valuesOffset);
-
-            int valueIDsOffset = (int)bw.Position;
-            bw.FillInt32("ValueIDsOffset", (int)bw.Position);
-            for (int i = 0; i < Groups.Count; ++i)
-                Groups[i].WriteValueIDs(bw, Game, i, valueIDsOffset);
-
-            bw.FillInt32("UnkOffset2", (int)bw.Position);
-            bw.WriteBytes(UnkBlock2);
-
-            bw.FillInt32("UnkOffset3", (int)bw.Position);
-            for (int i = 0; i < Unk3s.Count; ++i)
-                Unk3s[i].WriteHeader(bw, Game, i);
-
-            int unk3ValuesOffset = (int)bw.Position;
-            bw.FillInt32("Unk3ValuesOffset", unk3ValuesOffset);
-            for (int i = 0; i < Unk3s.Count; ++i)
-                Unk3s[i].WriteValues(bw, Game, i, unk3ValuesOffset);
-
-            if (Game == GPGame.DarkSouls3 || Game == GPGame.Sekiro)
+            public Field()
             {
-                bw.FillInt32("CommentOffsetsOffsetsOffset", (int)bw.Position);
-                for (int i = 0; i < Groups.Count; ++i)
-                    Groups[i].WriteCommentOffsetsOffset(bw, i);
+                this.Key = "";
+                this.Name = "";
+                this.Values = new List<GPARAM.FieldValue<T>>();
+            }
 
-                int commentOffsetsOffset = (int)bw.Position;
-                bw.FillInt32("CommentOffsetsOffset", commentOffsetsOffset);
-                for (int i = 0; i < Groups.Count; ++i)
-                    Groups[i].WriteCommentOffsets(bw, i, commentOffsetsOffset);
+            public override string ToString()
+            {
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(3, 2);
+                interpolatedStringHandler.AppendFormatted(this.Key);
+                interpolatedStringHandler.AppendLiteral(" [");
+                interpolatedStringHandler.AppendFormatted<int>(this.Values.Count);
+                interpolatedStringHandler.AppendLiteral("]");
+                return interpolatedStringHandler.ToStringAndClear();
+            }
 
-                int commentsOffset = (int)bw.Position;
-                bw.FillInt32("CommentsOffset", commentsOffset);
-                for (int i = 0; i < Groups.Count; ++i)
-                    Groups[i].WriteComments(bw, i, commentsOffset);
+            private protected abstract GPARAM.FieldType Type { get; }
+
+            private protected Field(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+            {
+                int num1 = br.ReadInt32();
+                int num2 = br.ReadInt32();
+
+                int num3;
+                short capacity;
+                if (version < GparamVersion.V6) //kisebb
+                {
+                    num3 = (int)br.AssertByte((byte)this.Type);
+                    Capacity = br.ReadSByte();
+                    Unk = br.AssertInt16(0);
+
+                }
+                else
+                {
+                    Capacity = br.ReadInt16();
+                    num3 = (int)br.AssertByte((byte)this.Type);
+                    Unk = br.ReadByte();
+                }
+                capacity = Capacity;
+                this.Key = br.ReadUTF16();
+                this.Name = br.ReadUTF16();
+                br.Position = (long)(baseOffsets.Values + num1);
+                T[] objArray = new T[(int)capacity];
+                for (int index = 0; index < (int)capacity; ++index)
+                    objArray[index] = this.ReadValue(br);
+                br.Position = (long)(baseOffsets.ValueIds + num2);
+                this.Values = new List<GPARAM.FieldValue<T>>((int)capacity);
+                for (int index = 0; index < (int)capacity; ++index)
+                    this.Values.Add(new GPARAM.FieldValue<T>(br, version, objArray[index]));
+            }
+
+            private protected abstract T ReadValue(BinaryReaderEx br);
+
+            void GPARAM.IFieldWriteable.Write(BinaryWriterEx bw, GPARAM.GparamVersion version, int paramIndex, int fieldIndex)
+            {
+                BinaryWriterEx binaryWriterEx1 = bw;
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(26, 2);
+                interpolatedStringHandler.AppendLiteral("Param[");
+                interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                interpolatedStringHandler.AppendLiteral("]Field[");
+                interpolatedStringHandler.AppendFormatted<int>(fieldIndex);
+                interpolatedStringHandler.AppendLiteral("]ValuesOffset");
+                string stringAndClear1 = interpolatedStringHandler.ToStringAndClear();
+                binaryWriterEx1.ReserveInt32(stringAndClear1);
+                BinaryWriterEx binaryWriterEx2 = bw;
+                interpolatedStringHandler = new DefaultInterpolatedStringHandler(28, 2);
+                interpolatedStringHandler.AppendLiteral("Param[");
+                interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                interpolatedStringHandler.AppendLiteral("]Field[");
+                interpolatedStringHandler.AppendFormatted<int>(fieldIndex);
+                interpolatedStringHandler.AppendLiteral("]ValueIdsOffset");
+                string stringAndClear2 = interpolatedStringHandler.ToStringAndClear();
+                binaryWriterEx2.ReserveInt32(stringAndClear2);
+                
+
+                if (version < GparamVersion.V6) //kisebb
+                {
+                    bw.WriteByte((byte)this.Type);
+                    bw.WriteSByte((sbyte)Capacity);
+                    bw.WriteInt16(Unk);
+                }
+                else
+                {
+                    bw.WriteInt16(Capacity);
+                    bw.WriteByte((byte)this.Type);
+                    bw.WriteByte((byte)Unk);
+                }
+
+                bw.WriteUTF16(this.Key, true);
+                bw.WriteUTF16(this.Name, true);
+            }
+
+            void GPARAM.IFieldWriteable.WriteValues(
+              BinaryWriterEx bw,
+              GPARAM.BaseOffsets baseOffsets,
+              int paramIndex,
+              int fieldIndex)
+            {
+                BinaryWriterEx binaryWriterEx = bw;
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(26, 2);
+                interpolatedStringHandler.AppendLiteral("Param[");
+                interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                interpolatedStringHandler.AppendLiteral("]Field[");
+                interpolatedStringHandler.AppendFormatted<int>(fieldIndex);
+                interpolatedStringHandler.AppendLiteral("]ValuesOffset");
+                string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                int num = (int)bw.Position - baseOffsets.Values;
+                binaryWriterEx.FillInt32(stringAndClear, num);
+                foreach (GPARAM.FieldValue<T> fieldValue in this.Values)
+                    this.WriteValue(bw, fieldValue.Value);
+            }
+
+            private protected abstract void WriteValue(BinaryWriterEx bw, T value);
+
+            void GPARAM.IFieldWriteable.WriteValueIds(
+              BinaryWriterEx bw,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets,
+              int paramIndex,
+              int fieldIndex)
+            {
+                BinaryWriterEx binaryWriterEx = bw;
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(28, 2);
+                interpolatedStringHandler.AppendLiteral("Param[");
+                interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                interpolatedStringHandler.AppendLiteral("]Field[");
+                interpolatedStringHandler.AppendFormatted<int>(fieldIndex);
+                interpolatedStringHandler.AppendLiteral("]ValueIdsOffset");
+                string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                int num = (int)bw.Position - baseOffsets.ValueIds;
+                binaryWriterEx.FillInt32(stringAndClear, num);
+                foreach (GPARAM.FieldValue<T> fieldValue in this.Values)
+                    fieldValue.Write(bw, version);
             }
         }
 
-        /// <summary>
-        /// Returns the first group with a matching name, or null if not found.
-        /// </summary>
-        public Group this[string name1] => Groups.Find(group => group.Name1 == name1);
-
-        /// <summary>
-        /// The game this GPARAM is from.
-        /// </summary>
-        public enum GPGame : uint
+        public class SbyteField : GPARAM.Field<sbyte>
         {
-            /// <summary>
-            /// Dark Souls 2
-            /// </summary>
-            DarkSouls2 = 2,
+            public SbyteField()
+            {
+            }
 
-            /// <summary>
-            /// Dark Souls 3 and Bloodborne
-            /// </summary>
-            DarkSouls3 = 3,
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Sbyte;
 
-            /// <summary>
-            /// Sekiro
-            /// </summary>
-            Sekiro = 5,
+            internal SbyteField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override sbyte ReadValue(BinaryReaderEx br) => br.ReadSByte();
+
+            private protected override void WriteValue(BinaryWriterEx bw, sbyte value)
+            {
+                bw.WriteSByte(value);
+            }
         }
 
-        internal struct Offsets
+        public class ShortField : GPARAM.Field<short>
         {
-            public int GroupHeaders;
-            public int ParamHeaderOffsets;
-            public int ParamHeaders;
+            public ShortField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Short;
+
+            internal ShortField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override short ReadValue(BinaryReaderEx br) => br.ReadInt16();
+
+            private protected override void WriteValue(BinaryWriterEx bw, short value)
+            {
+                bw.WriteInt16(value);
+            }
+        }
+
+        public class IntField : GPARAM.Field<int>
+        {
+            public IntField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Int;
+
+            internal IntField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override int ReadValue(BinaryReaderEx br) => br.ReadInt32();
+
+            private protected override void WriteValue(BinaryWriterEx bw, int value)
+            {
+                bw.WriteInt32(value);
+            }
+        }
+
+        public class ByteField : GPARAM.Field<byte>
+        {
+            public ByteField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Byte;
+
+            internal ByteField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override byte ReadValue(BinaryReaderEx br) => br.ReadByte();
+
+            private protected override void WriteValue(BinaryWriterEx bw, byte value)
+            {
+                bw.WriteByte(value);
+            }
+        }
+
+        public class UintField : GPARAM.Field<uint>
+        {
+            public UintField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Uint;
+
+            internal UintField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override uint ReadValue(BinaryReaderEx br) => br.ReadUInt32();
+
+            private protected override void WriteValue(BinaryWriterEx bw, uint value)
+            {
+                bw.WriteUInt32(value);
+            }
+        }
+
+        public class FloatField : GPARAM.Field<float>
+        {
+            public FloatField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Float;
+
+            internal FloatField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override float ReadValue(BinaryReaderEx br) => br.ReadSingle();
+
+            private protected override void WriteValue(BinaryWriterEx bw, float value)
+            {
+                bw.WriteSingle(value);
+            }
+        }
+
+        public class BoolField : GPARAM.Field<bool>
+        {
+            public BoolField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Bool;
+
+            internal BoolField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override bool ReadValue(BinaryReaderEx br) => br.ReadBoolean();
+
+            private protected override void WriteValue(BinaryWriterEx bw, bool value)
+            {
+                bw.WriteBoolean(value);
+            }
+        }
+
+        public class Vector2Field : GPARAM.Field<Vector2>
+        {
+            public Vector2Field()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Vec2;
+
+            internal Vector2Field(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override Vector2 ReadValue(BinaryReaderEx br)
+            {
+                Vector2 vector2 = br.ReadVector2();
+                br.AssertInt64(new long[1]);
+                return vector2;
+            }
+
+            private protected override void WriteValue(BinaryWriterEx bw, Vector2 value)
+            {
+                bw.WriteVector2(value);
+                bw.WriteInt64(0L);
+            }
+        }
+
+        public class Vector3Field : GPARAM.Field<Vector3>
+        {
+            public Vector3Field()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Vec3;
+
+            internal Vector3Field(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override Vector3 ReadValue(BinaryReaderEx br)
+            {
+                Vector3 vector3 = br.ReadVector3();
+                br.AssertInt32(new int[1]);
+                return vector3;
+            }
+
+            private protected override void WriteValue(BinaryWriterEx bw, Vector3 value)
+            {
+                bw.WriteVector3(value);
+                bw.WriteInt32(0);
+            }
+        }
+
+        public class Vector4Field : GPARAM.Field<Vector4>
+        {
+            public Vector4Field()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Vec4;
+
+            internal Vector4Field(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override Vector4 ReadValue(BinaryReaderEx br) => br.ReadVector4();
+
+            private protected override void WriteValue(BinaryWriterEx bw, Vector4 value)
+            {
+                bw.WriteVector4(value);
+            }
+        }
+
+        public class ColorField : GPARAM.Field<Color>
+        {
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Color;
+
+            public ColorField()
+            {
+            }
+
+            internal ColorField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override Color ReadValue(BinaryReaderEx br) => br.ReadRGBA();
+
+            private protected override void WriteValue(BinaryWriterEx bw, Color value)
+            {
+                bw.WriteRGBA(value);
+            }
+        }
+
+        public class LongField : GPARAM.Field<long>
+        {
+            public LongField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Long;
+
+            internal LongField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override long ReadValue(BinaryReaderEx br) => br.ReadInt64();
+
+            private protected override void WriteValue(BinaryWriterEx bw, long value)
+            {
+                bw.WriteInt64(value);
+            }
+        }
+
+        public class UshortField : GPARAM.Field<ushort>
+        {
+            public UshortField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Ushort;
+
+            internal UshortField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override ushort ReadValue(BinaryReaderEx br) => br.ReadUInt16();
+
+            private protected override void WriteValue(BinaryWriterEx bw, ushort value)
+            {
+                bw.WriteUInt16(value);
+            }
+        }
+
+        public class UlongField : GPARAM.Field<ulong>
+        {
+            public UlongField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Ulong;
+
+            internal UlongField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override ulong ReadValue(BinaryReaderEx br) => br.ReadUInt64();
+
+            private protected override void WriteValue(BinaryWriterEx bw, ulong value)
+            {
+                bw.WriteUInt64(value);
+            }
+        }
+
+        public class DoubleField : GPARAM.Field<double>
+        {
+            public DoubleField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.Double;
+
+            internal DoubleField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override double ReadValue(BinaryReaderEx br) => br.ReadDouble();
+
+            private protected override void WriteValue(BinaryWriterEx bw, double value)
+            {
+                bw.WriteDouble(value);
+            }
+        }
+
+        public class StringField : GPARAM.Field<string>
+        {
+            public StringField()
+            {
+            }
+
+            private protected override GPARAM.FieldType Type => GPARAM.FieldType.String;
+
+            internal StringField(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+              : base(br, version, baseOffsets)
+            {
+            }
+
+            private protected override string ReadValue(BinaryReaderEx br) => br.ReadUTF16();
+
+            private protected override void WriteValue(BinaryWriterEx bw, string value)
+            {
+                bw.WriteUTF16(value, true);
+            }
+        }
+
+        public interface IFieldValue
+        {
+            int Id { get; set; }
+
+            float Unk04 { get; set; }
+
+            object Value { get; set; }
+        }
+
+        public class FieldValue<T> : GPARAM.IFieldValue
+        {
+            public int Id { get; set; }
+
+            public float Unk04 { get; set; }
+
+            public T Value { get; set; }
+
+            object GPARAM.IFieldValue.Value
+            {
+                get
+                {
+                   return (object)this.Value;
+                }
+                set
+                {
+                    this.Value = (T)value;
+                }
+            }
+
+            public FieldValue()
+            {
+            }
+
+            public override string ToString()
+            {
+                if ((double)this.Unk04 != 0.0)
+                {
+                    DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(6, 3);
+                    interpolatedStringHandler.AppendFormatted<int>(this.Id);
+                    interpolatedStringHandler.AppendLiteral(" (");
+                    interpolatedStringHandler.AppendFormatted<float>(this.Unk04);
+                    interpolatedStringHandler.AppendLiteral(") = ");
+                    interpolatedStringHandler.AppendFormatted<T>(this.Value);
+                    return interpolatedStringHandler.ToStringAndClear();
+                }
+                DefaultInterpolatedStringHandler interpolatedStringHandler1 = new DefaultInterpolatedStringHandler(3, 2);
+                interpolatedStringHandler1.AppendFormatted<int>(this.Id);
+                interpolatedStringHandler1.AppendLiteral(" = ");
+                interpolatedStringHandler1.AppendFormatted<T>(this.Value);
+                return interpolatedStringHandler1.ToStringAndClear();
+            }
+
+            internal FieldValue(BinaryReaderEx br, GPARAM.GparamVersion version, T value)
+            {
+                this.Id = br.ReadInt32();
+                if (version >= GPARAM.GparamVersion.V5)
+                    this.Unk04 = br.ReadSingle();
+                this.Value = value;
+            }
+
+            internal void Write(BinaryWriterEx bw, GPARAM.GparamVersion version)
+            {
+                bw.WriteInt32(this.Id);
+                if (version < GPARAM.GparamVersion.V5)
+                    return;
+                bw.WriteSingle(this.Unk04);
+            }
+        }
+
+        public enum GparamVersion : uint
+        {
+            V3 = 3,
+            V5 = 5,
+            V6 = 6
+        }
+
+        internal struct BaseOffsets
+        {
+            public int ParamOffsets;
+            public int Params;
+            public int FieldOffsets;
+            public int Fields;
             public int Values;
-            public int ValueIDs;
-            public int Unk2;
-            public int Unk3;
-            public int Unk3ValueIDs;
-            public int CommentOffsetsOffsets;
+            public int ValueIds;
+            public int Unk30;
+            public int ParamExtras;
+            public int ParamExtraIds;
+            public int ParamCommentsOffsets;
             public int CommentOffsets;
             public int Comments;
         }
 
-        /// <summary>
-        /// A group of graphics params.
-        /// </summary>
-        public class Group
+        public class Param
         {
-            /// <summary>
-            /// Identifies the group.
-            /// </summary>
-            public string Name1;
+            public List<GPARAM.IField> Fields { get; set; }
 
-            /// <summary>
-            /// Identifies the group, but shorter? Not present in DS2.
-            /// </summary>
-            public string Name2;
+            public string Key { get; set; }
 
-            /// <summary>
-            /// Params in this group.
-            /// </summary>
-            public List<Param> Params;
+            public string Name { get; set; }
 
-            /// <summary>
-            /// Comments indicating the purpose of each entry in param values. Not present in DS2.
-            /// </summary>
-            public List<string> Comments;
+            public List<string> Comments { get; set; }
 
-            /// <summary>
-            /// Creates a new Group with no params or comments.
-            /// </summary>
-            public Group(string name1, string name2)
+            public Param()
             {
-                Name1 = name1;
-                Name2 = name2;
-                Params = new List<Param>();
-                Comments = new List<string>();
+                this.Fields = new List<GPARAM.IField>();
+                this.Key = "";
+                this.Name = "";
+                this.Comments = new List<string>();
             }
 
-            internal Group(BinaryReaderEx br, GPGame game, int index, Offsets offsets)
+            public override string ToString()
             {
-                int groupHeaderOffset = br.ReadInt32();
-                br.StepIn(offsets.GroupHeaders + groupHeaderOffset);
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(3, 2);
+                interpolatedStringHandler.AppendFormatted(this.Key);
+                interpolatedStringHandler.AppendLiteral(" [");
+                interpolatedStringHandler.AppendFormatted<int>(this.Fields.Count);
+                interpolatedStringHandler.AppendLiteral("]");
+                return interpolatedStringHandler.ToStringAndClear();
+            }
+
+            internal Param(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
+            {
+                int num1 = br.ReadInt32();
+                int num2 = br.ReadInt32();
+                this.Key = br.ReadUTF16();
+                this.Name = br.ReadUTF16();
+                int[] int32s = br.GetInt32s((long)(baseOffsets.FieldOffsets + num2), num1);
+                this.Fields = new List<GPARAM.IField>(num1);
+                foreach (int num3 in int32s)
                 {
-                    int paramCount = br.ReadInt32();
-                    int paramHeaderOffsetsOffset = br.ReadInt32();
-                    if (game == GPGame.DarkSouls2)
-                    {
-                        Name1 = br.ReadShiftJIS();
-                    }
-                    else
-                    {
-                        Name1 = br.ReadUTF16();
-                        Name2 = br.ReadUTF16();
-                    }
-
-                    br.StepIn(offsets.ParamHeaderOffsets + paramHeaderOffsetsOffset);
-                    {
-                        Params = new List<Param>(paramCount);
-                        for (int i = 0; i < paramCount; ++i)
-                            Params.Add(new Param(br, game, offsets));
-                    }
-                    br.StepOut();
-
-                }
-                br.StepOut();
-
-                Comments = new List<string>();
-            }
-
-            internal void WriteHeaderOffset(BinaryWriterEx bw, int groupIndex)
-            {
-                bw.ReserveInt32($"GroupHeaderOffset{groupIndex}");
-            }
-
-            internal void WriteHeader(BinaryWriterEx bw, GPGame game, int groupIndex, int groupHeadersOffset)
-            {
-                bw.FillInt32($"GroupHeaderOffset{groupIndex}", (int)bw.Position - groupHeadersOffset);
-                bw.WriteInt32(Params.Count);
-                bw.ReserveInt32($"ParamHeaderOffsetsOffset{groupIndex}");
-
-                if (game == GPGame.DarkSouls2)
-                {
-                    bw.WriteShiftJIS(Name1, true);
-                }
-                else
-                {
-                    bw.WriteUTF16(Name1, true);
-                    bw.WriteUTF16(Name2, true);
-                }
-
-                bw.Pad(4);
-            }
-
-            internal void WriteParamHeaderOffsets(BinaryWriterEx bw, int groupIndex, int paramHeaderOffsetsOffset)
-            {
-                bw.FillInt32($"ParamHeaderOffsetsOffset{groupIndex}", (int)bw.Position - paramHeaderOffsetsOffset);
-                for (int i = 0; i < Params.Count; ++i)
-                    Params[i].WriteParamHeaderOffset(bw, groupIndex, i);
-            }
-
-            internal void WriteParamHeaders(BinaryWriterEx bw, GPGame game, int groupindex, int paramHeadersOffset)
-            {
-                for (int i = 0; i < Params.Count; ++i)
-                    Params[i].WriteParamHeader(bw, game, groupindex, i, paramHeadersOffset);
-            }
-
-            internal void WriteValues(BinaryWriterEx bw, int groupindex, int valuesOffset)
-            {
-                for (int i = 0; i < Params.Count; ++i)
-                    Params[i].WriteValues(bw, groupindex, i, valuesOffset);
-            }
-
-            internal void WriteValueIDs(BinaryWriterEx bw, GPGame game, int groupIndex, int valueIDsOffset)
-            {
-                for (int i = 0; i < Params.Count; ++i)
-                    Params[i].WriteValueIDs(bw, game, groupIndex, i, valueIDsOffset);
-            }
-
-            internal void WriteCommentOffsetsOffset(BinaryWriterEx bw, int index)
-            {
-                bw.ReserveInt32($"CommentOffsetsOffset{index}");
-            }
-
-            internal void WriteCommentOffsets(BinaryWriterEx bw, int index, int commentOffsetsOffset)
-            {
-                bw.FillInt32($"CommentOffsetsOffset{index}", (int)bw.Position - commentOffsetsOffset);
-                for (int i = 0; i < Comments.Count; ++i)
-                {
-                    bw.ReserveInt32($"CommentOffset{index}:{i}");
+                    br.Position = (long)(baseOffsets.Fields + num3);
+                    this.Fields.Add(GPARAM.IField.Read(br, version, baseOffsets));
                 }
             }
 
-            internal void WriteComments(BinaryWriterEx bw, int index, int commentsOffset)
+            internal void Write(BinaryWriterEx bw, int index)
             {
-                for (int i = 0; i < Comments.Count; ++i)
+                bw.WriteInt32(this.Fields.Count);
+                BinaryWriterEx binaryWriterEx = bw;
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(25, 1);
+                interpolatedStringHandler.AppendLiteral("Param[");
+                interpolatedStringHandler.AppendFormatted<int>(index);
+                interpolatedStringHandler.AppendLiteral("]FieldOffsetsOffset");
+                string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                binaryWriterEx.ReserveInt32(stringAndClear);
+                bw.WriteUTF16(this.Key, true);
+                bw.WriteUTF16(this.Name, true);
+            }
+
+            internal void WriteFieldOffsets(
+              BinaryWriterEx bw,
+              GPARAM.BaseOffsets baseOffsets,
+              int paramIndex)
+            {
+                BinaryWriterEx binaryWriterEx1 = bw;
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(25, 1);
+                interpolatedStringHandler.AppendLiteral("Param[");
+                interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                interpolatedStringHandler.AppendLiteral("]FieldOffsetsOffset");
+                string stringAndClear1 = interpolatedStringHandler.ToStringAndClear();
+                int num = (int)bw.Position - baseOffsets.FieldOffsets;
+                binaryWriterEx1.FillInt32(stringAndClear1, num);
+                for (int index = 0; index < this.Fields.Count; ++index)
                 {
-                    bw.FillInt32($"CommentOffset{index}:{i}", (int)bw.Position - commentsOffset);
-                    bw.WriteUTF16(Comments[i], true);
+                    BinaryWriterEx binaryWriterEx2 = bw;
+                    interpolatedStringHandler = new DefaultInterpolatedStringHandler(20, 2);
+                    interpolatedStringHandler.AppendLiteral("Param[");
+                    interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                    interpolatedStringHandler.AppendLiteral("]Field[");
+                    interpolatedStringHandler.AppendFormatted<int>(index);
+                    interpolatedStringHandler.AppendLiteral("]Offset");
+                    string stringAndClear2 = interpolatedStringHandler.ToStringAndClear();
+                    binaryWriterEx2.ReserveInt32(stringAndClear2);
+                }
+            }
+
+            internal void WriteFields(BinaryWriterEx bw, GPARAM.GparamVersion version, GPARAM.BaseOffsets baseOffsets, int paramIndex)
+            {
+                for (int index = 0; index < this.Fields.Count; ++index)
+                {
+                    BinaryWriterEx binaryWriterEx = bw;
+                    DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(20, 2);
+                    interpolatedStringHandler.AppendLiteral("Param[");
+                    interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                    interpolatedStringHandler.AppendLiteral("]Field[");
+                    interpolatedStringHandler.AppendFormatted<int>(index);
+                    interpolatedStringHandler.AppendLiteral("]Offset");
+                    string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                    int num = (int)bw.Position - baseOffsets.Fields;
+                    binaryWriterEx.FillInt32(stringAndClear, num);
+                    ((GPARAM.IFieldWriteable)this.Fields[index]).Write(bw, version, paramIndex, index);
                     bw.Pad(4);
                 }
             }
 
-            /// <summary>
-            /// Returns the first param with a matching name, or null if not found.
-            /// </summary>
-            public Param this[string name1] => Params.Find(param => param.Name1 == name1);
+            internal void WriteValues(BinaryWriterEx bw, GPARAM.BaseOffsets baseOffsets, int paramIndex)
+            {
+                for (int index = 0; index < this.Fields.Count; ++index)
+                {
+                    ((GPARAM.IFieldWriteable)this.Fields[index]).WriteValues(bw, baseOffsets, paramIndex, index);
+                    bw.Pad(4);
+                }
+            }
 
-            /// <summary>
-            /// Returns the long and short names of the group.
-            /// </summary>
-            public override string ToString() => Name2 == null ? Name1 : $"{Name1} | {Name2}";
+            internal void WriteValueIds(
+              BinaryWriterEx bw,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets,
+              int paramIndex)
+            {
+                for (int index = 0; index < this.Fields.Count; ++index)
+                    ((GPARAM.IFieldWriteable)this.Fields[index]).WriteValueIds(bw, version, baseOffsets, paramIndex, index);
+            }
+
+            internal void WriteCommentOffsetsOffset(BinaryWriterEx bw, int paramIndex)
+            {
+                BinaryWriterEx binaryWriterEx = bw;
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(27, 1);
+                interpolatedStringHandler.AppendLiteral("Param[");
+                interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                interpolatedStringHandler.AppendLiteral("]CommentOffsetsOffset");
+                string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                binaryWriterEx.ReserveInt32(stringAndClear);
+            }
+
+            internal void WriteCommentOffsets(
+              BinaryWriterEx bw,
+              GPARAM.BaseOffsets baseOffsets,
+              int paramIndex)
+            {
+                BinaryWriterEx binaryWriterEx1 = bw;
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(27, 1);
+                interpolatedStringHandler.AppendLiteral("Param[");
+                interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                interpolatedStringHandler.AppendLiteral("]CommentOffsetsOffset");
+                string stringAndClear1 = interpolatedStringHandler.ToStringAndClear();
+                int num = (int)bw.Position - baseOffsets.CommentOffsets;
+                binaryWriterEx1.FillInt32(stringAndClear1, num);
+                for (int index = 0; index < this.Comments.Count; ++index)
+                {
+                    BinaryWriterEx binaryWriterEx2 = bw;
+                    interpolatedStringHandler = new DefaultInterpolatedStringHandler(22, 2);
+                    interpolatedStringHandler.AppendLiteral("Param[");
+                    interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                    interpolatedStringHandler.AppendLiteral("]Comment[");
+                    interpolatedStringHandler.AppendFormatted<int>(index);
+                    interpolatedStringHandler.AppendLiteral("]Offset");
+                    string stringAndClear2 = interpolatedStringHandler.ToStringAndClear();
+                    binaryWriterEx2.ReserveInt32(stringAndClear2);
+                }
+            }
+
+            internal void WriteComments(
+              BinaryWriterEx bw,
+              GPARAM.BaseOffsets baseOffsets,
+              int paramIndex)
+            {
+                for (int index = 0; index < this.Comments.Count; ++index)
+                {
+                    BinaryWriterEx binaryWriterEx = bw;
+                    DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(22, 2);
+                    interpolatedStringHandler.AppendLiteral("Param[");
+                    interpolatedStringHandler.AppendFormatted<int>(paramIndex);
+                    interpolatedStringHandler.AppendLiteral("]Comment[");
+                    interpolatedStringHandler.AppendFormatted<int>(index);
+                    interpolatedStringHandler.AppendLiteral("]Offset");
+                    string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                    int num = (int)bw.Position - baseOffsets.Comments;
+                    binaryWriterEx.FillInt32(stringAndClear, num);
+                    bw.WriteUTF16(this.Comments[index], true);
+                    bw.Pad(4);
+                }
+            }
         }
 
-        /// <summary>
-        /// Value types allowed in a param.
-        /// </summary>
-        public enum ParamType : byte
+        public class UnkParamExtra
         {
-            /// <summary>
-            /// Unknown; only ever appears as a single value.
-            /// </summary>
-            Byte = 1,
+            // group index
+            public int Unk00 { get; set; }
 
-            /// <summary>
-            /// One short.
-            /// </summary>
-            Short = 2,
+            public List<int> Ids { get; set; }
 
-            /// <summary>
-            /// One int.
-            /// </summary>
-            IntA = 3,
+            public int Unk0c { get; set; }
 
-            /// <summary>
-            /// One bool.
-            /// </summary>
-            BoolA = 5,
+            public UnkParamExtra() => this.Ids = new List<int>();
 
-            /// <summary>
-            /// One int.
-            /// </summary>
-            IntB = 7,
-
-            /// <summary>
-            /// One float.
-            /// </summary>
-            Float = 9,
-
-            /// <summary>
-            /// One bool.
-            /// </summary>
-            BoolB = 11, // 0x0B
-
-            /// <summary>
-            /// Two floats and 8 unused bytes.
-            /// </summary>
-            Float2 = 12, // 0x0C
-
-            /// <summary>
-            /// Three floats and 4 unused bytes.
-            /// </summary>
-            Float3 = 13, // 0x0D
-
-            /// <summary>
-            /// Four floats.
-            /// </summary>
-            Float4 = 14, // 0x0E
-
-            /// <summary>
-            /// Four bytes, used for BGRA.
-            /// </summary>
-            Byte4 = 15, // 0x0F
-        }
-
-        /// <summary>
-        /// A collection of values controlling the same parameter in different circumstances.
-        /// </summary>
-        public class Param
-        {
-            /// <summary>
-            /// Identifies the param specifically.
-            /// </summary>
-            public string Name1;
-
-            /// <summary>
-            /// Identifies the param generically. Not present in DS2.
-            /// </summary>
-            public string Name2;
-
-            /// <summary>
-            /// Type of values in this param.
-            /// </summary>
-            public ParamType Type;
-
-            /// <summary>
-            /// Values in this param.
-            /// </summary>
-            public List<object> Values;
-
-            /// <summary>
-            /// Unknown.
-            /// </summary>
-            public List<int> ValueIDs;
-
-            /// <summary>
-            /// Unknown.
-            /// </summary>
-            public List<float> TimeOfDay;
-
-            /// <summary>
-            /// Creates a new Param with no values.
-            /// </summary>
-            public Param(string name1, string name2, ParamType type)
+            internal UnkParamExtra(
+              BinaryReaderEx br,
+              GPARAM.GparamVersion version,
+              GPARAM.BaseOffsets baseOffsets)
             {
-                Name1 = name1;
-                Name2 = name2;
-                Type = type;
-                Values = new List<object>();
-                ValueIDs = new List<int>();
-                TimeOfDay = null;
-            }
-
-            internal Param(BinaryReaderEx br, GPGame game, Offsets offsets)
-            {
-                int paramHeaderOffset = br.ReadInt32();
-                br.StepIn(offsets.ParamHeaders + paramHeaderOffset);
-                {
-                    int valuesOffset = br.ReadInt32();
-                    int valueIDsOffset = br.ReadInt32();
-
-                    Type = br.ReadEnum8<ParamType>();
-                    byte valueCount = br.ReadByte();
-                    br.AssertByte(0);
-                    br.AssertByte(0);
-
-                    if (Type == ParamType.Byte && valueCount > 1)
-                        throw new Exception("Notify TKGP so he can look into this, please.");
-
-                    if (game == GPGame.DarkSouls2)
-                    {
-                        Name1 = br.ReadShiftJIS();
-                    }
-                    else
-                    {
-                        Name1 = br.ReadUTF16();
-                        Name2 = br.ReadUTF16();
-                    }
-
-                    br.StepIn(offsets.Values + valuesOffset);
-                    {
-                        Values = new List<object>(valueCount);
-                        for (int i = 0; i < valueCount; ++i)
-                        {
-                            switch (Type)
-                            {
-                                case ParamType.Byte:
-                                    Values.Add(br.ReadByte());
-                                    break;
-                                case ParamType.Short:
-                                    Values.Add(br.ReadInt16());
-                                    break;
-                                case ParamType.IntA:
-                                    Values.Add(br.ReadInt32());
-                                    break;
-                                case ParamType.BoolA:
-                                    Values.Add(br.ReadBoolean());
-                                    break;
-                                case ParamType.IntB:
-                                    Values.Add(br.ReadInt32());
-                                    break;
-                                case ParamType.Float:
-                                    Values.Add(br.ReadSingle());
-                                    break;
-                                case ParamType.BoolB:
-                                    Values.Add(br.ReadBoolean());
-                                    break;
-                                case ParamType.Float2:
-                                    Values.Add(br.ReadVector2());
-                                    br.AssertInt32(0);
-                                    br.AssertInt32(0);
-                                    break;
-                                case ParamType.Float3:
-                                    Values.Add(br.ReadVector3());
-                                    br.AssertInt32(0);
-                                    break;
-                                case ParamType.Float4:
-                                    Values.Add(br.ReadVector4());
-                                    break;
-                                case ParamType.Byte4:
-                                    Values.Add(br.ReadBytes(4));
-                                    break;
-                            }
-                        }
-                    }
-                    br.StepOut();
-
-                    br.StepIn(offsets.ValueIDs + valueIDsOffset);
-                    {
-                        ValueIDs = new List<int>(valueCount);
-                        TimeOfDay = game != GPGame.Sekiro ? null : new List<float>(valueCount);
-                        for (int i = 0; i < valueCount; ++i)
-                        {
-                            ValueIDs.Add(br.ReadInt32());
-                            if (game == GPGame.Sekiro)
-                                TimeOfDay.Add(br.ReadSingle());
-                        }
-
-                    }
-                    br.StepOut();
-                }
-                br.StepOut();
-            }
-
-            internal void WriteParamHeaderOffset(BinaryWriterEx bw, int groupIndex, int paramIndex)
-            {
-                bw.ReserveInt32($"ParamHeaderOffset{groupIndex}:{paramIndex}");
-            }
-
-            internal void WriteParamHeader(BinaryWriterEx bw, GPGame game, int groupIndex, int paramIndex, int paramHeadersOffset)
-            {
-                bw.FillInt32($"ParamHeaderOffset{groupIndex}:{paramIndex}", (int)bw.Position - paramHeadersOffset);
-                bw.ReserveInt32($"ValuesOffset{groupIndex}:{paramIndex}");
-                bw.ReserveInt32($"ValueIDsOffset{groupIndex}:{paramIndex}");
-                bw.WriteByte((byte)Type);
-                bw.WriteByte((byte)Values.Count);
-                bw.WriteByte(0);
-                bw.WriteByte(0);
-
-                if (game == GPGame.DarkSouls2)
-                {
-                    bw.WriteShiftJIS(Name1, true);
-                }
-                else
-                {
-                    bw.WriteUTF16(Name1, true);
-                    bw.WriteUTF16(Name2, true);
-                }
-
-                bw.Pad(4);
-            }
-
-            internal void WriteValues(BinaryWriterEx bw, int groupIndex, int paramIndex, int valuesOffset)
-            {
-                bw.FillInt32($"ValuesOffset{groupIndex}:{paramIndex}", (int)bw.Position - valuesOffset);
-                for (int i = 0; i < Values.Count; ++i)
-                {
-                    object value = Values[i];
-                    switch (Type)
-                    {
-                        case ParamType.Byte:
-                            bw.WriteInt32((byte)value);
-                            break;
-                        case ParamType.Short:
-                            bw.WriteInt16((short)value);
-                            break;
-                        case ParamType.IntA:
-                            bw.WriteInt32((int)value);
-                            break;
-                        case ParamType.BoolA:
-                            bw.WriteBoolean((bool)value);
-                            break;
-                        case ParamType.IntB:
-                            bw.WriteInt32((int)value);
-                            break;
-                        case ParamType.Float:
-                            bw.WriteSingle((float)value);
-                            break;
-                        case ParamType.BoolB:
-                            bw.WriteBoolean((bool)value);
-                            break;
-                        case ParamType.Float2:
-                            bw.WriteVector2((Vector2)value);
-                            bw.WriteInt32(0);
-                            bw.WriteInt32(0);
-                            break;
-                        case ParamType.Float3:
-                            bw.WriteVector3((Vector3)value);
-                            bw.WriteInt32(0);
-                            break;
-                        case ParamType.Float4:
-                            bw.WriteVector4((Vector4)value);
-                            break;
-                        case ParamType.Byte4:
-                            bw.WriteBytes((byte[])value);
-                            break;
-                    }
-                }
-
-                bw.Pad(4);
-            }
-
-            internal void WriteValueIDs(BinaryWriterEx bw, GPGame game, int groupIndex, int paramIndex, int valueIDsOffset)
-            {
-                bw.FillInt32($"ValueIDsOffset{groupIndex}:{paramIndex}", (int)bw.Position - valueIDsOffset);
-                for (int i = 0; i < ValueIDs.Count; ++i)
-                {
-                    bw.WriteInt32(ValueIDs[i]);
-                    if (game == GPGame.Sekiro)
-                        bw.WriteSingle(TimeOfDay[i]);
-                }
-            }
-
-            /// <summary>
-            /// Returns the value in this param at the given index.
-            /// </summary>
-            public object this[int index]
-            {
-                get => Values[index];
-                set => Values[index] = value;
-            }
-
-            /// <summary>
-            /// Returns the specific and generic names of the param.
-            /// </summary>
-            public override string ToString() => Name2 == null ? Name1 : $"{Name1} | {Name2}";
-        }
-
-        /// <summary>
-        /// Unknown.
-        /// </summary>
-        public class Unk3
-        {
-            /// <summary>
-            /// Index of a group.
-            /// </summary>
-            public int GroupIndex;
-
-            /// <summary>
-            /// Unknown; matches value IDs in the group.
-            /// </summary>
-            public List<int> ValueIDs;
-
-            /// <summary>
-            /// Unknown; only present in Sekiro.
-            /// </summary>
-            public int Unk0C;
-
-            /// <summary>
-            /// Creates a new Unk3 with no value IDs.
-            /// </summary>
-            public Unk3(int groupIndex)
-            {
-                GroupIndex = groupIndex;
-                ValueIDs = new List<int>();
-            }
-
-            internal Unk3(BinaryReaderEx br, GPGame game, Offsets offsets)
-            {
-                GroupIndex = br.ReadInt32();
+                this.Unk00 = br.ReadInt32();
                 int count = br.ReadInt32();
-                uint valueIDsOffset = br.ReadUInt32();
-                if (game == GPGame.Sekiro)
-                    Unk0C = br.ReadInt32();
-
-                ValueIDs = new List<int>(br.GetInt32s(offsets.Unk3ValueIDs + valueIDsOffset, count));
+                int num = br.ReadInt32();
+                if (version >= GPARAM.GparamVersion.V5)
+                    this.Unk0c = br.ReadInt32();
+                this.Ids = Enumerable.ToList<int>((IEnumerable<int>)br.GetInt32s((long)(baseOffsets.ParamExtraIds + num), count));
             }
 
-            internal void WriteHeader(BinaryWriterEx bw, GPGame game, int index)
+            internal void Write(BinaryWriterEx bw, GPARAM.GparamVersion version, int index)
             {
-                bw.WriteInt32(GroupIndex);
-                bw.WriteInt32(ValueIDs.Count);
-                bw.ReserveInt32($"Unk3ValueIDsOffset{index}");
-                if (game == GPGame.Sekiro)
-                    bw.WriteInt32(Unk0C);
+                bw.WriteInt32(this.Unk00);
+                bw.WriteInt32(this.Ids.Count);
+                BinaryWriterEx binaryWriterEx = bw;
+                DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(21, 1);
+                interpolatedStringHandler.AppendLiteral("ParamExtra[");
+                interpolatedStringHandler.AppendFormatted<int>(index);
+                interpolatedStringHandler.AppendLiteral("]IdsOffset");
+                string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                binaryWriterEx.ReserveInt32(stringAndClear);
+                if (version < GPARAM.GparamVersion.V5)
+                    return;
+                bw.WriteInt32(this.Unk0c);
             }
 
-            internal void WriteValues(BinaryWriterEx bw, GPGame game, int index, int unk3ValueIDsOffset)
+            internal void WriteIds(BinaryWriterEx bw, GPARAM.BaseOffsets baseOffsets, int index)
             {
-                if (ValueIDs.Count == 0)
+                if (this.Ids.Count == 0)
                 {
-                    bw.FillInt32($"Unk3ValueIDsOffset{index}", 0);
+                    BinaryWriterEx binaryWriterEx = bw;
+                    DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(21, 1);
+                    interpolatedStringHandler.AppendLiteral("ParamExtra[");
+                    interpolatedStringHandler.AppendFormatted<int>(index);
+                    interpolatedStringHandler.AppendLiteral("]IdsOffset");
+                    string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                    binaryWriterEx.FillInt32(stringAndClear, 0);
                 }
                 else
                 {
-                    bw.FillInt32($"Unk3ValueIDsOffset{index}", (int)bw.Position - unk3ValueIDsOffset);
-                    bw.WriteInt32s(ValueIDs);
+                    BinaryWriterEx binaryWriterEx = bw;
+                    DefaultInterpolatedStringHandler interpolatedStringHandler = new DefaultInterpolatedStringHandler(21, 1);
+                    interpolatedStringHandler.AppendLiteral("ParamExtra[");
+                    interpolatedStringHandler.AppendFormatted<int>(index);
+                    interpolatedStringHandler.AppendLiteral("]IdsOffset");
+                    string stringAndClear = interpolatedStringHandler.ToStringAndClear();
+                    int num = (int)bw.Position - baseOffsets.ParamExtraIds;
+                    binaryWriterEx.FillInt32(stringAndClear, num);
+                    bw.WriteInt32s((IList<int>)this.Ids);
                 }
             }
         }
