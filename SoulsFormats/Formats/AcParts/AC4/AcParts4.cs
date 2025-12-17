@@ -476,5 +476,78 @@ namespace SoulsFormats
             parts.AddRange(LegLowerStabilizers);
             return parts;
         }
+
+        /// <summary>
+        /// Enumerate all the parts in this AcParts.
+        /// </summary>
+        /// <returns>An enumeration of all the parts in this AcParts.</returns>
+        public IEnumerable<IPart> EnumerateParts()
+        {
+            foreach (var part in Heads)
+                yield return part;
+
+            foreach (var part in Cores)
+                yield return part;
+
+            foreach (var part in Arms)
+                yield return part;
+
+            foreach (var part in Legs)
+                yield return part;
+
+            foreach (var part in FCSs)
+                yield return part;
+
+            foreach (var part in Generators)
+                yield return part;
+
+            foreach (var part in MainBoosters)
+                yield return part;
+
+            foreach (var part in BackBoosters)
+                yield return part;
+
+            foreach (var part in SideBoosters)
+                yield return part;
+
+            foreach (var part in OveredBoosters)
+                yield return part;
+
+            foreach (var part in ArmUnits)
+                yield return part;
+
+            foreach (var part in BackUnits)
+                yield return part;
+
+            foreach (var part in ShoulderUnits)
+                yield return part;
+
+            foreach (var part in HeadTopStabilizers)
+                yield return part;
+
+            foreach (var part in HeadSideStabilizers)
+                yield return part;
+
+            foreach (var part in CoreUpperSideStabilizers)
+                yield return part;
+
+            foreach (var part in CoreLowerSideStabilizers)
+                yield return part;
+
+            foreach (var part in ArmStabilizers)
+                yield return part;
+
+            foreach (var part in LegBackStabilizers)
+                yield return part;
+
+            foreach (var part in LegUpperStabilizers)
+                yield return part;
+
+            foreach (var part in LegMiddleStabilizers)
+                yield return part;
+
+            foreach (var part in LegLowerStabilizers)
+                yield return part;
+        }
     }
 }

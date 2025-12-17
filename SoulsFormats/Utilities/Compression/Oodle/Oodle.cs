@@ -6,23 +6,48 @@ using System.Runtime.InteropServices;
 
 namespace SoulsFormats
 {
+    public enum OodleVersion
+    {
+        Oodle9,
+        Oodle8,
+        Oodle6
+    }
     /// <summary>
     /// Class for handling the Oodle compression library included with FromSoftware games.
     /// </summary>
     public class Oodle
     {
+        public static Dictionary<OodleVersion, IntPtr> OodlePtrs = new Dictionary<OodleVersion, IntPtr>
+        {
+            {OodleVersion.Oodle9, IntPtr.Zero},
+            {OodleVersion.Oodle8, IntPtr.Zero},
+            {OodleVersion.Oodle6, IntPtr.Zero},
+        };
         /// <summary>
         /// Pointer to Oodle version 9, provided by Nightreign.
         /// </summary>
-        public static IntPtr Oodle9Ptr = IntPtr.Zero;
+        public static IntPtr Oodle9Ptr
+        {
+            get => OodlePtrs[OodleVersion.Oodle9];
+            set => OodlePtrs[OodleVersion.Oodle9] = value;
+        }
+
         /// <summary>
         /// Pointer to Oodle version 8, provided by Armored Core 6.
         /// </summary>
-        public static IntPtr Oodle8Ptr = IntPtr.Zero;
+        public static IntPtr Oodle8Ptr
+        {
+            get => OodlePtrs[OodleVersion.Oodle8];
+            set => OodlePtrs[OodleVersion.Oodle8] = value;
+        }
         /// <summary>
         /// Pointer to Oodle version 6, provided by ELDEN RING and Sekiro.
         /// </summary>
-        public static IntPtr Oodle6Ptr = IntPtr.Zero;
+        public static IntPtr Oodle6Ptr
+        {
+            get => OodlePtrs[OodleVersion.Oodle6];
+            set => OodlePtrs[OodleVersion.Oodle6] = value;
+        }
 
         public static IOodleCompressor GetOodleCompressor()
         {
@@ -38,52 +63,80 @@ namespace SoulsFormats
             {
                 return new Oodle26();
             }
-            
-            IntPtr oodle9Ptr = NativeLibrary.LoadLibrary("oo2core_9_win64");
-            if (oodle9Ptr != IntPtr.Zero)
-            {
-                Oodle9Ptr = oodle9Ptr;
-                return new Oodle29();
-            }
-            string oodle9ErrorMessage = NativeLibrary.GetLastError();
 
-            IntPtr oodle8Ptr = NativeLibrary.LoadLibrary("oo2core_8_win64");
-            if (oodle8Ptr != IntPtr.Zero)
-            {
-                Oodle8Ptr = oodle8Ptr;
-                return new Oodle28();
-            }
-            string oodle8ErrorMessage = NativeLibrary.GetLastError();
+            string oodle9ErrorMessage, oodle8ErrorMessage, oodle6ErrorMessage;
 
-            IntPtr oodle6Ptr = NativeLibrary.LoadLibrary("oo2core_6_win64");
-            if (oodle6Ptr != IntPtr.Zero)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                Oodle6Ptr = oodle6Ptr;
-                return new Oodle26();
-            }
-            string oodle6ErrorMessage = NativeLibrary.GetLastError();
+                IntPtr oodle9Ptr = NativeLibrary.LoadLibrary("oo2core_9_win64");
+                if (oodle9Ptr != IntPtr.Zero)
+                {
+                    Oodle9Ptr = oodle9Ptr;
+                    return new Oodle29();
+                }
+                oodle9ErrorMessage = NativeLibrary.GetLastError();
 
-            throw new NoOodleFoundException($"Could not find a supported version of oo2core.\n"
-                                            + $"Please copy oo2core_9_win64.dll, oo2core_8_win64.dll or oo2core_6_win64.dll into the program directory\n"
-                                            + $"Last Error Oodle 9: {oodle6ErrorMessage}\n"
+                IntPtr oodle8Ptr = NativeLibrary.LoadLibrary("oo2core_8_win64");
+                if (oodle8Ptr != IntPtr.Zero)
+                {
+                    Oodle8Ptr = oodle8Ptr;
+                    return new Oodle28();
+                }
+                oodle8ErrorMessage = NativeLibrary.GetLastError();
+
+                IntPtr oodle6Ptr = NativeLibrary.LoadLibrary("oo2core_6_win64");
+                if (oodle6Ptr != IntPtr.Zero)
+                {
+                    Oodle6Ptr = oodle6Ptr;
+                    return new Oodle26();
+                }
+                oodle6ErrorMessage = NativeLibrary.GetLastError();
+            }
+            else
+            {
+                IntPtr oodle9Ptr = NativeLibrary.LoadLibrary("liboo2corelinux64.so.9");
+                if (oodle9Ptr != IntPtr.Zero)
+                {
+                    Oodle9Ptr = oodle9Ptr;
+                    return new Oodle29();
+                }
+                oodle9ErrorMessage = NativeLibrary.GetLastError();
+
+                IntPtr oodle8Ptr = NativeLibrary.LoadLibrary("liboo2corelinux64.so.8");
+                if (oodle8Ptr != IntPtr.Zero)
+                {
+                    Oodle8Ptr = oodle8Ptr;
+                    return new Oodle28();
+                }
+                oodle8ErrorMessage = NativeLibrary.GetLastError();
+
+                IntPtr oodle6Ptr = NativeLibrary.LoadLibrary("liboo2corelinux64.so.6");
+                if (oodle6Ptr != IntPtr.Zero)
+                {
+                    Oodle6Ptr = oodle6Ptr;
+                    return new Oodle26();
+                }
+                oodle6ErrorMessage = NativeLibrary.GetLastError();
+            }
+
+            var message = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? "Please copy oo2core_9_win64.dll, oo2core_8_win64.dll or oo2core_6_win64.dll into the program directory\n"
+                : "Please copy liboo2corelinux64.so.9, liboo2corelinux64.so.8 or liboo2corelinux64.so.6 into the program directory\n";
+
+            throw new NoOodleFoundException($"Could not find a supported version of the Oodle compression library.\n"
+                                            + message
+                                            + $"Last Error Oodle 9: {oodle9ErrorMessage}\n"
                                             + $"Last Error Oodle 8: {oodle8ErrorMessage}\n"
-                                            + $"Last Error Oodle 6: {oodle9ErrorMessage}\n"
+                                            + $"Last Error Oodle 6: {oodle6ErrorMessage}\n"
             );
         }
 
         public IntPtr GetOodlePtr()
         {
-            if (Oodle9Ptr != IntPtr.Zero)
+            foreach (IntPtr oodlePtr in OodlePtrs.Values)
             {
-                return Oodle9Ptr;
-            }
-            if (Oodle8Ptr != IntPtr.Zero)
-            {
-                return Oodle8Ptr;
-            }
-            if (Oodle6Ptr != IntPtr.Zero)
-            {
-                return Oodle6Ptr;
+                if (oodlePtr != IntPtr.Zero)
+                    return oodlePtr;
             }
 
             return IntPtr.Zero;
@@ -113,7 +166,7 @@ namespace SoulsFormats
             {
                 errors.Add(ex.Message);
             }
-            
+
             try
             {
                 Oodle28.OodleLZ_CompressOptions_GetDefault();
@@ -124,7 +177,7 @@ namespace SoulsFormats
             {
                 errors.Add(ex.Message);
             }
-            
+
             try
             {
                 Oodle29.OodleLZ_CompressOptions_GetDefault();
@@ -133,11 +186,15 @@ namespace SoulsFormats
             }
             catch (EntryPointNotFoundException ex)
             {
-                throw new NoOodleFoundException(
-                    $"Could not find a supported version of oo2core.\n"
-                    + $"Please copy oo2core_9_win64.dll, oo2core_8_win64.dll or oo2core_6_win64.dll into the program directory\n"
-                    + $"{String.Join("\n", errors)}\n"
-                    + $"{ex.Message}"
+
+                var message = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "Please copy oo2core_9_win64.dll, oo2core_8_win64.dll or oo2core_6_win64.dll into the program directory\n"
+                    : "Please copy liboo2corelinux64.so.9, liboo2corelinux64.so.8 or liboo2corelinux64.so.6 into the program directory\n";
+
+                throw new NoOodleFoundException($"Could not find a supported version of the Oodle compression library.\n"
+                                                + message
+                                                + $"{String.Join("\n", errors)}\n"
+                                                + $"{ex.Message}"
                 );
             }
         }

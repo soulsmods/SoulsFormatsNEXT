@@ -588,7 +588,7 @@ namespace SoulsFormats
                     }
                     else if (member.Semantic == LayoutSemantic.UV)
                     {
-                        Vector3 uv = uvQueue.Dequeue() * uvFactor;
+                        Vector3 uv = uvQueue.Dequeue();
                         if (member.Type == LayoutType.Float2)
                         {
                             bw.WriteSingle(uv.X);
@@ -603,64 +603,68 @@ namespace SoulsFormats
                             bw.WriteSingle(uv.X);
                             bw.WriteSingle(uv.Y);
 
-                            uv = uvQueue.Dequeue() * uvFactor;
+                            uv = uvQueue.Dequeue();
                             bw.WriteSingle(uv.X);
                             bw.WriteSingle(uv.Y);
                         }
-                        else if (member.Type == LayoutType.Color)
-                        {
-                            bw.WriteInt16((short)Math.Round(uv.X));
-                            bw.WriteInt16((short)Math.Round(uv.Y));
-                        }
-                        else if (member.Type == LayoutType.UByte4)
-                        {
-                            bw.WriteInt16((short)Math.Round(uv.X));
-                            bw.WriteInt16((short)Math.Round(uv.Y));
-                        }
-                        else if (member.Type == LayoutType.Byte4)
-                        {
-                            bw.WriteInt16((short)Math.Round(uv.X));
-                            bw.WriteInt16((short)Math.Round(uv.Y));
-                        }
                         else if (member.Type == LayoutType.UByte4Norm)
                         {
-                            bw.WriteByte((byte)Math.Round(uv.X / uvFactor * 255f));
-                            bw.WriteByte((byte)Math.Round(uv.Y / uvFactor * 255f));
+                            bw.WriteByte((byte)Math.Round(uv.X * 255f));
+                            bw.WriteByte((byte)Math.Round(uv.Y * 255f));
 
-                            uv = uvQueue.Dequeue() * uvFactor;
-                            bw.WriteByte((byte)Math.Round(uv.X / uvFactor * 255f));
-                            bw.WriteByte((byte)Math.Round(uv.Y / uvFactor * 255f));
-                        }
-                        else if (member.Type == LayoutType.Short2)
-                        {
-                            bw.WriteInt16((short)Math.Round(uv.X));
-                            bw.WriteInt16((short)Math.Round(uv.Y));
-                        }
-                        else if (member.Type == LayoutType.Half2)
-                        {
-                            bw.WriteInt16((short)Math.Round(uv.X));
-                            bw.WriteInt16((short)Math.Round(uv.Y));
-                        }
-                        else if (member.Type == LayoutType.Short4)
-                        {
-                            bw.WriteInt16((short)Math.Round(uv.X));
-                            bw.WriteInt16((short)Math.Round(uv.Y));
-
-                            uv = uvQueue.Dequeue() * uvFactor;
-                            bw.WriteInt16((short)Math.Round(uv.X));
-                            bw.WriteInt16((short)Math.Round(uv.Y));
-                        }
-                        else if (member.Type == LayoutType.Half4)
-                        {
-                            bw.WriteInt16((short)Math.Round(uv.X));
-                            bw.WriteInt16((short)Math.Round(uv.Y));
-
-                            uv = uvQueue.Dequeue() * uvFactor;
-                            bw.WriteInt16((short)Math.Round(uv.X));
-                            bw.WriteInt16((short)Math.Round(uv.Y));
+                            uv = uvQueue.Dequeue();
+                            bw.WriteByte((byte)Math.Round(uv.X * 255f));
+                            bw.WriteByte((byte)Math.Round(uv.Y * 255f));
                         }
                         else
-                            throw new NotImplementedException($"Write not implemented for {member.Type} {member.Semantic}.");
+                        {
+                            uv *= uvFactor;
+                            if (member.Type == LayoutType.Color)
+                            {
+                                bw.WriteInt16((short)Math.Round(uv.X));
+                                bw.WriteInt16((short)Math.Round(uv.Y));
+                            }
+                            else if (member.Type == LayoutType.UByte4)
+                            {
+                                bw.WriteInt16((short)Math.Round(uv.X));
+                                bw.WriteInt16((short)Math.Round(uv.Y));
+                            }
+                            else if (member.Type == LayoutType.Byte4)
+                            {
+                                bw.WriteInt16((short)Math.Round(uv.X));
+                                bw.WriteInt16((short)Math.Round(uv.Y));
+                            }
+                            else if (member.Type == LayoutType.Short2)
+                            {
+                                bw.WriteInt16((short)Math.Round(uv.X));
+                                bw.WriteInt16((short)Math.Round(uv.Y));
+                            }
+                            else if (member.Type == LayoutType.Half2)
+                            {
+                                bw.WriteInt16((short)Math.Round(uv.X));
+                                bw.WriteInt16((short)Math.Round(uv.Y));
+                            }
+                            else if (member.Type == LayoutType.Short4)
+                            {
+                                bw.WriteInt16((short)Math.Round(uv.X));
+                                bw.WriteInt16((short)Math.Round(uv.Y));
+
+                                uv = uvQueue.Dequeue() * uvFactor;
+                                bw.WriteInt16((short)Math.Round(uv.X));
+                                bw.WriteInt16((short)Math.Round(uv.Y));
+                            }
+                            else if (member.Type == LayoutType.Half4)
+                            {
+                                bw.WriteInt16((short)Math.Round(uv.X));
+                                bw.WriteInt16((short)Math.Round(uv.Y));
+
+                                uv = uvQueue.Dequeue() * uvFactor;
+                                bw.WriteInt16((short)Math.Round(uv.X));
+                                bw.WriteInt16((short)Math.Round(uv.Y));
+                            }
+                            else
+                                throw new NotImplementedException($"Write not implemented for {member.Type} {member.Semantic}.");
+                        }
                     }
                     else if (member.Semantic == LayoutSemantic.Tangent)
                     {

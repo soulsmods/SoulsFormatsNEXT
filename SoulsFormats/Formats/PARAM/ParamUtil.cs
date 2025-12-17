@@ -296,7 +296,21 @@ namespace SoulsFormats
             switch (field.DisplayType)
             {
                 case DefType.s8: return Convert.ToSByte(field.Default);
-                case DefType.u8: return Convert.ToByte(field.Default);
+                case DefType.u8:
+                    byte byteDefault = Convert.ToByte(field.Default);
+                    if (field.ArrayLength > 1)
+                    {
+                        // Some dummy fields use this type
+                        var array = new byte[field.ArrayLength];
+                        for (int i = 0; i < field.ArrayLength; i++)
+                        {
+                            array[i] = byteDefault;
+                        }
+
+                        return array;
+                    }
+
+                    return byteDefault;
                 case DefType.s16: return Convert.ToInt16(field.Default);
                 case DefType.u16: return Convert.ToUInt16(field.Default);
                 case DefType.s32: return Convert.ToInt32(field.Default);

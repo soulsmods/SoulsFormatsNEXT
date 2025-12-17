@@ -415,8 +415,8 @@ namespace SoulsFormats
                 public FXField EmitterDegree;
                 public FXField EmitterSpread;
                 public FXField EmitterSpeed;
-                public float EmitterDistributionMode;
-                public int Unk3;
+                public float EmitterDistribution;
+                public int EmitterDistributionMode;
                 public int EmitterDirectionMode;
 
                 internal override void InnerRead(BinaryReaderEx br, FxrEnvironment env)
@@ -425,8 +425,8 @@ namespace SoulsFormats
                     EmitterDegree = FXField.Read(br, env);
                     EmitterSpread = FXField.Read(br, env);
                     EmitterSpeed = FXField.Read(br, env);
-                    EmitterDistributionMode = br.ReadSingle();
-                    Unk3 = br.ReadInt32();
+                    EmitterDistribution = br.ReadSingle();
+                    EmitterDistributionMode = br.ReadInt32();
                     EmitterDirectionMode = ReadFXR1Varint(br);
                 }
 
@@ -436,8 +436,8 @@ namespace SoulsFormats
                     WriteField(EmitterDegree);
                     WriteField(EmitterSpread);
                     WriteField(EmitterSpeed);
-                    bw.WriteSingle(EmitterDistributionMode);
-                    bw.WriteInt32(Unk3);
+                    bw.WriteSingle(EmitterDistribution);
+                    bw.WriteInt32(EmitterDistributionMode);
                     WriteFXR1Varint(bw, EmitterDirectionMode);
                 }
             }
@@ -1529,33 +1529,33 @@ namespace SoulsFormats
             {
                 public override int Type => 84;
 
-                public FXField Unk1_1;
-                public FXField Unk1_2;
-                public FXField Unk1_3;
-                public float Unk2;
-                public FXField Unk3;
-                public int Unk4;
+                public FXField Gravity;
+                public FXField MovementFalloff;
+                public FXField MovementFalloffMult;
+                public float PhaseShift;
+                public FXField TurnAngle;
+                public int TurnInterval;
 
                 internal override void InnerRead(BinaryReaderEx br, FxrEnvironment env)
                 {
-                    Unk1_1 = FXField.Read(br, env);
-                    Unk1_2 = FXField.Read(br, env);
-                    Unk1_3 = FXField.Read(br, env);
+                    Gravity = FXField.Read(br, env);
+                    MovementFalloff = FXField.Read(br, env);
+                    MovementFalloffMult = FXField.Read(br, env);
                     br.AssertInt32(0);
-                    Unk2 = br.ReadSingle();
-                    Unk3 = FXField.Read(br, env);
-                    Unk4 = ReadFXR1Varint(br);
+                    PhaseShift = br.ReadSingle();
+                    TurnAngle = FXField.Read(br, env);
+                    TurnInterval = ReadFXR1Varint(br);
                 }
 
                 internal override void InnerWrite(BinaryWriterEx bw, FxrEnvironment env)
                 {
-                    WriteField(Unk1_1);
-                    WriteField(Unk1_2);
-                    WriteField(Unk1_3);
+                    WriteField(Gravity);
+                    WriteField(MovementFalloff);
+                    WriteField(MovementFalloffMult);
                     bw.WriteInt32(0);
-                    bw.WriteSingle(Unk2);
-                    WriteField(Unk3);
-                    WriteFXR1Varint(bw, Unk4);
+                    bw.WriteSingle(PhaseShift);
+                    WriteField(TurnAngle);
+                    WriteFXR1Varint(bw, TurnInterval);
                 }
             }
 
@@ -1563,36 +1563,36 @@ namespace SoulsFormats
             {
                 public override int Type => 105;
 
-                public FXField Unk1_1;
-                public FXField Unk1_2;
-                public FXField Unk1_3;
-                public float Unk2;
-                public FXField Unk3;
-                public int Unk4;
-                public FXField Unk5;
+                public FXField Gravity;
+                public FXField MovementFalloff;
+                public FXField MovementFalloffMult;
+                public float PhaseShift;
+                public FXField TurnAngle;
+                public int TurnInterval;
+                public FXField FollowRate;
 
                 internal override void InnerRead(BinaryReaderEx br, FxrEnvironment env)
                 {
-                    Unk1_1 = FXField.Read(br, env);
-                    Unk1_2 = FXField.Read(br, env);
-                    Unk1_3 = FXField.Read(br, env);
+                    Gravity = FXField.Read(br, env);
+                    MovementFalloff = FXField.Read(br, env);
+                    MovementFalloffMult = FXField.Read(br, env);
                     br.AssertInt32(0);
-                    Unk2 = br.ReadSingle();
-                    Unk3 = FXField.Read(br, env);
-                    Unk4 = ReadFXR1Varint(br);
-                    Unk5 = FXField.Read(br, env);
+                    PhaseShift = br.ReadSingle();
+                    TurnAngle = FXField.Read(br, env);
+                    TurnInterval = ReadFXR1Varint(br);
+                    FollowRate = FXField.Read(br, env);
                 }
 
                 internal override void InnerWrite(BinaryWriterEx bw, FxrEnvironment env)
                 {
-                    WriteField(Unk1_1);
-                    WriteField(Unk1_2);
-                    WriteField(Unk1_3);
+                    WriteField(Gravity);
+                    WriteField(MovementFalloff);
+                    WriteField(MovementFalloffMult);
                     bw.WriteInt32(0);
-                    bw.WriteSingle(Unk2);
-                    WriteField(Unk3);
-                    WriteFXR1Varint(bw, Unk4);
-                    WriteField(Unk5);
+                    bw.WriteSingle(PhaseShift);
+                    WriteField(TurnAngle);
+                    WriteFXR1Varint(bw, TurnInterval);
+                    WriteField(FollowRate);
                 }
             }
 

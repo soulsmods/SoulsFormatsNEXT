@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace SoulsFormats
@@ -31,6 +32,10 @@ namespace SoulsFormats
             }
             return LoadLibraryW(path);
         }
+
+        [DllImport("kernel32.dll", SetLastError=true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool FreeLibrary(IntPtr hModule);
     }
 
     /// <summary>
@@ -43,6 +48,9 @@ namespace SoulsFormats
 
         [DllImport("libdl.so.2")]
         static extern IntPtr dlerror();
+
+        [DllImport("libdl.so.2")]
+        static extern int dlclose(IntPtr handle);
 
         /// <summary>
         /// Returns a string describing the last error that occurred during dynamic linking.
@@ -66,13 +74,18 @@ namespace SoulsFormats
         ///     RTLD_LAZY = 1, RTLD_NOW = 2, RTLD_GLOBAL = 256, RTLD_LOCAL = 0
         /// </param>
         /// <returns>A handle to the loaded library, or IntPtr.Zero if the library could not be loaded.</returns>
-        public static IntPtr LoadLibrary(string filename, int flag = 1)
+        public static IntPtr LoadLibrary(string path, int flag = 1)
         {
-            if (!filename.EndsWith(".so"))
+            if (!Path.GetFileName(path).ToLower().Contains(".so"))
             {
-                filename = "lib" + filename + ".so";
+                path = Path.Combine(Path.GetDirectoryName(path) ?? "", "lib" + Path.GetFileNameWithoutExtension(path) + ".so");
             }
-            return dlopen(filename, flag);
+            return dlopen(path, flag);
+        }
+
+        public static int FreeLibrary(IntPtr handle)
+        {
+            return dlclose(handle);
         }
     }
 
@@ -92,15 +105,11 @@ namespace SoulsFormats
             {
                 return Kernel32.LoadLibrary(path);
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                Console.WriteLine("Loading Linux Library " + path);
                 return Libdl.LoadLibrary(path);
             }
-            else
-            {
-                throw new PlatformNotSupportedException($"Unsupported Platform {RuntimeInformation.OSDescription}");
-            }
+            throw new PlatformNotSupportedException($"Unsupported Platform {RuntimeInformation.OSDescription}");
         }
 
         /// <summary>
@@ -114,14 +123,24 @@ namespace SoulsFormats
                 var error = Kernel32.GetLastError();
                 return new Win32Exception(error).Message;
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 return Libdl.GetLastError();
             }
-            else
+            return $"Unsupported Platform {RuntimeInformation.OSDescription}";
+        }
+
+        public static int FreeLibrary(IntPtr handle)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return $"Unsupported Platform {RuntimeInformation.OSDescription}";
+                return Convert.ToInt32(Kernel32.FreeLibrary(handle));
             }
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return Libdl.FreeLibrary(handle);
+            }
+            throw new PlatformNotSupportedException($"Unsupported Platform {RuntimeInformation.OSDescription}");
         }
     }
 }
