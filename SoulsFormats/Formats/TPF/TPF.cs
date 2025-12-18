@@ -73,9 +73,7 @@ namespace SoulsFormats
             //We have to check if this is a Switch tpf because Virtuos used the PS4 enum
             if(Platform == TPFPlatform.PS4 && br.Length >= 0x28)
             {
-                var tempPos = br.Position;
-                br.Position = 0x24;
-
+                br.StepIn(0x24);
                 //On PS4, this will always be the Unk2 texture metadata area, which we've only observed with values 0, 0x9, and 0xD,
                 // so we can take the highest, 0xD to compare against.
                 //On Switch, this will ALWAYS be either the pointer to the next texture or, in the case of a single texture, the texture name string
@@ -85,8 +83,7 @@ namespace SoulsFormats
                 {
                     Platform = TPFPlatform.Switch;
                 }
-
-                br.Position = tempPos;
+                br.StepOut();
             }
 
             Textures = new List<Texture>(fileCount);

@@ -22,6 +22,12 @@ namespace SoulsFormats
             DarkSouls1,
 
             /// <summary>
+            /// Dark Souls 1 Remastered, console versions.
+            /// <para>Virtuos Games variation of this header.</para>
+            /// </summary>
+            DarkSoulsRemastered,
+
+            /// <summary>
             /// Dark Souls 2 and Scholar of the First Sin on PC.
             /// <para>Includes AES encryption and salting.</para>
             /// </summary>
@@ -140,8 +146,24 @@ namespace SoulsFormats
             br.AssertByte(0);
             br.AssertInt32(1);
             br.ReadInt32(); // File size
-            int bucketCount = br.ReadInt32();
-            int bucketsOffset = br.ReadInt32();
+
+            bool is64Bit = false;
+            if (br.Length > 0x28)
+            {
+                br.StepIn(0x14);
+                var test0 = br.ReadInt32();
+                br.ReadInt32();
+                var test1 = br.ReadInt32();
+                br.StepOut();
+
+                if (test0 == 0 && test1 == 0)
+                {
+                    is64Bit = true;
+                }
+            }
+
+            long bucketCount = is64Bit ? br.ReadInt64() : br.ReadInt32();
+            long bucketsOffset = is64Bit ? br.ReadInt64() : br.ReadInt32();
 
             if (game >= Game.DarkSouls2)
             {
@@ -151,9 +173,9 @@ namespace SoulsFormats
             }
 
             br.Position = bucketsOffset;
-            Buckets = new List<Bucket>(bucketCount);
+            Buckets = new List<Bucket>((int)bucketCount);
             for (int i = 0; i < bucketCount; i++)
-                Buckets.Add(new Bucket(br, game));
+                Buckets.Add(new Bucket(br, game, is64Bit));
         }
 
         #endregion
@@ -364,10 +386,15 @@ namespace SoulsFormats
             /// </summary>
             public Bucket() : base() { }
 
-            internal Bucket(BinaryReaderEx br, Game game) : base()
+            internal Bucket(BinaryReaderEx br, Game game, bool is64Bit) : base()
             {
                 int fileHeaderCount = br.ReadInt32();
-                int fileHeadersOffset = br.ReadInt32();
+                if (is64Bit)
+                {
+                    int unknownFlag = br.AssertInt32(1);
+                }
+                long fileHeadersOffset = is64Bit ? br.ReadInt64() : br.ReadInt32();
+
                 Capacity = fileHeaderCount;
 
                 br.StepIn(fileHeadersOffset);
