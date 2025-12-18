@@ -182,6 +182,11 @@ namespace SoulsFormats
                 extension = ".gnf";
                 return texture.Bytes;
             }
+            else if (potentialMagic == "DFvN")
+            {
+                extension = ".xtx";
+                return texture.Bytes;
+            }
 
             if (texture.Header.DXGIFormat == (int)DXGI_FORMAT.UNKNOWN)
             {
@@ -374,6 +379,7 @@ namespace SoulsFormats
                 case TPFPlatform.PS5:
                     return ReadPS5Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat);
                 case TPFPlatform.PC:
+                case TPFPlatform.Switch:
                 default:
                     //Similar to original SF behavior, probably not necessary.
                     return ReadPS3Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat, format);
