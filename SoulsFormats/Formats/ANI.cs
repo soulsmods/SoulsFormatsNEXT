@@ -309,7 +309,9 @@ namespace SoulsFormats
                 Rotation = br.ReadVector3();
                 Scale = br.ReadVector3();
                 int animationOffset = br.ReadInt32();
-                br.AssertPattern(184, 0);
+                br.AssertPattern(4, 0);
+                br.ReadInt32(); // Unknown data offset
+                br.AssertPattern(176, 0);
 
                 if (animationOffset > 0)
                 {
@@ -343,7 +345,7 @@ namespace SoulsFormats
                 else
                     bw.WriteInt32(0);
 
-                bw.WritePattern(184, 0);
+                bw.WritePattern(184, 0); // TODO: Unknown data offset 4 bytes into  this
             }
 
             /// <summary>
