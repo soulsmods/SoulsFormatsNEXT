@@ -627,8 +627,6 @@ namespace SoulsFormats
                 }
             }
 
-
-            
             // Commented this out cause it caused unnecessary file differences
             //Animations.Sort((a1, a2) => a1.ID.CompareTo(a2.ID));
 

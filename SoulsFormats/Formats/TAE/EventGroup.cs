@@ -15,7 +15,7 @@ namespace SoulsFormats
             /// <summary>
             /// Unknown.
             /// </summary>
-            public long GroupType { get; set; }
+            public int GroupType { get; set; }
 
             public EventGroup()
             {
@@ -61,7 +61,7 @@ namespace SoulsFormats
             /// <summary>
             /// Creates a new empty EventGroup with the given type.
             /// </summary>
-            public EventGroup(long eventType)
+            public EventGroup(int eventType)
             {
                 GroupType = eventType;
                 indices = new List<int>();
@@ -77,7 +77,9 @@ namespace SoulsFormats
 
                 br.StepIn(typeOffset);
                 {
-                    GroupType = br.ReadVarint();
+                    GroupType = br.ReadInt32();
+                    if (br.VarintLong)
+                        br.AssertInt32(0);
                     if (format is TAEFormat.SOTFS)
                     {
                         br.AssertVarint(br.Position + (br.VarintLong ? 8 : 4));
@@ -86,7 +88,9 @@ namespace SoulsFormats
                     }
                     else if (format == TAEFormat.DS3 || format == TAEFormat.SDT)
                     {
-                        br.AssertVarint(0);
+                        //ac6 heuristic
+                        if (format is TAEFormat.SDT && br.GetVarint(br.Position) == 0)
+                            br.AssertVarint(0);
                     }
                     else
                     {
@@ -137,7 +141,9 @@ namespace SoulsFormats
             internal void WriteData(BinaryWriterEx bw, int i, int j, List<long> eventHeaderOffsets, TAEFormat format)
             {
                 bw.FillVarint($"EventGroupTypeOffset{i}:{j}", bw.Position);
-                bw.WriteVarint(GroupType);
+                bw.WriteInt32(GroupType);
+                if (bw.VarintLong)
+                    bw.WriteInt32(0);
 
                 if (format == TAEFormat.SOTFS)
                 {

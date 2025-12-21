@@ -31,6 +31,12 @@ namespace SoulsFormats
                 /// Type of AnimMiniHeader that this is.
                 /// </summary>
                 public abstract MiniHeaderType Type { get; }
+
+                /// <summary>
+                /// Whether this header is completely null and unused
+                /// </summary>
+                public bool IsNullHeader { get; set; } = false;
+
                 internal abstract void ReadInner(BinaryReaderEx br, TAEFormat format);
                 internal abstract void WriteInner(BinaryWriterEx bw, TAEFormat format);
 
@@ -383,107 +389,105 @@ namespace SoulsFormats
                         if (br.VarintLong)
                             br.AssertInt32(0);
 
-                        var fileNameOffsetOffset = br.GetNextPaddedOffsetAfterCurrentField(br.VarintSize, format == TAEFormat.DES ? 0x10 : 0);
+                        var potentialFileNameOffsetOffset =
+                            br.GetNextPaddedOffsetAfterCurrentField(br.VarintSize, format == TAEFormat.DES ? 0x10 : 0);
 
                         // Offset being read as 32bit int to deal with bad data in the upper 32bits of the offsets in DESR
-                        br.AssertInt32((int)fileNameOffsetOffset);
+                        int actualFileNameOffsetOffset = br.AssertInt32((int)potentialFileNameOffsetOffset, 0);
                         if (br.VarintLong)
                             br.ReadInt32();
 
-                        br.Position = fileNameOffsetOffset;
-                        // Offset being read as 32bit int to deal with bad data in the upper 32bits of the offsets in DESR
-                        int animFileNameOffset = br.ReadInt32();
-                        if (br.VarintLong)
-                            br.ReadInt32();
+                        AnimMiniHeader header = null;
 
-                        //if (AnimFileReference)
-                        //{
-                        //    ReferenceID = br.ReadInt32();
-
-                        //    UnkReferenceFlag1 = br.ReadBoolean();
-                        //    ReferenceIsTAEOnly = br.ReadBoolean();
-                        //    ReferenceIsHKXOnly = br.ReadBoolean();
-                        //    LoopByDefault = br.ReadBoolean();
-                        //}
-                        //else
-                        //{
-                        //    UnkReferenceFlag1 = br.ReadBoolean();
-                        //    ReferenceIsTAEOnly = br.ReadBoolean();
-                        //    ReferenceIsHKXOnly = br.ReadBoolean();
-                        //    LoopByDefault = br.ReadBoolean();
-
-                        //    ReferenceID = br.ReadInt32();
-                        //}
-
-                        if (miniHeaderType == MiniHeaderType.Standard)
+                        if (actualFileNameOffsetOffset == 0)
                         {
-                            MiniHeader = new AnimMiniHeader.Standard();
-                        }
-                        else if (miniHeaderType == MiniHeaderType.ImportOtherAnim)
-                        {
-                            MiniHeader = new AnimMiniHeader.ImportOtherAnim();
+                            if (miniHeaderType == MiniHeaderType.Standard)
+                                header = new AnimMiniHeader.Standard();
+                            else if (miniHeaderType == MiniHeaderType.ImportOtherAnim)
+                                header = new AnimMiniHeader.ImportOtherAnim();
+                            else
+                                throw new NotImplementedException(
+                                    $"{nameof(AnimMiniHeader)} type not implemented yet.");
+
+                            header.IsNullHeader = true;
                         }
                         else
                         {
-                            throw new NotImplementedException($"{nameof(AnimMiniHeader)} type not implemented yet.");
-                        }
+                            br.Position = actualFileNameOffsetOffset;
+                            // Offset being read as 32bit int to deal with bad data in the upper 32bits of the offsets in DESR
+                            int animFileNameOffset = br.ReadInt32();
+                            if (br.VarintLong)
+                                br.ReadInt32();
 
-                        MiniHeader.ReadInner(br, format);
-
-                        if (!(format == TAEFormat.DES || format == TAEFormat.DS1 || format == TAEFormat.DESR))
-                        {
-                            br.AssertVarint(0);
-                            br.AssertVarint(0);
-                        }
-                        else
-                        {
-                            // Check for end of file for certain DESR files where this struct is the very last thing
-                            // and it does not have the padding in such case
-                            if (br.Position < br.Length)
+                            if (miniHeaderType == MiniHeaderType.Standard)
                             {
-                                if (format == TAEFormat.DESR)
-                                {
-                                    //br.AssertInt32(0);
+                                MiniHeader = new AnimMiniHeader.Standard();
+                            }
+                            else if (miniHeaderType == MiniHeaderType.ImportOtherAnim)
+                            {
+                                MiniHeader = new AnimMiniHeader.ImportOtherAnim();
+                            }
+                            else
+                            {
+                                throw new NotImplementedException($"{nameof(AnimMiniHeader)} type not implemented yet.");
+                            }
 
-                                    //if (MiniHeader.Type == MiniHeaderType.ImportOtherAnim)
-                                    //    br.AssertInt32(0);
-                                }
-                                else
-                                {
-                                    br.AssertVarint(0);
+                            MiniHeader.ReadInner(br, format);
 
-                                    if (MiniHeader.Type == MiniHeaderType.ImportOtherAnim)
+                            if (!(format == TAEFormat.DES || format == TAEFormat.DS1 || format == TAEFormat.DESR))
+                            {
+                                br.AssertVarint(0);
+                                br.AssertVarint(0);
+                            }
+                            else
+                            {
+                                // Check for end of file for certain DESR files where this struct is the very last thing
+                                // and it does not have the padding in such case
+                                if (br.Position < br.Length)
+                                {
+                                    if (format == TAEFormat.DESR)
+                                    {
+                                        br.AssertInt32(0);
+
+                                        if (MiniHeader.Type == MiniHeaderType.ImportOtherAnim)
+                                            br.AssertInt32(0);
+                                    }
+                                    else
+                                    {
                                         br.AssertVarint(0);
-                                }
-                            }
-                            
-                        }
 
-                        if (animFileNameOffset < br.Length && animFileNameOffset != timesOffset)
-                        {
-                            if (br.GetInt64(animFileNameOffset) != 1)
+                                        if (MiniHeader.Type == MiniHeaderType.ImportOtherAnim)
+                                            br.AssertVarint(0);
+                                    }
+                                }
+
+                            }
+
+                            if (animFileNameOffset < br.Length && animFileNameOffset != timesOffset)
                             {
-                                var floatCheck = br.GetSingle(animFileNameOffset);
-                                if (!(floatCheck >= 0.016667f && floatCheck <= 100))
+                                if (br.GetInt64(animFileNameOffset) != 1)
                                 {
-                                    AnimFileName = br.GetUTF16(animFileNameOffset);
+                                    var floatCheck = br.GetSingle(animFileNameOffset);
+                                    if (!(floatCheck >= 0.016667f && floatCheck <= 100))
+                                    {
+                                        AnimFileName = br.GetUTF16(animFileNameOffset);
+                                    }
                                 }
                             }
+
+                            AnimFileName = AnimFileName ?? "";
+
+                            // When Reference is false, there's always a filename.
+                            // When true, there's usually not, but sometimes there is, and I cannot figure out why.
+                            // Thus, this stupid hack to achieve byte-perfection.
+                            //var animNameCheck = AnimFileName.ToLower();
+                            //if (!(animNameCheck.EndsWith(".hkt")
+                            //    || (format == TAEFormat.SDT && animNameCheck.EndsWith("hkt"))
+                            //    || animNameCheck.EndsWith(".hkx")
+                            //    || animNameCheck.EndsWith(".sib")
+                            //    || animNameCheck.EndsWith(".hkxwin")))
+                            //    AnimFileName = "";
                         }
-
-                        AnimFileName = AnimFileName ?? "";
-
-                        // When Reference is false, there's always a filename.
-                        // When true, there's usually not, but sometimes there is, and I cannot figure out why.
-                        // Thus, this stupid hack to achieve byte-perfection.
-                        //var animNameCheck = AnimFileName.ToLower();
-                        //if (!(animNameCheck.EndsWith(".hkt") 
-                        //    || (format == TAEFormat.SDT && animNameCheck.EndsWith("hkt")) 
-                        //    || animNameCheck.EndsWith(".hkx") 
-                        //    || animNameCheck.EndsWith(".sib") 
-                        //    || animNameCheck.EndsWith(".hkxwin")))
-                        //    AnimFileName = "";
-
                     }
                     br.StepOut();
                 }
@@ -553,10 +557,23 @@ namespace SoulsFormats
                 bw.FillVarint($"AnimFileOffset{i}", bw.Position);
                 bw.WriteVarint((int)MiniHeader.Type);
 
+                if (MiniHeader.IsNullHeader)
+                {
+                    bw.WriteVarint(0);
+                }
+                else
+                {
+                    bw.ReserveVarint("AnimFileNameOffsetOffset");
+                }
 
-                bw.ReserveVarint("AnimFileNameOffsetOffset");
                 if (format is TAEFormat.DES) // Not in DESR
                     bw.Pad(0x10);
+
+                if (MiniHeader.IsNullHeader)
+                {
+                    return;
+                }
+
                 bw.FillVarint("AnimFileNameOffsetOffset", bw.Position);
 
                 bw.ReserveVarint("AnimFileNameOffset");
@@ -612,6 +629,11 @@ namespace SoulsFormats
 
                     if (format != TAEFormat.DS1)
                         bw.Pad(0x10);
+                }
+                else
+                {
+                    // Null terminate immediately
+                    bw.WriteInt16(0);
                 }
             }
 

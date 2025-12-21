@@ -32,16 +32,21 @@ namespace SoulsFormats
                 /// <summary>
                 /// Value of the specified parameter.
                 /// </summary>
-                public object this[string paramName]
+                public object? this[string paramName]
                 {
-                    get => parameterValues[paramName];
+                    get
+                    {
+                        if (parameterValues.ContainsKey(paramName))
+                            return parameterValues[paramName];
+                        return null;
+                    }
                     set => parameterValues[paramName] = value;
                 }
 
                 /// <summary>
                 /// Gets the value of a parameter.
                 /// </summary>
-                public object GetParamValue(string paramName)
+                public object? GetParamValue(string paramName)
                 {
                     return this[paramName];
                 }
@@ -180,15 +185,19 @@ namespace SoulsFormats
                         foreach (var paramKvp in Template)
                         {
                             var p = paramKvp.Value;
-                            if (p.ValueToAssert != null)
+                            var val = this[p.GetKeyString()];
+                            if (val != null)
+                            {
+                                p.WriteValue(bw, this[p.GetKeyString()]);
+                            }
+                            else if (p.ValueToAssert != null)
                             {
                                 p.WriteValue(bw, p.ValueToAssert);
                             }
                             else
                             {
-                                p.WriteValue(bw, this[p.GetKeyString()]);
+                                throw new Exception($"No parameter value found for {p.GetKeyString()} in event {Template.ID}.");
                             }
-
                         }
 
                         return memStream.ToArray();
@@ -452,7 +461,7 @@ namespace SoulsFormats
                 bw.FillVarint($"EventDataOffset{animIndex}:{eventIndex}", bw.Position);
                 bw.WriteInt32(Type);
 
-                if (format != TAE.TAEFormat.DS1)
+                if (bw.VarintLong)
                     bw.WriteInt32(Unk04);
 
                 bool isWeirdEventWithNoParamOffset = format == TAE.TAEFormat.SDT && Type == 943;
