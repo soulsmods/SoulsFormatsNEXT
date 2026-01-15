@@ -32,6 +32,7 @@ namespace SoulsFormats
          25 - DXT1
          26 - 8-bit pallette indices per pixel, swizzled on PS3
          33 - DXT5
+         36 - BC5
         100 - BC6H_UF16
         102 - BC7_UNORM
         103 - ATI1
@@ -67,6 +68,7 @@ namespace SoulsFormats
             [26] = DXGI_FORMAT.A8_UNORM,
             [29] = DXGI_FORMAT.BC1_UNORM,
             [33] = DXGI_FORMAT.BC3_UNORM,
+            [36] = DXGI_FORMAT.BC5_UNORM,
             [100] = DXGI_FORMAT.BC6H_UF16,
             [102] = DXGI_FORMAT.BC7_UNORM,
             [103] = DXGI_FORMAT.BC4_UNORM,
@@ -96,6 +98,7 @@ namespace SoulsFormats
             [25] = 8,
             [29] = 8,
             [33] = 16,
+            [36] = 16,
             [100] = 16,
             [102] = 16,
             [103] = 8,

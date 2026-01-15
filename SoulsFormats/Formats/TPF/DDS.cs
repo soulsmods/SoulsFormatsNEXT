@@ -24,7 +24,7 @@ namespace SoulsFormats
         public int dwReserved2;
         public HEADER_DXT10 header10;
 
-        public static byte[] DX10DXGI = { 29, 72, 75, 78, 86, 91, 93, 94, 95, 96, 97, 98, 99, };
+        public static byte[] DX10DXGI = { 29, 36, 72, 75, 78, 86, 91, 93, 94, 95, 96, 97, 98, 99, };
 
         public int DataOffset => ddspf.dwFourCC == "DX10" ? 0x94 : 0x80;
 
