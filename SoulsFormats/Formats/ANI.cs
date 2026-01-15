@@ -45,7 +45,7 @@ namespace SoulsFormats
             int rotationsOffset = br.ReadInt32();
             int translationCount = br.ReadInt32();
             int rotationCount = br.ReadInt32();
-            int dataSize = br.ReadInt32();
+            int dataSize = br.ReadInt32(); // Scales Offset?
 
             if (!(dataSize == br.Length || dataSize < br.Length))
                 throw new InvalidDataException("Data size value was greater than stream size.");
@@ -100,7 +100,7 @@ namespace SoulsFormats
             bw.ReserveInt32("RotationsOffset");
             bw.WriteInt32(Translations.Count);
             bw.WriteInt32(Rotations.Count);
-            bw.ReserveInt32("DataSize");
+            bw.ReserveInt32("DataSize"); // Scales Offset?
             bw.WriteInt32(0);
             bw.WriteInt32(1);
             bw.WriteByte(1);
@@ -127,7 +127,11 @@ namespace SoulsFormats
             bw.FillInt32("RotationsOffset", (int)bw.Position);
             foreach (var rotation in Rotations)
                 WriteVector3Short(bw, rotation);
-            bw.FillInt32("DataSize", (int)bw.Position);
+
+            bw.Pad(4);
+            bw.FillInt32("DataSize", (int)bw.Position); // Scales Offset?
+
+            bw.Pad(16);
         }
 
         /// <summary>
@@ -305,7 +309,9 @@ namespace SoulsFormats
                 Rotation = br.ReadVector3();
                 Scale = br.ReadVector3();
                 int animationOffset = br.ReadInt32();
-                br.AssertPattern(184, 0);
+                br.AssertPattern(4, 0);
+                br.ReadInt32(); // Unknown data offset
+                br.AssertPattern(176, 0);
 
                 if (animationOffset > 0)
                 {
@@ -339,7 +345,7 @@ namespace SoulsFormats
                 else
                     bw.WriteInt32(0);
 
-                bw.WritePattern(184, 0);
+                bw.WritePattern(184, 0); // TODO: Unknown data offset 4 bytes into  this
             }
 
             /// <summary>
@@ -462,39 +468,39 @@ namespace SoulsFormats
                     public short KeyFrame { get; set; }
 
                     /// <summary>
-                    /// The index of the translation in the translations array.
+                    /// The translation index.
                     /// </summary>
                     public short TranslationIndex { get; set; }
 
                     /// <summary>
-                    /// An unknown index; Translation In Tangent?
+                    /// The translation in-tangent index for cublic-spline animation sampling.
                     /// </summary>
-                    public short UnkIndex2 { get; set; }
+                    public short TranslationInTangentIndex { get; set; }
 
                     /// <summary>
-                    /// An unknown index; Translation Out Tangent?
+                    /// The translation out-tangent index for cublic-spline animation sampling.
                     /// </summary>
-                    public short UnkIndex3 { get; set; }
+                    public short TranslationOutTangentIndex { get; set; }
 
                     /// <summary>
-                    /// The index of the rotation in the rotations array.
+                    /// The rotation index.
                     /// </summary>
                     public short RotationIndex { get; set; }
 
                     /// <summary>
-                    /// An unknown index; Rotation In Tangent?
+                    /// The rotation in-tangent index for cublic-spline animation sampling.
                     /// </summary>
-                    public short UnkIndex5 { get; set; }
+                    public short RotationInTangentIndex { get; set; }
 
                     /// <summary>
-                    /// An unknown index; Rotation Out Tangent?
+                    /// The rotation out-tangent index for cublic-spline animation sampling.
                     /// </summary>
-                    public short UnkIndex6 { get; set; }
+                    public short RotationOutTangentIndex { get; set; }
 
                     /// <summary>
-                    /// An unknown index; Scale?
+                    /// Unknown; Scale index?
                     /// </summary>
-                    public short UnkIndex7 { get; set; }
+                    public short UnkIndex { get; set; }
 
                     /// <summary>
                     /// Create a new <see cref="Frame"/>.
@@ -525,30 +531,30 @@ namespace SoulsFormats
                         {
                             case FrameFormat.PosRotBytes:
                                 TranslationIndex = br.ReadByte();
-                                UnkIndex2 = br.ReadByte();
-                                UnkIndex3 = br.ReadByte();
+                                TranslationInTangentIndex = br.ReadByte();
+                                TranslationOutTangentIndex = br.ReadByte();
                                 RotationIndex = br.ReadByte();
-                                UnkIndex5 = br.ReadByte();
-                                UnkIndex6 = br.ReadByte();
-                                UnkIndex7 = -1;
+                                RotationInTangentIndex = br.ReadByte();
+                                RotationOutTangentIndex = br.ReadByte();
+                                UnkIndex = 1;
                                 break;
                             case FrameFormat.PosRotShorts:
                                 TranslationIndex = br.ReadInt16();
-                                UnkIndex2 = br.ReadInt16();
-                                UnkIndex3 = br.ReadInt16();
+                                TranslationInTangentIndex = br.ReadInt16();
+                                TranslationOutTangentIndex = br.ReadInt16();
                                 RotationIndex = br.ReadInt16();
-                                UnkIndex5 = br.ReadInt16();
-                                UnkIndex6 = br.ReadInt16();
-                                UnkIndex7 = br.ReadInt16();
+                                RotationInTangentIndex = br.ReadInt16();
+                                RotationOutTangentIndex = br.ReadInt16();
+                                UnkIndex = br.ReadInt16();
                                 break;
                             case FrameFormat.RotShorts:
                                 TranslationIndex = -1;
-                                UnkIndex2 = -1;
-                                UnkIndex3 = -1;
+                                TranslationInTangentIndex = -1;
+                                TranslationOutTangentIndex = -1;
                                 RotationIndex = br.ReadInt16();
-                                UnkIndex5 = br.ReadInt16();
-                                UnkIndex6 = br.ReadInt16();
-                                UnkIndex7 = -1;
+                                RotationInTangentIndex = br.ReadInt16();
+                                RotationOutTangentIndex = br.ReadInt16();
+                                UnkIndex = 1;
                                 break;
                             default:
                                 throw new NotImplementedException($"{nameof(FrameFormat)} \"{format}\" has not been implemented.");
@@ -568,29 +574,39 @@ namespace SoulsFormats
                         {
                             case FrameFormat.PosRotBytes:
                                 bw.WriteByte((byte)TranslationIndex);
-                                bw.WriteByte((byte)UnkIndex2);
-                                bw.WriteByte((byte)UnkIndex3);
+                                bw.WriteByte((byte)TranslationInTangentIndex);
+                                bw.WriteByte((byte)TranslationOutTangentIndex);
                                 bw.WriteByte((byte)RotationIndex);
-                                bw.WriteByte((byte)UnkIndex5);
-                                bw.WriteByte((byte)UnkIndex6);
+                                bw.WriteByte((byte)RotationInTangentIndex);
+                                bw.WriteByte((byte)RotationOutTangentIndex);
                                 break;
                             case FrameFormat.PosRotShorts:
                                 bw.WriteInt16(TranslationIndex);
-                                bw.WriteInt16(UnkIndex2);
-                                bw.WriteInt16(UnkIndex3);
+                                bw.WriteInt16(TranslationInTangentIndex);
+                                bw.WriteInt16(TranslationOutTangentIndex);
                                 bw.WriteInt16(RotationIndex);
-                                bw.WriteInt16(UnkIndex5);
-                                bw.WriteInt16(UnkIndex6);
-                                bw.WriteInt16(UnkIndex7);
+                                bw.WriteInt16(RotationInTangentIndex);
+                                bw.WriteInt16(RotationOutTangentIndex);
+                                bw.WriteInt16(UnkIndex);
                                 break;
                             case FrameFormat.RotShorts:
                                 bw.WriteInt16(RotationIndex);
-                                bw.WriteInt16(UnkIndex5);
-                                bw.WriteInt16(UnkIndex6);
+                                bw.WriteInt16(RotationInTangentIndex);
+                                bw.WriteInt16(RotationOutTangentIndex);
                                 break;
                             default:
                                 throw new NotImplementedException($"{nameof(FrameFormat)} \"{format}\" has not been implemented.");
                         }
+                    }
+
+                    /// <summary>
+                    /// Get the in-tangent translation of this <see cref="Frame"/>.
+                    /// </summary>
+                    /// <param name="translations">The positions array from the <see cref="ANI"/> itself.</param>
+                    /// <returns>The in-tangent of the translation of this <see cref="Frame"/>.</returns>
+                    public Vector3 GetTranslationInTangent(List<Vector3> translations)
+                    {
+                        return translations[TranslationInTangentIndex];
                     }
 
                     /// <summary>
@@ -604,6 +620,26 @@ namespace SoulsFormats
                     }
 
                     /// <summary>
+                    /// Get the out-tangent of the translation of this <see cref="Frame"/>.
+                    /// </summary>
+                    /// <param name="translations">The positions array from the <see cref="ANI"/> itself.</param>
+                    /// <returns>The out-tangent of the translation of this <see cref="Frame"/>.</returns>
+                    public Vector3 GetTranslationOutTangent(List<Vector3> translations)
+                    {
+                        return translations[TranslationOutTangentIndex];
+                    }
+
+                    /// <summary>
+                    /// Get the in-tangent of the rotation of this <see cref="Frame"/>.
+                    /// </summary>
+                    /// <param name="rotations">The rotations array from the <see cref="ANI"/> itself.</param>
+                    /// <returns>The in-tangent rotation of this <see cref="Frame"/>.</returns>
+                    public Vector3 GetRotationInTangent(List<Vector3> rotations)
+                    {
+                        return rotations[RotationInTangentIndex];
+                    }
+
+                    /// <summary>
                     /// Get the rotation of this <see cref="Frame"/>.
                     /// </summary>
                     /// <param name="rotations">The rotations array from the <see cref="ANI"/> itself.</param>
@@ -611,6 +647,16 @@ namespace SoulsFormats
                     public Vector3 GetRotation(List<Vector3> rotations)
                     {
                         return rotations[RotationIndex];
+                    }
+
+                    /// <summary>
+                    /// Get the out-tangent of the rotation of this <see cref="Frame"/>.
+                    /// </summary>
+                    /// <param name="rotations">The rotations array from the <see cref="ANI"/> itself.</param>
+                    /// <returns>The out-tangent of the rotation of this <see cref="Frame"/>.</returns>
+                    public Vector3 GetRotationOutTangent(List<Vector3> rotations)
+                    {
+                        return rotations[RotationOutTangentIndex];
                     }
                 }
             }
