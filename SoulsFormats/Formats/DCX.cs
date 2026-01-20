@@ -1,10 +1,8 @@
-﻿using Org.BouncyCastle.Security;
-using SoulsFormats.Compression;
+﻿using SoulsFormats.Compression;
 using System;
 using System.IO;
 using System.IO.Compression;
 using System.Xml.Serialization;
-using ZstdNet;
 
 namespace SoulsFormats
 {
@@ -206,11 +204,11 @@ namespace SoulsFormats
                 case Type.DCX_EDGE:
                     return DecompressDCXEDGE(br);
                 case Type.DCX_DFLT:
-                    return DecompressDCXDFLT(br, (DcxDfltCompressionInfo) compression);
+                    return DecompressDCXDFLT(br, (DcxDfltCompressionInfo)compression);
                 case Type.DCX_KRAK:
-                    return DecompressDCXKRAK(br, (DcxKrakCompressionInfo) compression);
+                    return DecompressDCXKRAK(br, (DcxKrakCompressionInfo)compression);
                 case Type.DCX_ZSTD:
-                    return DecompressDCXZSTD(br, (DcxZstdCompressionInfo) compression);
+                    return DecompressDCXZSTD(br, (DcxZstdCompressionInfo)compression);
                 default:
                     throw new FormatException($"Unknown DCX format {compression.Type}.");
             }
@@ -514,6 +512,7 @@ namespace SoulsFormats
                     ZlibHelper.WriteZlib(bw, 0xDA, data);
                     return;
                 case Type.DCP_EDGE:
+                    CompressDCPEDGE(data, bw);
                     return;
                 case Type.DCP_DFLT:
                     CompressDCPDFLT(data, bw);
@@ -563,10 +562,112 @@ namespace SoulsFormats
             bw.WriteInt32(8);
         }
 
+        private static void CompressDCPEDGE(byte[] data, BinaryWriterEx bw)
+        {
+            int chunkCount = data.Length / 0x10000;
+            int chunkRemainder = data.Length % 0x10000;
+            if (chunkRemainder > 0)
+                chunkCount++; // Remaining data not fitting in a full chunk
+
+            // Write DCP
+            bw.WriteASCII("DCP\0");
+            bw.WriteASCII("EDGE");
+            bw.WriteInt32(0x20);
+            bw.WriteByte(9); // Compression Level?
+            bw.WriteByte(0);
+            bw.WriteByte(0);
+            bw.WriteByte(0);
+            bw.WriteInt32(0x10000);
+            bw.WriteInt32(0);
+            bw.WriteInt32(0);
+            bw.WriteInt32(0x100100);
+
+            // Write DCS
+            bw.WriteASCII("DCS\0");
+            bw.WriteInt32(data.Length);
+            bw.ReserveInt32("CompressedSize");
+            bw.WriteInt32(0);
+
+            // Write chunks
+            var dataStart = bw.Position;
+            var chunkHeaders = new EdgeChunk[chunkCount];
+            for (int i = 0; i < chunkCount; i++)
+            {
+                int chunkSize = 0x10000;
+                if (i == chunkCount - 1 && chunkRemainder > 0)
+                    chunkSize = chunkRemainder; // Remaining data possibly not fitting in a full chunk
+
+                byte[] chunk;
+                int chunkOffset = i * 0x10000;
+                using (var cmpStream = new MemoryStream())
+                using (var dcmpStream = new MemoryStream(data, chunkOffset, chunkSize))
+                {
+                    var dfltStream = new DeflateStream(cmpStream, CompressionMode.Compress);
+                    dcmpStream.CopyTo(dfltStream);
+                    dfltStream.Dispose();
+                    chunk = cmpStream.ToArray();
+                }
+
+                bool isCompressed;
+                if (chunk.Length < chunkSize)
+                {
+                    isCompressed = true;
+                }
+                else
+                {
+                    // If the compressed chunk is not any smaller than the original, just go with the uncompressed data
+                    isCompressed = false;
+                    chunk = new byte[chunkSize];
+                    Array.Copy(data, chunkOffset, chunk, 0, chunkSize);
+                }
+
+                int compChunkOffset = (int)(bw.Position - dataStart);
+                int compChunkSize = chunk.Length; // Do not include padding
+                bw.WriteBytes(chunk);
+                bw.Pad(0x10);
+
+                chunkHeaders[i] = new EdgeChunk(compChunkOffset, compChunkSize, isCompressed);
+            }
+
+            bw.FillInt32("CompressedSize", (int)(bw.Position - dataStart)); // Include padding
+
+            // Write DCA
+            long dcaStart = bw.Position;
+            bw.WriteASCII("DCA\0");
+            bw.ReserveInt32("DCASize");
+
+            // Write EgdT
+            long egdtStart = bw.Position;
+            bw.WriteASCII("EgdT");
+            bw.WriteInt32(0x10000);
+            bw.WriteInt32(0x20); // EgdT header size
+            bw.WriteInt32(0x10);
+            bw.WriteInt32(0x10000); // Chunk size
+            bw.ReserveInt32("EgdTSize");
+            bw.WriteInt32(chunkCount);
+            bw.WriteInt32(0x100000);
+
+            // Write EgdT chunk headers
+            for (int i = 0; i < chunkCount; i++)
+            {
+                bw.WriteInt32(0);
+                bw.WriteInt32(chunkHeaders[i].CompressedOffset);
+                bw.WriteInt32(chunkHeaders[i].CompressedLength);
+                bw.WriteInt32(chunkHeaders[i].IsCompressed ? 1 : 0);
+            }
+
+            // Fill EdgT size
+            bw.FillInt32("EgdTSize", (int)(bw.Position - egdtStart));
+
+            // Fill DCA size
+            bw.FillInt32("DCASize", (int)(bw.Position - dcaStart));
+        }
+
         private static void CompressDCXEDGE(byte[] data, BinaryWriterEx bw)
         {
             int chunkCount = data.Length / 0x10000;
-            if (data.Length % 0x10000 > 0)
+            int chunkRemainder = data.Length % 0x10000;
+            if (chunkRemainder > 0)
                 chunkCount++;
 
             bw.WriteASCII("DCX\0");
@@ -595,11 +696,11 @@ namespace SoulsFormats
             long egdtStart = bw.Position;
             bw.WriteASCII("EgdT");
             bw.WriteInt32(0x00010100);
-            bw.WriteInt32(0x24);
+            bw.WriteInt32(0x24); // EgdT header size
             bw.WriteInt32(0x10);
-            bw.WriteInt32(0x10000);
-            bw.WriteInt32(data.Length % 0x10000);
-            bw.ReserveInt32("EGDTSize");
+            bw.WriteInt32(0x10000); // Chunk size
+            bw.WriteInt32(chunkRemainder); // Not included when EdgT header size is 0x20 (DCP EDGE)
+            bw.ReserveInt32("EgdTSize");
             bw.WriteInt32(chunkCount);
             bw.WriteInt32(0x100000);
 
@@ -612,15 +713,15 @@ namespace SoulsFormats
             }
 
             bw.FillInt32("DCASize", (int)(bw.Position - dcaStart));
-            bw.FillInt32("EGDTSize", (int)(bw.Position - egdtStart));
+            bw.FillInt32("EgdTSize", (int)(bw.Position - egdtStart));
             long dataStart = bw.Position;
 
             int compressedSize = 0;
             for (int i = 0; i < chunkCount; i++)
             {
                 int chunkSize = 0x10000;
-                if (i == chunkCount - 1)
-                    chunkSize = data.Length % 0x10000;
+                if (i == chunkCount - 1 && chunkRemainder > 0)
+                    chunkSize = chunkRemainder;
 
                 byte[] chunk;
                 int chunkOffset = i * 0x10000;
@@ -656,7 +757,7 @@ namespace SoulsFormats
         private static void CompressDCXDFLT(byte[] data, BinaryWriterEx bw, DcxDfltCompressionInfo compression)
         {
             bw.WriteASCII("DCX\0");
-            
+
             bw.WriteInt32(compression.Unk04);
 
             bw.WriteInt32(0x18);
@@ -678,7 +779,7 @@ namespace SoulsFormats
             bw.WriteByte(0);
 
             bw.WriteInt32(0);
-            
+
             bw.WriteByte(compression.Unk38);
             bw.WriteByte(0);
             bw.WriteByte(0);
@@ -696,9 +797,9 @@ namespace SoulsFormats
 
         private static void CompressDCXKRAK(byte[] data, BinaryWriterEx bw, DcxKrakCompressionInfo compression)
         {
-            
+
             byte[] compressed = Oodle.GetOodleCompressor().Compress(data, compression.OodleCompressorType,
-                (Oodle.OodleLZ_CompressionLevel) compression.CompressionLevel);
+                (Oodle.OodleLZ_CompressionLevel)compression.CompressionLevel);
 
             bw.WriteASCII("DCX\0");
             bw.WriteInt32(0x11000);
@@ -881,21 +982,21 @@ namespace SoulsFormats
             [XmlText]
             public Type Type => Type.DCP_DFLT;
         }
-        
+
         [Serializable]
         public struct DcpEdgeCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.DCP_EDGE;
         }
-        
+
         [Serializable]
         public struct ZlibCompressionInfo : CompressionInfo
         {
             [XmlText]
             public Type Type => Type.Zlib;
         }
-        
+
         [Serializable]
         public struct DcxEdgeCompressionInfo : CompressionInfo
         {
@@ -991,7 +1092,7 @@ namespace SoulsFormats
         {
             [XmlText]
             public Type Type => Type.DCX_KRAK;
-            
+
             [XmlAttribute]
             public byte CompressionLevel { get; }
 
@@ -1022,7 +1123,7 @@ namespace SoulsFormats
                 }
             }
         }
-        
+
         [Serializable]
         public struct DcxZstdCompressionInfo : CompressionInfo
         {
@@ -1038,5 +1139,7 @@ namespace SoulsFormats
             }
 
         }
+
+        private record struct EdgeChunk(int CompressedOffset, int CompressedLength, bool IsCompressed);
     }
 }

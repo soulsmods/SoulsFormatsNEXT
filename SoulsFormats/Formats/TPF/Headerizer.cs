@@ -25,7 +25,7 @@ namespace SoulsFormats
           6 - B5G5R5A1_UNORM
           9 - B8G8R8A8
          10 - R8G8B8 on PC, A8G8B8R8 on PS3
-         16 - A8
+         16 - A8 swizzled on PS3
          22 - A16B16G16R16f
          23 - DXT5
          24 - BC4
@@ -162,7 +162,7 @@ namespace SoulsFormats
         public static byte[] Headerize(Texture texture)
         {
             var headerizedBytes = Headerize(texture, out string extension);
-            if(extension != ".dds")
+            if (extension != ".dds")
             {
                 throw new Exception($"File is type {extension}, please retrieve extension string from the newer method!");
             }
@@ -462,6 +462,7 @@ namespace SoulsFormats
                     byte[] mip = br.ReadBytes((int)calculatedBufferLength);
                     if (dxgiFormat == DXGI_FORMAT.R8G8B8A8_UNORM ||
                         format == 9 ||
+                        format == 16 ||
                         format == 26)
                     {
                         mip = DrSwizzler.Deswizzler.PS3Deswizzle(mip, w, h, pixelFormat);
@@ -473,19 +474,54 @@ namespace SoulsFormats
             return images;
         }
 
-        public static byte[] WritePS3Images(List<Image> images)
+        public static byte[] WritePS3Images(List<Image> images, DDS ddsHeader, byte format)
         {
-            var bw = new BinaryWriterEx(false);
+            int maxMipCount = 0;
             foreach (var img in images)
             {
-                bw.Pad(0x80);
-                foreach (var mip in img.subImages)
+                maxMipCount = Math.Max(img.subImages.Count, maxMipCount);
+            }
+
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSize((DrSwizzler.DDS.DXEnums.DXGIFormat)ddsHeader.GetDXGIFormat(), out _, out int pixelBlockSize, out int formatBpp);
+            int minBLockDimension = 8 * pixelBlockSize;
+            int minDimension = pixelBlockSize;
+
+            var bw = new BinaryWriterEx(false);
+            var pixelFormat = ddsHeader.GetDXGIFormat();
+            int width = ddsHeader.dwWidth;
+            int height = ddsHeader.dwHeight;
+            for (int m = 0; m < maxMipCount; m++)
+            {
+                var bufferLengthMin = GetDeswizzleSize(formatBpp, width, height, minBLockDimension, out _, out _);
+                foreach (var img in images)
                 {
-                    bw.WriteBytes(mip);
+                    if (img.subImages.Count <= m)
+                        continue;
+
+                    bw.Pad(0x80);
+                    var buffer = img.subImages[m];
+                    if (pixelFormat == DXGI_FORMAT.R8G8B8A8_UNORM ||
+                        format == 9 ||
+                        format == 16 ||
+                        format == 26)
+                    {
+                        buffer = DrSwizzler.Swizzler.PS3Swizzle(buffer, width, height, (DrSwizzler.DDS.DXEnums.DXGIFormat)pixelFormat, (int)bufferLengthMin);
+                    }
+
+                    bw.WriteBytes(buffer);
+
+                    // Pad out mipmap buffers as needed
+                    if (buffer.Length < bufferLengthMin)
+                    {
+                        bw.WritePattern((int)bufferLengthMin - buffer.Length, 0);
+                    }
                 }
+
+                GetNextMipDimensions(minDimension, ref width, ref height);
             }
 
             return bw.FinishBytes();
+
         }
 
         private static List<Image> ReadPS4Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, DXGI_FORMAT dxgiFormat, TPF.TexType type)

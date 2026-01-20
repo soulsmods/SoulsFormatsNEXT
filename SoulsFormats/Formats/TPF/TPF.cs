@@ -71,7 +71,7 @@ namespace SoulsFormats
             br.AssertByte(0);
 
             //We have to check if this is a Switch tpf because Virtuos used the PS4 enum
-            if(Platform == TPFPlatform.PS4 && br.Length >= 0x28)
+            if (Platform == TPFPlatform.PS4 && br.Length >= 0x28)
             {
                 br.StepIn(0x24);
                 //On PS4, this will always be the Unk2 texture metadata area, which we've only observed with values 0, 0x9, and 0xD,
@@ -79,7 +79,7 @@ namespace SoulsFormats
                 //On Switch, this will ALWAYS be either the pointer to the next texture or, in the case of a single texture, the texture name string
                 //String values will never be this low since only control characters of ids this low, and textures have headers so can never be tiny
                 // enough to disprove this.
-                if(br.ReadInt32() > 0xD)
+                if (br.ReadInt32() > 0xD)
                 {
                     Platform = TPFPlatform.Switch;
                 }
@@ -123,7 +123,8 @@ namespace SoulsFormats
             {
                 bw.Pad(0x100);
                 texturePaddingSize = 0x80;
-            } else if (Platform == TPFPlatform.PS4)
+            }
+            else if (Platform == TPFPlatform.PS4)
             {
                 bw.Pad(0x10);
             }
@@ -276,7 +277,7 @@ namespace SoulsFormats
                         //We need a swizzling solution before we can even think about this one.
                         throw new NotImplementedException("");
                     case TPFPlatform.PS3:
-                        Bytes = Headerizer.WritePS3Images(images);
+                        Bytes = Headerizer.WritePS3Images(images, dds, Format);
                         break;
                     case TPFPlatform.PS4:
                         Bytes = Headerizer.WritePS4Images(images, dds, Type);
