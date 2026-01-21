@@ -317,7 +317,7 @@ namespace SoulsFormats
             /// Applies a template to allow editing of the parameters.
             /// </summary>
             internal void ApplyTemplate(TAE containingTae, TAE.Template template,
-                long animID, int eventIndex, int eventType)
+                long animID, int eventIndex, int eventType, bool strict = true)
             {
                 long? containingBank = null;
                 if (ValidateEventBank)
@@ -343,7 +343,7 @@ namespace SoulsFormats
                     Parameters = new ParameterContainer(animID, eventIndex,
                         containingTae.BigEndian, ParameterBytes, template[containingBank.Value][Type]);
                 }
-                else
+                else if (strict)
                 {
                     if (ValidateEventBank)
                         throw new InvalidOperationException($"Event bank {containingTae.EventBank} does not contains event type {eventType} in the TAE template.");

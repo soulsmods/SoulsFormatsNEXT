@@ -24,7 +24,7 @@ namespace SoulsFormats
             /// </summary>
             DS1 = 0,
             /// <summary>
-            /// Dark Souls II: Scholar of the First Sin. 
+            /// Dark Souls II: Scholar of the First Sin.
             /// Does not support 32-bit original Dark Souls II release.
             /// </summary>
             SOTFS = 1,
@@ -114,7 +114,7 @@ namespace SoulsFormats
         /// Applies a template to this TAE for easier editing.
         /// After applying template, use events' .Parameters property.
         /// </summary>
-        public void ApplyTemplate(Template template)
+        public void ApplyTemplate(Template template, bool strict = true)
         {
             if (template.Game != Format)
                 throw new InvalidOperationException($"Template is for {template.Game} but this TAE is for {Format}.");
@@ -125,7 +125,7 @@ namespace SoulsFormats
                 {
                     for (int i = 0; i < anim.Events.Count; i++)
                     {
-                        anim.Events[i].ApplyTemplate(this, template, anim.ID, i, anim.Events[i].Type);
+                        anim.Events[i].ApplyTemplate(this, template, anim.ID, i, anim.Events[i].Type, strict);
                     }
                 }
             }
@@ -205,7 +205,7 @@ namespace SoulsFormats
             // 0x1000D: SDT, ER
             int version = br.AssertInt32(0x10000, 0x1000A, 0x1000B, 0x1000C, 0x1000D);
 
-            
+
             if (version == 0x1000B && !is64Bit)
             {
                 Format = TAEFormat.DS1;
@@ -266,7 +266,7 @@ namespace SoulsFormats
                 br.AssertVarint(0x80);
             else
                 br.AssertVarint(0x70);
-            
+
             if (Format != TAEFormat.DESR)
             {
                 if (Format == TAEFormat.DS1)
@@ -304,7 +304,7 @@ namespace SoulsFormats
                 }
             }
 
-            
+
 
             Flags = br.ReadBytes(8);
 
@@ -404,9 +404,9 @@ namespace SoulsFormats
                 }
             }
 
-           
 
-            
+
+
 
             br.StepIn(animsOffset);
             {
@@ -415,8 +415,8 @@ namespace SoulsFormats
                 long previousAnimParamStart = 0;
                 for (int i = 0; i < animCount; i++)
                 {
-                    Animations.Add(new Animation(br, Format, 
-                        out bool lastEventNeedsParamGen, 
+                    Animations.Add(new Animation(br, Format,
+                        out bool lastEventNeedsParamGen,
                         out long animFileOffset, out long lastEventParamOffset));
 
                     if (previousAnimNeedsParamGen)
