@@ -795,11 +795,19 @@ namespace SoulsFormats
                     var imageSize = fullImageSize;
                     for (int i = 0; i < depth; i++)
                     {
-                        img.subImages.Add(br.ReadBytes((int)imageSize));
-                        imageSize /= 4;
-                        if (imageSize < sourceBytesPerPixelSet)
+                        if(br.Position + imageSize <= br.Length)
                         {
-                            imageSize = sourceBytesPerPixelSet;
+                            img.subImages.Add(br.ReadBytes((int)imageSize));
+                            imageSize /= 4;
+                            if (imageSize < sourceBytesPerPixelSet)
+                            {
+                                imageSize = sourceBytesPerPixelSet;
+                            }
+                        }
+                        else
+                        {
+                            //Fix mipmapcount if we have to
+                            ddsHeader.dwMipMapCount = m;
                         }
                     }
 
@@ -831,11 +839,18 @@ namespace SoulsFormats
                     var imageSize = fullImageSize;
                     for (int m = 0; m < ddsHeader.dwMipMapCount; m++)
                     {
-                        img.subImages.Add(br.ReadBytes((int)imageSize));
-                        imageSize /= 4;
-                        if (imageSize < sourceBytesPerPixelSet)
+                        if(br.Position + imageSize <= br.Length)
                         {
-                            imageSize = sourceBytesPerPixelSet;
+                            img.subImages.Add(br.ReadBytes((int)imageSize));
+                            imageSize /= 4;
+                            if (imageSize < sourceBytesPerPixelSet)
+                            {
+                                imageSize = sourceBytesPerPixelSet;
+                            }
+                        } else
+                        {
+                            //Fix mipmapcount if we have to
+                            ddsHeader.dwMipMapCount = m;
                         }
                     }
                     imageList.Add(img);

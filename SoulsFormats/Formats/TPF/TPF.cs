@@ -236,7 +236,6 @@ namespace SoulsFormats
                     Type = TexType.TextureArray;
                 else
                     Type = TexType.Texture;
-                Mipmaps = (byte)dds.dwMipMapCount;
                 Platform = platform;
 
                 var potentialMagic = SFEncoding.ASCII.GetString(bytes, 0, 4);
@@ -265,6 +264,9 @@ namespace SoulsFormats
                 }
 
                 var images = Headerizer.GetDDSTextureBuffers(dds, bytes);
+
+                //Set this here in case we need to adjust it
+                Mipmaps = (byte)dds.dwMipMapCount;
                 switch (Platform)
                 {
                     case TPFPlatform.Xbox360:
