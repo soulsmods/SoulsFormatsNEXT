@@ -82,7 +82,7 @@ namespace SoulsFormats
         {
             Version = NVAVersion.EldenRing;
             Entries11 = new Section11();
-            Navmeshes = new NavmeshSection(2);
+            Navmeshes = new NavmeshSection(4);
             FaceDatas = new FaceDataSection();
             NodeBanks = new NodeBankSection();
             Entries3 = new Section3();
@@ -401,6 +401,9 @@ namespace SoulsFormats
                 Scale = Vector4.One; 
                 ConnectedNavmeshes = new List<int>();
                 GateNodes = new List<GateNode>();
+                // No clue. Maybe a sentinel value for when 
+                // ConnectedNavmeshes is inline (even though unkOffset seems to also do that?)
+                ConnectedNavmeshesCount = 1075419545; 
             }
 
             internal Navmesh(BinaryReaderEx br, int version)
