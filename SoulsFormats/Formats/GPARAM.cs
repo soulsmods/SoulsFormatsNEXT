@@ -269,6 +269,11 @@ namespace SoulsFormats
             /// Sekiro
             /// </summary>
             Sekiro = 5,
+
+            /// <summary>
+            /// Armored Core 6
+            /// </summary>
+            AC6 = 6,
         }
 
         internal struct Offsets
@@ -554,13 +559,23 @@ namespace SoulsFormats
                     int valuesOffset = br.ReadInt32();
                     int valueIDsOffset = br.ReadInt32();
 
-                    Type = br.ReadEnum8<ParamType>();
-                    byte valueCount = br.ReadByte();
-                    br.AssertByte(0);
-                    br.AssertByte(0);
+                    short valueCount;
+                    if (game >= GPGame.AC6)
+                    {
+                        valueCount = br.ReadInt16();
+                        Type = br.ReadEnum8<ParamType>();
+                        br.AssertByte(0);
+                    }
+                    else
+                    {
+                        Type = br.ReadEnum8<ParamType>();
+                        valueCount = br.ReadByte();
+                        br.AssertByte(0);
+                        br.AssertByte(0);
+                    }
 
                     if (Type == ParamType.Byte && valueCount > 1)
-                        throw new Exception("Notify TKGP so he can look into this, please.");
+                        throw new Exception("Unexpected value count for byte type");
 
                     if (game == GPGame.DarkSouls2)
                     {
