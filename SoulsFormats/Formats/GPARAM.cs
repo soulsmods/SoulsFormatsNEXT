@@ -662,10 +662,19 @@ namespace SoulsFormats
                 bw.FillInt32($"ParamHeaderOffset{groupIndex}:{paramIndex}", (int)bw.Position - paramHeadersOffset);
                 bw.ReserveInt32($"ValuesOffset{groupIndex}:{paramIndex}");
                 bw.ReserveInt32($"ValueIDsOffset{groupIndex}:{paramIndex}");
-                bw.WriteByte((byte)Type);
-                bw.WriteByte((byte)Values.Count);
-                bw.WriteByte(0);
-                bw.WriteByte(0);
+
+                if (game >= GPGame.AC6) {
+                    bw.WriteInt16((short)Values.Count);
+                    bw.WriteByte((byte)Type);
+                    bw.WriteByte(0);
+                }
+                else
+                {
+                    bw.WriteByte((byte)Type);
+                    bw.WriteByte((byte)Values.Count);
+                    bw.WriteByte(0);
+                    bw.WriteByte(0);
+                }
 
                 if (game == GPGame.DarkSouls2)
                 {
