@@ -18,7 +18,13 @@ namespace SoulsFormats
             /// <summary>
             /// Where the vertex is.
             /// </summary>
-            public Vector3 Position;
+            public Vector3 Position
+            {
+                get => Positions[0];
+                set => Positions[0] = value;
+            }
+
+            public List<Vector3> Positions;
 
             /// <summary>
             /// Weight of the vertex's attachment to bones; must be 4 length.
@@ -33,7 +39,13 @@ namespace SoulsFormats
             /// <summary>
             /// Vector pointing away from the surface.
             /// </summary>
-            public Vector3 Normal;
+            public Vector3 Normal
+            {
+                get => Normals[0];
+                set => Normals[0] = value;
+            }
+
+            public List<Vector3> Normals;
 
             /// <summary>
             /// Fourth component of the normal, read without transforming into a float; used as a bone index for binding to a single bone.
@@ -60,18 +72,23 @@ namespace SoulsFormats
             /// </summary>
             public List<VertexColor> Colors;
 
-            private Queue<Vector3> uvQueue;
-            private Queue<Vector4> tangentQueue;
-            private Queue<VertexColor> colorQueue;
+            private Queue<Vector3> _posQueue;
+            private Queue<Vector3> _normalQueue;
+            private Queue<Vector3> _uvQueue;
+            private Queue<Vector4> _tangentQueue;
+            private Queue<VertexColor> _colorQueue;
 
             /// <summary>
             /// Create a Vertex with null or empty values.
             /// </summary>
-            public Vertex(int uvCapacity = 0, int tangentCapacity = 0, int colorCapacity = 0)
+            public Vertex(int uvCapacity = 0, int tangentCapacity = 0, int colorCapacity = 0, int posCapacity = 0, int normCapacity = 0)
             {
+                Positions = new List<Vector3>(posCapacity);
+                Normals = new List<Vector3>(normCapacity);
                 UVs = new List<Vector3>(uvCapacity);
                 Tangents = new List<Vector4>(tangentCapacity);
                 Colors = new List<VertexColor>(colorCapacity);
+                NormalW = int.MinValue; // Placeholder to imply it is unwritten
             }
 
             /// <summary>
@@ -79,10 +96,10 @@ namespace SoulsFormats
             /// </summary>
             public Vertex(Vertex clone)
             {
-                Position = clone.Position;
+                Positions = clone.Positions;
                 BoneWeights = clone.BoneWeights;
                 BoneIndices = clone.BoneIndices;
-                Normal = clone.Normal;
+                Normals = clone.Normals;
                 UVs = new List<Vector3>(clone.UVs);
                 Tangents = new List<Vector4>(clone.Tangents);
                 Bitangent = clone.Bitangent;
@@ -94,9 +111,11 @@ namespace SoulsFormats
             /// </summary>
             internal void PrepareWrite()
             {
-                uvQueue = new Queue<Vector3>(UVs);
-                tangentQueue = new Queue<Vector4>(Tangents);
-                colorQueue = new Queue<VertexColor>(Colors);
+                _posQueue = new Queue<Vector3>(Positions);
+                _normalQueue = new Queue<Vector3>(Normals);
+                _uvQueue = new Queue<Vector3>(UVs);
+                _tangentQueue = new Queue<Vector4>(Tangents);
+                _colorQueue = new Queue<VertexColor>(Colors);
             }
 
             /// <summary>
@@ -104,9 +123,11 @@ namespace SoulsFormats
             /// </summary>
             internal void FinishWrite()
             {
-                uvQueue = null;
-                tangentQueue = null;
-                colorQueue = null;
+                _posQueue = null;
+                _normalQueue = null;
+                _uvQueue = null;
+                _tangentQueue = null;
+                _colorQueue = null;
             }
 
             internal void Read(BinaryReaderEx br, List<LayoutMember> layout, float uvFactor)
@@ -123,11 +144,11 @@ namespace SoulsFormats
                     {
                         if (member.Type == LayoutType.Float3)
                         {
-                            Position = br.ReadVector3();
+                            Positions.Add(br.ReadVector3());
                         }
                         else if (member.Type == LayoutType.Float4)
                         {
-                            Position = br.ReadVector3();
+                            Positions.Add(br.ReadVector3());
                             br.AssertSingle(0);
                         }
                         else if (member.Type == LayoutType.EdgeCompressed)
@@ -207,55 +228,72 @@ namespace SoulsFormats
                     {
                         if (member.Type == LayoutType.Float3)
                         {
-                            Normal = br.ReadVector3();
+                            Normals.Add(br.ReadVector3());
                         }
                         else if (member.Type == LayoutType.Float4)
                         {
-                            Normal = br.ReadVector3();
+                            Normals.Add(br.ReadVector3());
                             float w = br.ReadSingle();
+                            if (NormalW != int.MinValue) continue;
                             NormalW = (int)w;
                             if (w != NormalW)
                                 throw new InvalidDataException($"Float4 Normal W was not a whole number: {w}");
                         }
                         else if (member.Type == LayoutType.Color)
                         {
-                            Normal = ReadByteNormXYZ(br);
-                            NormalW = br.ReadByte();
+                            Normals.Add(ReadByteNormXYZ(br));
+                            byte w = br.ReadByte();
+                            if (NormalW != int.MinValue) continue;
+                            NormalW = w;
                         }
                         else if (member.Type == LayoutType.UByte4)
                         {
-                            Normal = ReadByteNormXYZ(br);
-                            NormalW = br.ReadByte();
+                            Normals.Add(ReadByteNormXYZ(br));
+                            byte w = br.ReadByte();
+                            if (NormalW != int.MinValue) continue;
+                            NormalW = w;
                         }
                         else if (member.Type == LayoutType.Byte4)
                         {
-                            NormalW = br.ReadByte();
-                            Normal = ReadSByteNormZYX(br);
+                            byte w = br.ReadByte();
+                            if (NormalW == int.MinValue)
+                                NormalW = w;
+                            Normals.Add(ReadSByteNormZYX(br));
                         }
                         else if (member.Type == LayoutType.UByte4Norm)
                         {
-                            Normal = ReadByteNormXYZ(br);
-                            NormalW = br.ReadByte();
+                            Normals.Add(ReadByteNormXYZ(br));
+                            byte w = br.ReadByte();
+                            if (NormalW != int.MinValue) continue;
+                            NormalW = w;
                         }
                         else if (member.Type == LayoutType.Short4Norm)
                         {
-                            Normal = ReadShortNormXYZ(br);
-                            NormalW = br.ReadInt16();
+                            Normals.Add(ReadShortNormXYZ(br));
+                            short w = br.ReadInt16();
+                            if (NormalW != int.MinValue) continue;
+                            NormalW = w;
                         }
                         else if (member.Type == LayoutType.Half4)
                         {
-                            Normal = ReadUShortNormXYZ(br);
-                            NormalW = br.ReadInt16();
+                            Normals.Add(ReadUShortNormXYZ(br));
+                            short w = br.ReadInt16();
+                            if (NormalW != int.MinValue) continue;
+                            NormalW = w;
                         }
                         else if (member.Type == LayoutType.Byte4E)
                         {
-                            Normal = ReadByteNormXYZ(br);
-                            NormalW = br.ReadByte();
+                            Normals.Add(ReadByteNormXYZ(br));
+                            byte w = br.ReadByte();
+                            if (NormalW != int.MinValue) continue;
+                            NormalW = w;
                         }
                         else if (member.Type == LayoutType.UShort4)
                         {
-                            Normal = ReadShortNormXYZAC6(br);
-                            NormalW = br.ReadInt16();
+                            Normals.Add(ReadShortNormXYZAC6(br));
+                            short w = br.ReadInt16();
+                            if (NormalW != int.MinValue) continue;
+                            NormalW = w;
                         }
                         else
                             throw new NotImplementedException($"Read not implemented for {member.Type} {member.Semantic}.");
@@ -450,13 +488,14 @@ namespace SoulsFormats
                 {
                     if (member.Semantic == LayoutSemantic.Position)
                     {
+                        var position = _posQueue.Dequeue();
                         if (member.Type == LayoutType.Float3)
                         {
-                            bw.WriteVector3(Position);
+                            bw.WriteVector3(position);
                         }
                         else if (member.Type == LayoutType.Float4)
                         {
-                            bw.WriteVector3(Position);
+                            bw.WriteVector3(position);
                             bw.WriteSingle(0);
                         }
                         else if (member.Type == LayoutType.EdgeCompressed)
@@ -534,53 +573,54 @@ namespace SoulsFormats
                     }
                     else if (member.Semantic == LayoutSemantic.Normal)
                     {
+                        Vector3 normal = _normalQueue.Dequeue();
                         if (member.Type == LayoutType.Float3)
                         {
-                            bw.WriteVector3(Normal);
+                            bw.WriteVector3(normal);
                         }
                         else if (member.Type == LayoutType.Float4)
                         {
-                            bw.WriteVector3(Normal);
+                            bw.WriteVector3(normal);
                             bw.WriteSingle(NormalW);
                         }
                         else if (member.Type == LayoutType.Color)
                         {
-                            WriteByteNormXYZ(bw, Normal);
+                            WriteByteNormXYZ(bw, normal);
                             bw.WriteByte((byte)NormalW);
                         }
                         else if (member.Type == LayoutType.UByte4)
                         {
-                            WriteByteNormXYZ(bw, Normal);
+                            WriteByteNormXYZ(bw, normal);
                             bw.WriteByte((byte)NormalW);
                         }
                         else if (member.Type == LayoutType.Byte4)
                         {
                             bw.WriteByte((byte)NormalW);
-                            WriteSByteNormZYX(bw, Normal);
+                            WriteSByteNormZYX(bw, normal);
                         }
                         else if (member.Type == LayoutType.UByte4Norm)
                         {
-                            WriteByteNormXYZ(bw, Normal);
+                            WriteByteNormXYZ(bw, normal);
                             bw.WriteByte((byte)NormalW);
                         }
                         else if (member.Type == LayoutType.Short4Norm)
                         {
-                            WriteShortNormXYZ(bw, Normal);
+                            WriteShortNormXYZ(bw, normal);
                             bw.WriteInt16((short)NormalW);
                         }
                         else if (member.Type == LayoutType.Half4)
                         {
-                            WriteUShortNormXYZ(bw, Normal);
+                            WriteUShortNormXYZ(bw, normal);
                             bw.WriteInt16((short)NormalW);
                         }
                         else if (member.Type == LayoutType.Byte4E)
                         {
-                            WriteByteNormXYZ(bw, Normal);
+                            WriteByteNormXYZ(bw, normal);
                             bw.WriteByte((byte)NormalW);
                         }
                         else if (member.Type == LayoutType.UShort4)
                         {
-                            WriteShortNormXYZAC6(bw, Normal);
+                            WriteShortNormXYZAC6(bw, normal);
                             WriteShortNormAC6(bw, NormalW);
                         }
                         else
@@ -588,7 +628,7 @@ namespace SoulsFormats
                     }
                     else if (member.Semantic == LayoutSemantic.UV)
                     {
-                        Vector3 uv = uvQueue.Dequeue();
+                        Vector3 uv = _uvQueue.Dequeue();
                         if (member.Type == LayoutType.Float2)
                         {
                             bw.WriteSingle(uv.X);
@@ -603,7 +643,7 @@ namespace SoulsFormats
                             bw.WriteSingle(uv.X);
                             bw.WriteSingle(uv.Y);
 
-                            uv = uvQueue.Dequeue();
+                            uv = _uvQueue.Dequeue();
                             bw.WriteSingle(uv.X);
                             bw.WriteSingle(uv.Y);
                         }
@@ -612,7 +652,7 @@ namespace SoulsFormats
                             bw.WriteByte((byte)Math.Round(uv.X * 255f));
                             bw.WriteByte((byte)Math.Round(uv.Y * 255f));
 
-                            uv = uvQueue.Dequeue();
+                            uv = _uvQueue.Dequeue();
                             bw.WriteByte((byte)Math.Round(uv.X * 255f));
                             bw.WriteByte((byte)Math.Round(uv.Y * 255f));
                         }
@@ -649,7 +689,7 @@ namespace SoulsFormats
                                 bw.WriteInt16((short)Math.Round(uv.X));
                                 bw.WriteInt16((short)Math.Round(uv.Y));
 
-                                uv = uvQueue.Dequeue() * uvFactor;
+                                uv = _uvQueue.Dequeue() * uvFactor;
                                 bw.WriteInt16((short)Math.Round(uv.X));
                                 bw.WriteInt16((short)Math.Round(uv.Y));
                             }
@@ -658,7 +698,7 @@ namespace SoulsFormats
                                 bw.WriteInt16((short)Math.Round(uv.X));
                                 bw.WriteInt16((short)Math.Round(uv.Y));
 
-                                uv = uvQueue.Dequeue() * uvFactor;
+                                uv = _uvQueue.Dequeue() * uvFactor;
                                 bw.WriteInt16((short)Math.Round(uv.X));
                                 bw.WriteInt16((short)Math.Round(uv.Y));
                             }
@@ -668,7 +708,7 @@ namespace SoulsFormats
                     }
                     else if (member.Semantic == LayoutSemantic.Tangent)
                     {
-                        Vector4 tangent = tangentQueue.Dequeue();
+                        Vector4 tangent = _tangentQueue.Dequeue();
                         if (member.Type == LayoutType.Float4)
                         {
                             bw.WriteVector4(tangent);
@@ -723,7 +763,7 @@ namespace SoulsFormats
                     }
                     else if (member.Semantic == LayoutSemantic.VertexColor)
                     {
-                        VertexColor color = colorQueue.Dequeue();
+                        VertexColor color = _colorQueue.Dequeue();
                         if (member.Type == LayoutType.Float4)
                         {
                             color.WriteFloatRGBA(bw);
