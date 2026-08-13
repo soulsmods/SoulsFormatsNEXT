@@ -84,9 +84,9 @@ namespace SoulsFormats
         }
 
         /// <summary>
-        /// Reads FLVER data from a BinaryReaderEx.
+        /// Reads FLVER data from a BinaryReaderEx, optionally omitting unpacked vertices.
         /// </summary>
-        protected override void Read(BinaryReaderEx br)
+        public void Read(BinaryReaderEx br, bool readVertices)
         {
             br.BigEndian = false;
 
@@ -209,7 +209,8 @@ namespace SoulsFormats
             {
                 mesh.TakeFaceSets(faceSetDict);
                 mesh.TakeVertexBuffers(vertexBufferDict, BufferLayouts);
-                mesh.ReadVertices(br, dataOffset, BufferLayouts, Header);
+                if (readVertices)
+                    mesh.ReadVertices(br, dataOffset, BufferLayouts, Header);
             }
 
             // Removed for shared meshes support
@@ -217,6 +218,14 @@ namespace SoulsFormats
             //    throw new NotSupportedException("Orphaned face sets found.");
             //if (vertexBufferDict.Count != 0)
             //    throw new NotSupportedException("Orphaned vertex buffers found.");
+        }
+
+        /// <summary>
+        /// Reads FLVER data from a BinaryReaderEx.
+        /// </summary>
+        protected override void Read(BinaryReaderEx br)
+        {
+            Read(br, readVertices: true);
         }
 
         /// <summary>
