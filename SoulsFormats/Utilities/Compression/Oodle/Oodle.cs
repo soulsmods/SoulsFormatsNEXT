@@ -92,6 +92,32 @@ namespace SoulsFormats
                 }
                 oodle6ErrorMessage = NativeLibrary.GetLastError();
             }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                IntPtr oodle9Ptr = NativeLibrary.LoadLibrary("liboo2coremac64.2.9.dylib");
+                if (oodle9Ptr != IntPtr.Zero)
+                {
+                    Oodle9Ptr = oodle9Ptr;
+                    return new Oodle29();
+                }
+                oodle9ErrorMessage = NativeLibrary.GetLastError();
+
+                IntPtr oodle8Ptr = NativeLibrary.LoadLibrary("liboo2coremac64.2.8.dylib");
+                if (oodle8Ptr != IntPtr.Zero)
+                {
+                    Oodle8Ptr = oodle8Ptr;
+                    return new Oodle28();
+                }
+                oodle8ErrorMessage = NativeLibrary.GetLastError();
+
+                IntPtr oodle6Ptr = NativeLibrary.LoadLibrary("liboo2coremac64.2.6.dylib");
+                if (oodle6Ptr != IntPtr.Zero)
+                {
+                    Oodle6Ptr = oodle6Ptr;
+                    return new Oodle26();
+                }
+                oodle6ErrorMessage = NativeLibrary.GetLastError();
+            }
             else
             {
                 IntPtr oodle9Ptr = NativeLibrary.LoadLibrary("liboo2corelinux64.so.9");
@@ -121,7 +147,9 @@ namespace SoulsFormats
 
             var message = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? "Please copy oo2core_9_win64.dll, oo2core_8_win64.dll or oo2core_6_win64.dll into the program directory\n"
-                : "Please copy liboo2corelinux64.so.9, liboo2corelinux64.so.8 or liboo2corelinux64.so.6 into the program directory\n";
+                : (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? "Please copy liboo2coremac64.2.9.dylib, liboo2coremac64.2.8.dylib or liboo2coremac64.2.6.dylib into the program directory\n"
+                    : "Please copy liboo2corelinux64.so.9, liboo2corelinux64.so.8 or liboo2corelinux64.so.6 into the program directory\n");
 
             throw new NoOodleFoundException($"Could not find a supported version of the Oodle compression library.\n"
                                             + message
@@ -189,7 +217,9 @@ namespace SoulsFormats
 
                 var message = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                     ? "Please copy oo2core_9_win64.dll, oo2core_8_win64.dll or oo2core_6_win64.dll into the program directory\n"
-                    : "Please copy liboo2corelinux64.so.9, liboo2corelinux64.so.8 or liboo2corelinux64.so.6 into the program directory\n";
+                : (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? "Please copy liboo2coremac64.2.9.dylib, liboo2coremac64.2.8.dylib or liboo2coremac64.2.6.dylib into the program directory\n"
+                    : "Please copy liboo2corelinux64.so.9, liboo2corelinux64.so.8 or liboo2corelinux64.so.6 into the program directory\n");
 
                 throw new NoOodleFoundException($"Could not find a supported version of the Oodle compression library.\n"
                                                 + message
