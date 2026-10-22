@@ -11,6 +11,11 @@ namespace SoulsFormats
     public partial class FLVER0 : SoulsFile<FLVER0>, IFlver
     {
         /// <summary>
+        /// Should this be treated as a Demon's Souls Remake flver?
+        /// </summary>
+        public bool IsDeSPS5Flver { get; set; }
+
+        /// <summary>
         /// General values for this model.
         /// </summary>
         public FLVERHeader Header { get; set; }
@@ -82,7 +87,8 @@ namespace SoulsFormats
 
             string magic = br.ReadASCII(6);
             string endian = br.ReadASCII(2);
-            br.BigEndian = endian == "B\0";
+            var BigEndianCharFlag = endian == "B\0";
+            br.BigEndian = GetBe(br);
             int version = br.ReadInt32();
             return magic == "FLVER\0" && version >= 0x00000 && version < 0x20000;
         }
@@ -96,8 +102,11 @@ namespace SoulsFormats
 
             br.AssertASCII("FLVER\0");
             Header.BigEndian = br.AssertASCII("L\0", "B\0") == "B\0";
-            br.BigEndian = Header.BigEndian;
+            br.BigEndian = GetBe(br);
 
+            //We assume this is a Demon's Souls PS5 flver if these don't match 
+            IsDeSPS5Flver = Header.BigEndian != br.BigEndian;
+            
             // 10002, 10003 - Another Century's Episode R
             Header.Version = br.AssertInt32(0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
                 0x10002, 0x10003);
@@ -132,15 +141,29 @@ namespace SoulsFormats
 
             Materials = new List<Material>(materialCount);
             for (int i = 0; i < materialCount; i++)
-                Materials.Add(new Material(br, Header.Unicode));
+                Materials.Add(new Material(br, Header.Unicode, IsDeSPS5Flver));
 
             Nodes = new List<FLVER.Node>(boneCount);
             for (int i = 0; i < boneCount; i++)
-                Nodes.Add(new FLVER.Node(br, Header.Unicode));
+                Nodes.Add(new FLVER.Node(br, Header.Unicode, IsDeSPS5Flver));
 
             Meshes = new List<Mesh>(meshCount);
             for (int i = 0; i < meshCount; i++)
-                Meshes.Add(new Mesh(br, dataOffset, Header.VertexIndexSize, Header.Version, Materials));
+                Meshes.Add(new Mesh(br, dataOffset, Header.VertexIndexSize, Header.Version, Materials, IsDeSPS5Flver));
+        }
+
+        /// <summary>
+        /// Uses the version to check endianness. 
+        /// This solves cases like Demon's Souls PS5 where the devs didn't adjust the Big Endian marker
+        /// </summary>
+        private static bool GetBe(BinaryReaderEx br)
+        {
+            var versionTestLe = br.ReadInt32();
+            br.BigEndian = true;
+            br.Position -= 4;
+            var versionTestBe = br.ReadInt32();
+            br.Position -= 4;
+            return versionTestLe > versionTestBe;
         }
 
         /// <summary>

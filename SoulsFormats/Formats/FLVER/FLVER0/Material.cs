@@ -61,22 +61,25 @@ namespace SoulsFormats
             /// <summary>
             /// Read a Material from a stream.
             /// </summary>
-            internal Material(BinaryReaderEx br, bool unicode)
+            internal Material(BinaryReaderEx br, bool unicode, bool IsDeSPS5Flver)
             {
-                int nameOffset = br.ReadInt32();
-                int mtdOffset = br.ReadInt32();
-                int texturesOffset = br.ReadInt32();
-                int layoutsOffset = br.ReadInt32();
-                br.ReadInt32(); // Data length from name offset to end of buffer layouts
-                int layoutHeaderOffset = br.ReadInt32();
+                long nameOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                long mtdOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                long texturesOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                long layoutsOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                long dataLen = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32(); // Data length from name offset to end of buffer layouts
+                long layoutHeaderOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
 
                 if (layoutHeaderOffset < 0 || layoutHeaderOffset > br.Length)
                 {
                     layoutHeaderOffset = BinaryPrimitives.ReverseEndianness(layoutHeaderOffset);
                 }
-
-                br.AssertInt32(0);
-                br.AssertInt32(0);
+                //This pads to 0x10, though PS5 flvers align here
+                if(!IsDeSPS5Flver)
+                {
+                    br.ReadInt32();
+                    br.ReadInt32();
+                }
 
                 if (unicode)
                 {
@@ -102,7 +105,7 @@ namespace SoulsFormats
 
                     Textures = new List<Texture>(textureCount);
                     for (int i = 0; i < textureCount; i++)
-                        Textures.Add(new Texture(br, unicode));
+                        Textures.Add(new Texture(br, unicode, IsDeSPS5Flver));
                 }
                 br.StepOut();
 
@@ -117,23 +120,34 @@ namespace SoulsFormats
                         }
 
                         int offsetAssert = (int)br.Position + 0xC;
-                        br.AssertInt32(offsetAssert, BinaryPrimitives.ReverseEndianness(offsetAssert));
-                        br.AssertInt32(0);
-                        br.AssertInt32(0);
-                        Layouts = new List<BufferLayout>(layoutCount);
-                        for (int i = 0; i < layoutCount; i++)
+                        long bufferOffset = 0;
+                        if(IsDeSPS5Flver)
                         {
-                            int layoutOffset = br.ReadInt32();
-                            if (layoutOffset < 0 || layoutOffset > br.Length)
+                            //The final game doesn't have a buffer layout offset.
+                            bufferOffset = br.ReadInt64();
+                        } else
+                        {
+                            bufferOffset = br.AssertInt32(offsetAssert, BinaryPrimitives.ReverseEndianness(offsetAssert));
+                            br.AssertInt32(0);
+                        }
+                        br.AssertInt32(0);
+                        if(bufferOffset != 0)
+                        {
+                            Layouts = new List<BufferLayout>(layoutCount);
+                            for (int i = 0; i < layoutCount; i++)
                             {
-                                layoutOffset = BinaryPrimitives.ReverseEndianness(layoutOffset);
-                            }
+                                long layoutOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                                if (layoutOffset < 0 || layoutOffset > br.Length)
+                                {
+                                    layoutOffset = BinaryPrimitives.ReverseEndianness(layoutOffset);
+                                }
 
-                            br.StepIn(layoutOffset);
-                            {
-                                Layouts.Add(new BufferLayout(br));
+                                br.StepIn(layoutOffset);
+                                {
+                                    Layouts.Add(new BufferLayout(br));
+                                }
+                                br.StepOut();
                             }
-                            br.StepOut();
                         }
                     }
                     br.StepOut();

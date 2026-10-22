@@ -49,12 +49,16 @@
             /// <summary>
             /// Read a texture map from a stream.
             /// </summary>
-            internal Texture(BinaryReaderEx br, bool useUnicode)
+            internal Texture(BinaryReaderEx br, bool useUnicode, bool IsDeSPS5Flver)
             {
-                int pathOffset = br.ReadInt32();
-                int typeOffset = br.ReadInt32();
-                br.AssertInt32(0);
-                br.AssertInt32(0);
+                long pathOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                long typeOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                //This pads to 0x10, though PS5 flvers align here
+                if(!IsDeSPS5Flver)
+                {
+                    br.ReadInt32();
+                    br.ReadInt32();
+                }
 
                 Path = useUnicode ? br.GetUTF16(pathOffset) : br.GetShiftJIS(pathOffset);
                 if (typeOffset > 0)

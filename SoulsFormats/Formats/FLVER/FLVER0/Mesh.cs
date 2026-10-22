@@ -153,7 +153,7 @@ namespace SoulsFormats
             /// <param name="version">The version of the model.</param>
             /// <param name="materials">The list of materials in the modl.</param>
             /// <exception cref="NotSupportedException">There was more than one vertex buffer.</exception>
-            internal Mesh(BinaryReaderEx br, int dataOffset, int vertexIndexSize, int version, List<Material> materials)
+            internal Mesh(BinaryReaderEx br, int dataOffset, int vertexIndexSize, int version, List<Material> materials, bool IsDeSPS5Flver)
             {
                 Dynamic = br.ReadByte(); // Is set to 2 on mesh 4 of "c26_001_00.flver" in ACER.
                 MaterialIndex = br.ReadByte();
@@ -193,11 +193,11 @@ namespace SoulsFormats
                 }
 
                 br.ReadInt32(); // Vertex indices length
-                int vertexIndicesOffset = br.ReadInt32();
-                int bufferDataLength = br.ReadInt32();
-                int bufferDataOffset = br.ReadInt32();
-                int vertexBuffersOffset1 = br.ReadInt32();
-                int vertexBuffersOffset2 = br.ReadInt32();
+                long vertexIndicesOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                long bufferDataLength = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                long bufferDataOffset = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                long vertexBuffersOffset1 = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
+                long vertexBuffersOffset2 = IsDeSPS5Flver ? br.ReadInt64() : br.ReadInt32();
                 br.AssertInt32(0);
 
                 if ((vertexBuffersOffset1 < 0 || vertexBuffersOffset1 > br.Length) ||

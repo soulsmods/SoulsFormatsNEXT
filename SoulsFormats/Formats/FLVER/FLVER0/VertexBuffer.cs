@@ -19,12 +19,12 @@ namespace SoulsFormats
             /// <summary>
             /// The length in bytes of this buffer.
             /// </summary>
-            internal int BufferLength;
+            internal long BufferLength;
 
             /// <summary>
             /// The offset of this buffer.
             /// </summary>
-            internal int BufferOffset;
+            internal long BufferOffset;
 
             /// <summary>
             /// Create a new vertex buffer header.

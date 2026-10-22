@@ -38,6 +38,11 @@ namespace SoulsFormats
             /// The name of this node
             /// </summary>
             public string Name { get; set; }
+            
+            /// <summary>
+            /// The name of this node in ascii (Demon's Souls PS5)
+            /// </summary>
+            public string AsciiName { get; set; }
 
             /// <summary>
             /// Index of this node's parent, or -1 for none.
@@ -134,10 +139,10 @@ namespace SoulsFormats
             /// </summary>
             public override string ToString() => Name;
 
-            internal Node(BinaryReaderEx br, bool unicode)
+            internal Node(BinaryReaderEx br, bool unicode, bool IsDeSPS5Flver = false)
             {
                 Translation = br.ReadVector3();
-                int nameOffset = br.ReadInt32();
+                long nameOffset = br.ReadInt32();
                 Rotation = br.ReadVector3();
                 ParentIndex = br.ReadInt16();
                 FirstChildIndex = br.ReadInt16();
@@ -147,12 +152,28 @@ namespace SoulsFormats
                 BoundingBoxMin = br.ReadVector3();
                 Flags = (NodeFlags)br.ReadInt32();
                 BoundingBoxMax = br.ReadVector3();
-                br.AssertPattern(0x34, 0x00);
+
+                long asciiNameOffset = 0;
+                if(IsDeSPS5Flver)
+                {
+                    br.ReadInt32();
+                    nameOffset = br.ReadInt64();
+                    asciiNameOffset = br.ReadInt64();
+                    br.AssertPattern(0x20, 0x00);
+                } else
+                {
+                    br.AssertPattern(0x34, 0x00);
+                }
 
                 if (unicode)
                     Name = br.GetUTF16(nameOffset);
                 else
                     Name = br.GetShiftJIS(nameOffset);
+
+                if(asciiNameOffset != 0)
+                {
+                    AsciiName = br.GetASCII(asciiNameOffset);
+                }
             }
 
             internal void Write(BinaryWriterEx bw, int index)
