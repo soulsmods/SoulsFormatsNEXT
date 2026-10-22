@@ -46,9 +46,9 @@ namespace SoulsFormats
             public Color Color { get; set; }
 
             /// <summary>
-            /// Unknown.
+            /// If true, dummy is treated as if it's parented to the attached bone instead of its true parent.
             /// </summary>
-            public bool Flag1 { get; set; }
+            public bool UsesAttachBoneIndex { get; set; }
 
             /// <summary>
             /// If false, the upward vector is not read.
@@ -61,9 +61,9 @@ namespace SoulsFormats
             public int Unk30 { get; set; }
 
             /// <summary>
-            /// Unknown; only used in Sekiro.
+            /// CRC32 Hash for the name of the dummy. Ex. "Dmypoly_SFX_死亡全身" is 0x66917631
             /// </summary>
-            public int Unk34 { get; set; }
+            public int NameHash { get; set; }
 
             /// <summary>
             /// Creates a new dummy point with default values.
@@ -86,10 +86,10 @@ namespace SoulsFormats
                 ParentBoneIndex = dummy.ParentBoneIndex;
                 AttachBoneIndex = dummy.AttachBoneIndex;
                 Color = dummy.Color;
-                Flag1 = dummy.Flag1;
+                UsesAttachBoneIndex = dummy.UsesAttachBoneIndex;
                 UseUpwardVector = dummy.UseUpwardVector;
                 Unk30 = dummy.Unk30;
-                Unk34 = dummy.Unk34;
+                NameHash = dummy.NameHash;
             }
 
             /// <summary>
@@ -108,10 +108,10 @@ namespace SoulsFormats
                 ParentBoneIndex = br.ReadInt16();
                 Upward = br.ReadVector3();
                 AttachBoneIndex = br.ReadInt16();
-                Flag1 = br.ReadBoolean();
+                UsesAttachBoneIndex = br.ReadBoolean();
                 UseUpwardVector = br.ReadBoolean();
                 Unk30 = br.ReadInt32();
-                Unk34 = br.ReadInt32();
+                NameHash = br.ReadInt32();
                 br.AssertInt32(0);
                 br.AssertInt32(0);
             }
@@ -131,10 +131,10 @@ namespace SoulsFormats
                 bw.WriteInt16(ParentBoneIndex);
                 bw.WriteVector3(Upward);
                 bw.WriteInt16(AttachBoneIndex);
-                bw.WriteBoolean(Flag1);
+                bw.WriteBoolean(UsesAttachBoneIndex);
                 bw.WriteBoolean(UseUpwardVector);
                 bw.WriteInt32(Unk30);
-                bw.WriteInt32(Unk34);
+                bw.WriteInt32(NameHash);
                 bw.WriteInt32(0);
                 bw.WriteInt32(0);
             }
