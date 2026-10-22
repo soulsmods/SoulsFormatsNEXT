@@ -192,7 +192,7 @@ namespace SoulsFormats
             for (int i = 0; i < textureCount; i++)
                 textures.Add(new Texture(br, Header));
 
-            if (Header.Version >= 0x2001A)
+            if (Header.Version >= 0x20017)
                 Skeletons = new SkeletonSet(br);
 
             Dictionary<int, Texture> textureDict = SFUtil.Dictionize(textures);
@@ -355,7 +355,7 @@ namespace SoulsFormats
                 textureIndex += Materials[i].Textures.Count;
             }
 
-            if (Header.Version >= 0x2001A)
+            if (Header.Version >= 0x20017)
                 Skeletons.Write(bw);
 
             bw.Pad(0x10);
