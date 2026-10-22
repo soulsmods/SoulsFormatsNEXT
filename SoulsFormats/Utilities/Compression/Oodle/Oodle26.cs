@@ -74,6 +74,31 @@ namespace SoulsFormats
         /// <param name="lrm">= NULL</param>
         /// <param name="scratchMem">= NULL</param>
         /// <param name="scratchSize">= 0</param>
+        [DllImport("liboo2coremac64.2.6.dylib", EntryPoint = "OodleLZ_Compress", CallingConvention = CallingConvention.StdCall)]
+        private static extern long MacOS_OodleLZ_Compress(
+            Oodle.OodleLZ_Compressor compressor,
+            [MarshalAs(UnmanagedType.LPArray)]
+            byte[] rawBuf,
+            long rawLen,
+            [MarshalAs(UnmanagedType.LPArray)]
+            byte[] compBuf,
+            Oodle.OodleLZ_CompressionLevel level,
+            IntPtr pOptions,
+            IntPtr dictionaryBase,
+            IntPtr lrm,
+            IntPtr scratchMem,
+            long scratchSize);
+
+        /// <param name="compressor"></param>
+        /// <param name="rawBuf"></param>
+        /// <param name="rawLen"></param>
+        /// <param name="compBuf"></param>
+        /// <param name="level"></param>
+        /// <param name="pOptions">= NULL</param>
+        /// <param name="dictionaryBase">= NULL</param>
+        /// <param name="lrm">= NULL</param>
+        /// <param name="scratchMem">= NULL</param>
+        /// <param name="scratchSize">= 0</param>
         [DllImport("liboo2corelinux64.so.6", EntryPoint = "OodleLZ_Compress", CallingConvention = CallingConvention.StdCall)]
         private static extern long Linux_OodleLZ_Compress(
             Oodle.OodleLZ_Compressor compressor,
@@ -103,8 +128,11 @@ namespace SoulsFormats
             => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Win64_OodleLZ_Compress(compressor, rawBuf, rawLen, compBuf, level,
                 pOptions, dictionaryBase, lrm, scratchMem, scratchSize)
-                : Linux_OodleLZ_Compress(compressor, rawBuf, rawLen, compBuf, level,
-                pOptions, dictionaryBase, lrm, scratchMem, scratchSize);
+                : (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? MacOS_OodleLZ_Compress(compressor, rawBuf, rawLen, compBuf, level,
+                pOptions, dictionaryBase, lrm, scratchMem, scratchSize)
+                    : Linux_OodleLZ_Compress(compressor, rawBuf, rawLen, compBuf, level,
+                pOptions, dictionaryBase, lrm, scratchMem, scratchSize));
 
         private static long OodleLZ_Compress(Oodle.OodleLZ_Compressor compressor, byte[] rawBuf, long rawLen, byte[] compBuf, Oodle.OodleLZ_CompressionLevel level)
             => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -123,6 +151,13 @@ namespace SoulsFormats
 
         /// <param name="compressor">= OodleLZ_Compressor_Invalid</param>
         /// <param name="lzLevel">= OodleLZ_CompressionLevel_Normal</param>
+        [DllImport("liboo2coremac64.2.6.dylib", EntryPoint = "OodleLZ_CompressOptions_GetDefault", CallingConvention = CallingConvention.StdCall)]
+        private static extern IntPtr MacOS_OodleLZ_CompressOptions_GetDefault(
+            Oodle.OodleLZ_Compressor compressor,
+            Oodle.OodleLZ_CompressionLevel lzLevel);
+
+        /// <param name="compressor">= OodleLZ_Compressor_Invalid</param>
+        /// <param name="lzLevel">= OodleLZ_CompressionLevel_Normal</param>
         [DllImport("liboo2corelinux64.so.6", EntryPoint = "OodleLZ_CompressOptions_GetDefault", CallingConvention = CallingConvention.StdCall)]
         private static extern IntPtr Linux_OodleLZ_CompressOptions_GetDefault(
             Oodle.OodleLZ_Compressor compressor,
@@ -133,7 +168,9 @@ namespace SoulsFormats
             Oodle.OodleLZ_CompressionLevel lzLevel)
             => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Win64_OodleLZ_CompressOptions_GetDefault(compressor, lzLevel)
-                : Linux_OodleLZ_CompressOptions_GetDefault(compressor, lzLevel);
+                : (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? MacOS_OodleLZ_CompressOptions_GetDefault(compressor, lzLevel)
+                    : Linux_OodleLZ_CompressOptions_GetDefault(compressor, lzLevel));
 
         public static IntPtr OodleLZ_CompressOptions_GetDefault()
             => OodleLZ_CompressOptions_GetDefault(Oodle.OodleLZ_Compressor.OodleLZ_Compressor_Invalid,
@@ -156,6 +193,39 @@ namespace SoulsFormats
         /// <param name="threadPhase">= OodleLZ_Decode_Unthreaded</param>
         [DllImport("oo2core_6_win64", EntryPoint = "OodleLZ_Decompress", CallingConvention = CallingConvention.StdCall)]
         private static extern long Win64_OodleLZ_Decompress(
+            [MarshalAs(UnmanagedType.LPArray)]
+            byte[] compBuf,
+            long compBufSize,
+            [MarshalAs(UnmanagedType.LPArray)]
+            byte[] rawBuf,
+            long rawLen,
+            Oodle.OodleLZ_FuzzSafe fuzzSafe,
+            Oodle.OodleLZ_CheckCRC checkCRC,
+            Oodle.OodleLZ_Verbosity verbosity,
+            IntPtr decBufBase,
+            long decBufSize,
+            IntPtr fpCallback,
+            IntPtr callbackUserData,
+            IntPtr decoderMemory,
+            long decoderMemorySize,
+            Oodle.OodleLZ_Decode_ThreadPhase threadPhase);
+
+        /// <param name="compBuf"></param>
+        /// <param name="compBufSize"></param>
+        /// <param name="rawBuf"></param>
+        /// <param name="rawLen"></param>
+        /// <param name="fuzzSafe">= OodleLZ_FuzzSafe_Yes</param>
+        /// <param name="checkCRC">= OodleLZ_CheckCRC_No</param>
+        /// <param name="verbosity">= OodleLZ_Verbosity_None</param>
+        /// <param name="decBufBase">= NULL</param>
+        /// <param name="decBufSize">= 0</param>
+        /// <param name="fpCallback">= NULL</param>
+        /// <param name="callbackUserData">= NULL</param>
+        /// <param name="decoderMemory">= NULL</param>
+        /// <param name="decoderMemorySize">= 0</param>
+        /// <param name="threadPhase">= OodleLZ_Decode_Unthreaded</param>
+        [DllImport("liboo2coremac64.2.6.dylib", EntryPoint = "OodleLZ_Decompress", CallingConvention = CallingConvention.StdCall)]
+        private static extern long MacOS_OodleLZ_Decompress(
             [MarshalAs(UnmanagedType.LPArray)]
             byte[] compBuf,
             long compBufSize,
@@ -219,7 +289,10 @@ namespace SoulsFormats
             Oodle.OodleLZ_Decode_ThreadPhase threadPhase)
             => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Win64_OodleLZ_Decompress(compBuf, compBufSize, rawBuf, rawLen, fuzzSafe, checkCRC, verbosity, decBufBase, decBufSize, fpCallback, callbackUserData, decoderMemory, decoderMemorySize, threadPhase)
-                : Linux_OodleLZ_Decompress(compBuf, compBufSize, rawBuf, rawLen, fuzzSafe, checkCRC, verbosity, decBufBase, decBufSize, fpCallback, callbackUserData, decoderMemory, decoderMemorySize, threadPhase);
+                : (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? MacOS_OodleLZ_Decompress(compBuf, compBufSize, rawBuf, rawLen, fuzzSafe, checkCRC, verbosity, decBufBase, decBufSize, fpCallback, callbackUserData, decoderMemory, decoderMemorySize, threadPhase)
+                    : Linux_OodleLZ_Decompress(compBuf, compBufSize, rawBuf, rawLen, fuzzSafe, checkCRC, verbosity, decBufBase, decBufSize, fpCallback, callbackUserData, decoderMemory, decoderMemorySize, threadPhase));
+
         private static long OodleLZ_Decompress(byte[] compBuf, long compBufSize, byte[] rawBuf, long rawLen)
             => OodleLZ_Decompress(compBuf, compBufSize, rawBuf, rawLen,
                 Oodle.OodleLZ_FuzzSafe.OodleLZ_FuzzSafe_Yes, Oodle.OodleLZ_CheckCRC.OodleLZ_CheckCRC_No, Oodle.OodleLZ_Verbosity.OodleLZ_Verbosity_None,
@@ -229,6 +302,9 @@ namespace SoulsFormats
         [DllImport("oo2core_6_win64", EntryPoint = "OodleLZ_GetCompressedBufferSizeNeeded", CallingConvention = CallingConvention.StdCall)]
         private static extern long Win64_OodleLZ_GetCompressedBufferSizeNeeded(
                long rawSize);
+        [DllImport("liboo2coremac64.2.6.dylib", EntryPoint = "OodleLZ_GetCompressedBufferSizeNeeded", CallingConvention = CallingConvention.StdCall)]
+        private static extern long MacOS_OodleLZ_GetCompressedBufferSizeNeeded(
+               long rawSize);
         [DllImport("liboo2corelinux64.so.6", EntryPoint = "OodleLZ_GetCompressedBufferSizeNeeded", CallingConvention = CallingConvention.StdCall)]
         private static extern long Linux_OodleLZ_GetCompressedBufferSizeNeeded(
                long rawSize);
@@ -236,10 +312,17 @@ namespace SoulsFormats
         private static long OodleLZ_GetCompressedBufferSizeNeeded(long rawSize)
             => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Win64_OodleLZ_GetCompressedBufferSizeNeeded(rawSize)
-                : Linux_OodleLZ_GetCompressedBufferSizeNeeded(rawSize);
+                : (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? MacOS_OodleLZ_GetCompressedBufferSizeNeeded(rawSize)
+                    : Linux_OodleLZ_GetCompressedBufferSizeNeeded(rawSize));
 
         [DllImport("oo2core_6_win64", EntryPoint = "OodleLZ_GetDecodeBufferSize", CallingConvention = CallingConvention.StdCall)]
         private static extern long Win64_OodleLZ_GetDecodeBufferSize(
+            long rawSize,
+            [MarshalAs(UnmanagedType.Bool)]
+            bool corruptionPossible);
+        [DllImport("liboo2coremac64.2.6.dylib", EntryPoint = "OodleLZ_GetDecodeBufferSize", CallingConvention = CallingConvention.StdCall)]
+        private static extern long MacOS_OodleLZ_GetDecodeBufferSize(
             long rawSize,
             [MarshalAs(UnmanagedType.Bool)]
             bool corruptionPossible);
@@ -254,6 +337,8 @@ namespace SoulsFormats
             bool corruptionPossible)
             => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Win64_OodleLZ_GetDecodeBufferSize(rawSize, corruptionPossible)
-                : Linux_OodleLZ_GetDecodeBufferSize(rawSize, corruptionPossible);
+                : (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    ? MacOS_OodleLZ_GetDecodeBufferSize(rawSize, corruptionPossible)
+                    : Linux_OodleLZ_GetDecodeBufferSize(rawSize, corruptionPossible));
     }
 }
