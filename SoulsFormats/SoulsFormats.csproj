@@ -1,19 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
+    <PackageId>SoulsFormatsNEXT</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Copyright>Copyright © Joseph Anderson 2019</Copyright>
     <Description>A .NET library for reading and writing FromSoftware file formats.</Description>
-    <Company>JKAnderson</Company>
-    <Authors>Joseph Anderson</Authors>
-    <PackageProjectUrl>https://github.com/JKAnderson/SoulsFormats</PackageProjectUrl>
+    <Company>soulsmods</Company>
+    <Authors>Joseph Anderson, SoulsFormats contributors</Authors>
+    <PackageProjectUrl>https://github.com/soulsmods/SoulsFormatsNEXT</PackageProjectUrl>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>2.0.0</Version>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>embedded</DebugType>
     <PlatformTargets>arm64;x64</PlatformTargets>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
   <ItemGroup Condition="$(TargetFramework.StartsWith('netstandard'))">
     <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.0" />
   </ItemGroup>
