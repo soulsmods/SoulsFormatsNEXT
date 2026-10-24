@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace SoulsFormats
 {
@@ -138,12 +139,14 @@ namespace SoulsFormats
                 else if (indexSize == 16)
                 {
                     Indices = new List<int>(indexCount);
-                    foreach (ushort index in br.GetUInt16s(dataOffset + indicesOffset, indexCount))
-                        Indices.Add(index);
+                    CollectionsMarshal.SetCount(Indices, indexCount);
+                    br.GetUInt16s(dataOffset + indicesOffset, CollectionsMarshal.AsSpan(Indices));
                 }
                 else if (indexSize == 32)
                 {
-                    Indices = new List<int>(br.GetInt32s(dataOffset + indicesOffset, indexCount));
+                    Indices = new List<int>(indexCount);
+                    CollectionsMarshal.SetCount(Indices, indexCount);
+                    br.GetValues(dataOffset + indicesOffset, CollectionsMarshal.AsSpan(Indices));
                 }
                 else
                 {
