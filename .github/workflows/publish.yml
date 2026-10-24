@@ -3,7 +3,6 @@ name: Publish NuGet package
 on:
   push:
     tags:
-      - v*
 
 permissions:
   id-token: write
