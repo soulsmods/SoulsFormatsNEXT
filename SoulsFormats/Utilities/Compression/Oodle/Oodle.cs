@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using InteropNativeLibrary = System.Runtime.InteropServices.NativeLibrary;
 
 namespace SoulsFormats
 {
@@ -13,8 +12,6 @@ namespace SoulsFormats
     /// </summary>
     public static class Oodle
     {
-        private const string LibraryName = "oo2core";
-
         private static readonly string[] WindowsCandidates =
             ["oo2core_9_win64.dll", "oo2core_8_win64.dll", "oo2core_6_win64.dll"];
 
@@ -37,256 +34,56 @@ namespace SoulsFormats
             }
         }
 
-        private static readonly Lazy<(IntPtr Handle, uint Version, string Errors)> Loaded = new(Load);
-
-        static Oodle()
-        {
-            InteropNativeLibrary.SetDllImportResolver(typeof(Oodle).Assembly, (name, _, _) =>
-                name == LibraryName ? Loaded.Value.Handle : IntPtr.Zero);
-        }
-
-        /// <summary>
-        /// Whether a supported Oodle library could be found.
-        /// </summary>
-        public static bool IsAvailable => Loaded.Value.Handle != IntPtr.Zero;
-
         /// <summary>
         /// Directories to look for the Oodle library in.
         /// </summary>
         public static List<string> SearchPaths { get; } = [];
 
+        public static readonly Lazy<IOodleCompressor> Default = new(() => Load(SearchPaths));
+
         // Oodle versions are (46 << 24) | (major << 16) | (minor << 8) | sizeof(OodleLZ_SeekTable),
-        private static uint Oodle2Version(uint version) => version >> 16 & 0xFF;
+        internal static uint Oodle2Version(uint version) => version >> 16 & 0xFF;
 
-        private static bool IsOodle26 => Oodle2Version(Loaded.Value.Version) == 6;
+        public static IOodleCompressor Load() => Load(SearchPaths);
 
-        private static (IntPtr, uint, string) Load()
+        public static IOodleCompressor Load(IEnumerable<string> searchPaths)
         {
-            var errors = new List<string>();
+            var exceptions = new List<Exception>();
 
             foreach (string name in Candidates)
             {
-                foreach (string path in SearchPaths.Select(directory => Path.Combine(directory, name)).Append(name))
+                foreach (string path in searchPaths.Select(directory => Path.Combine(directory, name)).Append(name))
                 {
-                    IntPtr handle;
                     try
                     {
-                        handle = InteropNativeLibrary.Load(path, typeof(Oodle).Assembly, null);
+                        return OodleCompressor.Load(path);
                     }
-                    catch (DllNotFoundException ex)
+                    catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
                     {
-                        errors.Add($"{path}: {ex.Message}");
-                        continue;
+                        exceptions.Add(ex);
                     }
-
-                    if (QueryVersion(handle) is { } version)
-                        return (handle, version, null);
-
-                    errors.Add($"{path}: not Oodle 2.6 or later");
-                    InteropNativeLibrary.Free(handle);
                 }
             }
 
-            return (IntPtr.Zero, default, string.Join("\n", errors));
-        }
-
-        private static unsafe uint? QueryVersion(IntPtr handle)
-        {
-            // Can't rely on [DllImport] until we have the resolver setup
-            if (!InteropNativeLibrary.TryGetExport(handle, "Oodle_CheckVersion", out IntPtr checkVersion)
-                || !InteropNativeLibrary.TryGetExport(handle, "OodleCore_Plugins_SetPrintf", out IntPtr setPrintf))
-                return null;
-
-            // Oodle prints a warning here, so we disable the logging
-            IntPtr printf = ((delegate* unmanaged<IntPtr, IntPtr>)setPrintf)(IntPtr.Zero);
-            uint libVersion = 0;
-            ((delegate* unmanaged<uint, uint*, int>)checkVersion)(0, &libVersion);
-            ((delegate* unmanaged<IntPtr, IntPtr>)setPrintf)(printf);
-
-            return libVersion;
-        }
-
-        private static void EnsureAvailable()
-        {
-            if (IsAvailable)
-                return;
-
-            throw new NoOodleFoundException("Could not find a supported version of the Oodle compression library.\n"
-                                            + $"Please copy {Candidates[0]}, {Candidates[1]} or {Candidates[2]} into the program directory, or add the directory containing one to Oodle.SearchPaths\n"
-                                            + Loaded.Value.Errors);
+            throw new NoOodleFoundException(
+                "Could not find a supported version of the Oodle compression library.\n"
+                + $"Please copy {Candidates[0]}, {Candidates[1]} or {Candidates[2]} into the program directory, or add the directory containing one to Oodle.SearchPaths",
+                new AggregateException(exceptions));
         }
 
         public static byte[] Compress(byte[] source, OodleLZ_Compressor compressor, OodleLZ_CompressionLevel level)
-        {
-            EnsureAvailable();
-
-            IntPtr pOptions = OodleLZ_CompressOptions_GetDefault(compressor, level);
-            OodleLZ_CompressOptions options = Marshal.PtrToStructure<OodleLZ_CompressOptions>(pOptions);
-            // Required for the game to not crash
-            options.seekChunkReset = true;
-            // This is already the default but I am including it for authenticity to game code
-            options.seekChunkLen = 0x40000;
-            pOptions = Marshal.AllocHGlobal(Marshal.SizeOf<OodleLZ_CompressOptions>());
-
-            try
-            {
-                Marshal.StructureToPtr(options, pOptions, false);
-                long compressedBufferSizeNeeded = IsOodle26
-                    ? OodleLZ_GetCompressedBufferSizeNeeded_V6(source.LongLength)
-                    : OodleLZ_GetCompressedBufferSizeNeeded(compressor, source.LongLength);
-                byte[] compBuf = new byte[compressedBufferSizeNeeded];
-                long compLen = OodleLZ_Compress(compressor, source, source.LongLength, compBuf, level, pOptions,
-                    IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0);
-                Array.Resize(ref compBuf, (int)compLen);
-                return compBuf;
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(pOptions);
-            }
-        }
+            => Default.Value.Compress(source, compressor, level);
 
         public static byte[] Decompress(byte[] source, long uncompressedSize)
-        {
-            EnsureAvailable();
+            => Default.Value.Decompress(source, uncompressedSize);
 
-            long decodeBufferSize = IsOodle26
-                ? OodleLZ_GetDecodeBufferSize_V6(uncompressedSize, true)
-                : OodleLZ_GetDecodeBufferSize(OodleLZ_Compressor.OodleLZ_Compressor_Invalid, uncompressedSize, true);
-            byte[] rawBuf = new byte[decodeBufferSize];
-            long rawLen = OodleLZ_Decompress(source, source.LongLength, rawBuf, uncompressedSize,
-                OodleLZ_FuzzSafe.OodleLZ_FuzzSafe_Yes, OodleLZ_CheckCRC.OodleLZ_CheckCRC_No,
-                OodleLZ_Verbosity.OodleLZ_Verbosity_None,
-                IntPtr.Zero, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0,
-                OodleLZ_Decode_ThreadPhase.OodleLZ_Decode_Unthreaded);
-            Array.Resize(ref rawBuf, (int)rawLen);
-            return rawBuf;
-        }
+        /// <inheritdoc cref="Load()"/>
+        [Obsolete("Use Oodle.Load.")]
+        public static IOodleCompressor GetOodleCompressor() => Load();
 
-        /// <summary>
-        /// Gets a compressor for the Oodle library in use.
-        /// </summary>
-        /// <exception cref="NoOodleFoundException">No supported Oodle library could be found.</exception>
-        [Obsolete("Use Oodle.Compress and Oodle.Decompress.")]
-        public static IOodleCompressor GetOodleCompressor()
-        {
-            EnsureAvailable();
-            return Compressor.Instance;
-        }
-
-        /// <inheritdoc cref="GetOodleCompressor"/>
-        [Obsolete("Use Oodle.Compress and Oodle.Decompress.")]
-        public static IOodleCompressor GetOodleCompressor2() => GetOodleCompressor();
-
-        private sealed class Compressor : IOodleCompressor
-        {
-            public static readonly Compressor Instance = new();
-
-            public byte[] Compress(byte[] source, OodleLZ_Compressor compressor, OodleLZ_CompressionLevel level)
-                => Oodle.Compress(source, compressor, level);
-
-            public byte[] Decompress(byte[] source, long uncompressedSize) => Oodle.Decompress(source, uncompressedSize);
-        }
-
-        #region Imports
-
-        /// <param name="compressor"></param>
-        /// <param name="rawBuf"></param>
-        /// <param name="rawLen"></param>
-        /// <param name="compBuf"></param>
-        /// <param name="level"></param>
-        /// <param name="pOptions">= NULL</param>
-        /// <param name="dictionaryBase">= NULL</param>
-        /// <param name="lrm">= NULL</param>
-        /// <param name="scratchMem">= NULL</param>
-        /// <param name="scratchSize">= 0</param>
-        [DllImport(LibraryName)]
-        private static extern long OodleLZ_Compress(
-            OodleLZ_Compressor compressor,
-            [MarshalAs(UnmanagedType.LPArray)]
-            byte[] rawBuf,
-            long rawLen,
-            [MarshalAs(UnmanagedType.LPArray)]
-            byte[] compBuf,
-            OodleLZ_CompressionLevel level,
-            IntPtr pOptions,
-            IntPtr dictionaryBase,
-            IntPtr lrm,
-            IntPtr scratchMem,
-            long scratchSize);
-
-        /// <param name="compressor">= OodleLZ_Compressor_Invalid</param>
-        /// <param name="lzLevel">= OodleLZ_CompressionLevel_Normal</param>
-        [DllImport(LibraryName)]
-        private static extern IntPtr OodleLZ_CompressOptions_GetDefault(
-            OodleLZ_Compressor compressor,
-            OodleLZ_CompressionLevel lzLevel);
-
-        /// <param name="compBuf"></param>
-        /// <param name="compBufSize"></param>
-        /// <param name="rawBuf"></param>
-        /// <param name="rawLen"></param>
-        /// <param name="fuzzSafe">= OodleLZ_FuzzSafe_Yes</param>
-        /// <param name="checkCRC">= OodleLZ_CheckCRC_No</param>
-        /// <param name="verbosity">= OodleLZ_Verbosity_None</param>
-        /// <param name="decBufBase">= NULL</param>
-        /// <param name="decBufSize">= 0</param>
-        /// <param name="fpCallback">= NULL</param>
-        /// <param name="callbackUserData">= NULL</param>
-        /// <param name="decoderMemory">= NULL</param>
-        /// <param name="decoderMemorySize">= 0</param>
-        /// <param name="threadPhase">= OodleLZ_Decode_Unthreaded</param>
-        [DllImport(LibraryName)]
-        private static extern long OodleLZ_Decompress(
-            [MarshalAs(UnmanagedType.LPArray)]
-            byte[] compBuf,
-            long compBufSize,
-            [MarshalAs(UnmanagedType.LPArray)]
-            byte[] rawBuf,
-            long rawLen,
-            OodleLZ_FuzzSafe fuzzSafe,
-            OodleLZ_CheckCRC checkCRC,
-            OodleLZ_Verbosity verbosity,
-            IntPtr decBufBase,
-            long decBufSize,
-            IntPtr fpCallback,
-            IntPtr callbackUserData,
-            IntPtr decoderMemory,
-            long decoderMemorySize,
-            OodleLZ_Decode_ThreadPhase threadPhase);
-
-        /// <summary>
-        /// Oodle 2.8 onwards. Relevant Info: http://cbloomrants.blogspot.com/2019/04/oodle-280-release.html?m=1
-        /// </summary>
-        [DllImport(LibraryName)]
-        private static extern long OodleLZ_GetCompressedBufferSizeNeeded(
-            OodleLZ_Compressor compressor,
-            long rawSize);
-
-        /// <summary>
-        /// Oodle 2.6, which has no compressor argument.
-        /// </summary>
-        [DllImport(LibraryName, EntryPoint = "OodleLZ_GetCompressedBufferSizeNeeded")]
-        private static extern long OodleLZ_GetCompressedBufferSizeNeeded_V6(long rawSize);
-
-        /// <summary>
-        /// Oodle 2.8 onwards. Relevant Info: http://cbloomrants.blogspot.com/2019/04/oodle-280-release.html?m=1
-        /// </summary>
-        [DllImport(LibraryName)]
-        private static extern long OodleLZ_GetDecodeBufferSize(
-            OodleLZ_Compressor compressor,
-            long rawSize,
-            [MarshalAs(UnmanagedType.Bool)] bool corruptionPossible);
-
-        /// <summary>
-        /// Oodle 2.6, which has no compressor argument.
-        /// </summary>
-        [DllImport(LibraryName, EntryPoint = "OodleLZ_GetDecodeBufferSize")]
-        private static extern long OodleLZ_GetDecodeBufferSize_V6(
-            long rawSize,
-            [MarshalAs(UnmanagedType.Bool)] bool corruptionPossible);
-
-        #endregion
+        /// <inheritdoc cref="Load()"/>
+        [Obsolete("Use Oodle.Load.")]
+        public static IOodleCompressor GetOodleCompressor2() => Load();
 
         public enum OodleLZ_CompressionLevel : int
         {
@@ -345,15 +142,13 @@ namespace SoulsFormats
         {
             public uint verbosity;
             public int minMatchLen;
-            [MarshalAs(UnmanagedType.Bool)]
-            public bool seekChunkReset;
+            [MarshalAs(UnmanagedType.Bool)] public bool seekChunkReset;
             public int seekChunkLen;
             public OodleLZ_Profile profile;
             public int dictionarySize;
             public int spaceSpeedTradeoffBytes;
             public int maxHuffmansPerChunk;
-            [MarshalAs(UnmanagedType.Bool)]
-            public bool sendQuantumCRCs;
+            [MarshalAs(UnmanagedType.Bool)] public bool sendQuantumCRCs;
             public int maxLocalDictionarySize;
             public int makeLongRangeMatcher;
             public int matchTableSizeLog2;
