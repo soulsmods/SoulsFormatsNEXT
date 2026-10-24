@@ -13,7 +13,7 @@ namespace SoulsFormats
 
         internal static bool Is(BinaryReaderEx br)
         {
-            if (br.Stream.Length < 4)
+            if (br.Length < 4)
                 return false;
 
             string magic = br.GetASCII(0, 8);

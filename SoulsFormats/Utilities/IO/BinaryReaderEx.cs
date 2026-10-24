@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace SoulsFormats
@@ -13,6 +17,8 @@ namespace SoulsFormats
     /// </summary>
     public class BinaryReaderEx : IDisposable
     {
+        private const int BufferSize = 16 * 1024;
+
         /// <summary>
         /// Skips various assertions in order to load a file despite potential mismatches.
         /// This is mainly a tool to circumvent malicious format hacking by modders who try to
@@ -21,8 +27,22 @@ namespace SoulsFormats
         /// </summary>
         public static bool IsFlexible { get; set; }
 
-        private BinaryReader br;
         private Stack<long> steps;
+        
+        /// <summary>
+        /// Internal IO buffer.
+        /// </summary>
+        private IoSlice slice;
+        
+        /// <summary>
+        /// Underlying Stream the buffer is filled from, `null` when using an in-memory buffer.
+        /// </summary>
+        private readonly Stream stream;
+
+        /// <summary>
+        /// Whether <see cref="stream"/> is left open when the reader is disposed.
+        /// </summary>
+        private readonly bool leaveOpen;
 
         /// <summary>
         /// Whether or not the <see cref="BinaryReaderEx"/> has been disposed.
@@ -45,86 +65,262 @@ namespace SoulsFormats
         public int VarintSize => VarintLong ? 8 : 4;
 
         /// <summary>
-        /// The underlying stream.
-        /// </summary>
-        public Stream Stream { get; }
-
-        /// <summary>
         /// The current position of the stream.
         /// </summary>
         public long Position
         {
-            get => Stream.Position;
-            set => Stream.Position = value;
+            get
+            {
+                ThrowIfDisposed();
+                return slice.Position;
+            }
+            set
+            {
+                ThrowIfDisposed();
+                SetPosition(value);
+            }
         }
 
         /// <summary>
         /// The length of the stream.
         /// </summary>
-        public long Length => Stream.Length;
+        public long Length
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return stream?.Length ?? slice.Length;
+            }
+        }
 
         /// <summary>
         /// The amount of bytes from the current position to the end of the stream.
         /// </summary>
-        public long Remaining => Stream.Length - Stream.Position;
+        public long Remaining => Length - Position;
 
         /// <summary>
         /// Initializes a new BinaryReaderEx reading from the specified file.
         /// </summary>
-        public BinaryReaderEx(bool bigEndian, string path) : this(bigEndian, File.OpenRead(path), false) { }
+        public BinaryReaderEx(bool bigEndian, string path)
+            : this(bigEndian, new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 1), false) { }
 
         /// <summary>
         /// Initializes a new BinaryReaderEx reading from the specified byte array.
         /// </summary>
-        public BinaryReaderEx(bool bigEndian, byte[] input) : this(bigEndian, new MemoryStream(input), false) { }
+        public BinaryReaderEx(bool bigEndian, byte[] input)
+        {
+            ArgumentNullException.ThrowIfNull(input, "buffer");
+            BigEndian = bigEndian;
+            steps = new Stack<long>(8);
+            slice = new IoSlice { Buffer = input, Length = input.Length };
+        }
 
         /// <summary>
         /// Initializes a new BinaryReaderEx reading from the specified stream.
         /// </summary>
         public BinaryReaderEx(bool bigEndian, Stream stream, bool leaveOpen = false)
         {
+            ArgumentNullException.ThrowIfNull(stream, "input");
+            if (!stream.CanRead)
+                throw new ArgumentException("Stream was not readable.");
+
             BigEndian = bigEndian;
-            steps = new Stack<long>();
-            Stream = stream;
-            br = new BinaryReader(stream, Encoding.UTF8, leaveOpen);
+            steps = new Stack<long>(8);
+
+            this.stream = stream;
+            this.leaveOpen = leaveOpen;
+            this.slice = new IoSlice { Buffer = ArrayPool<byte>.Shared.Rent(BufferSize), Start = stream.CanSeek ? stream.Position : 0 };
+        }
+
+        /// <summary>Ensure there are at least <paramref name="minimum"/> bytes available in the IO buffer</summary>
+        private ReadOnlySpan<byte> EnsureBuffered(int minimum)
+        {
+            ReadOnlySpan<byte> buffered = Buffered;
+            if (minimum <= buffered.Length && minimum >= 0)
+                return buffered;
+
+            ThrowIfDisposed();
+
+            if (minimum > 0)
+                Fill(minimum);
+
+            return Buffered;
+        }
+    
+        private ReadOnlySpan<byte> Buffered => slice.Cursor < slice.Length
+            ? new ReadOnlySpan<byte>(slice.Buffer, slice.Cursor, slice.Length - slice.Cursor)
+            : default;
+
+        /// <summary>Moves the reader past <paramref name="count"/> bytes that <see cref="EnsureBuffered"/> gave it.</summary>
+        private void Consume(int count) => slice.Cursor += count;
+
+        private ReadOnlySpan<byte> Take(int count)
+        {
+            ReadOnlySpan<byte> buffered = EnsureBuffered(count);
+            if (buffered.Length < count)
+                throw EndOfData();
+
+            Consume(count);
+            return buffered[..count];
+        }
+
+        private T Take<T>() where T : unmanaged
+        {
+            int size = Unsafe.SizeOf<T>();
+            ReadOnlySpan<byte> buffered = EnsureBuffered(size);
+            if (buffered.Length < size)
+                throw EndOfData();
+
+            T value = MemoryMarshal.Read<T>(buffered);
+            Consume(size);
+
+            if (BigEndian)
+                ReverseEach(MemoryMarshal.AsBytes(new Span<T>(ref value)), size);
+
+            return value;
         }
 
         /// <summary>
-        /// Reads length bytes and returns them in reversed order.
+        /// Attempt to read <paramref name="count"/> bytes at <paramref name="offset"/> without refilling the IO buffer.
         /// </summary>
-        private byte[] ReadReversedBytes(int length)
+        private bool TryPeek(long offset, int count, out ReadOnlySpan<byte> bytes)
         {
-            byte[] bytes = ReadBytes(length);
-            Array.Reverse(bytes);
-            return bytes;
+            long start = offset - slice.Start;
+            if (count > 0 && start >= 0 && start <= slice.Length - count)
+            {
+                bytes = new ReadOnlySpan<byte>(slice.Buffer, (int)start, count);
+                return true;
+            }
+
+            bytes = default;
+            return false;
         }
 
         /// <summary>
-        /// Reads a value from the specified offset using the given function, returning the stream to its original position afterwards.
+        /// Attempt to read <typeparamref name="T"/> at <paramref name="offset"/> without refilling the IO buffer.
         /// </summary>
-        private T GetValue<T>(Func<T> readValue, long offset)
+        private bool TryPeek<T>(long offset, out T value) where T : unmanaged
         {
-            StepIn(offset);
-            T result = readValue();
-            StepOut();
+            if (TryPeek(offset, Unsafe.SizeOf<T>(), out var bytes))
+            {
+                value = MemoryMarshal.Read<T>(bytes);
+                if (BigEndian)
+                    ReverseEach(MemoryMarshal.AsBytes(new Span<T>(ref value)), bytes.Length);
+
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        private EndOfStreamException EndOfData()
+        {
+            slice.Cursor = Math.Max(slice.Cursor, slice.Length);
+            return new EndOfStreamException("Remaining size of stream was smaller than requested number of bytes.");
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (IsDisposed)
+                throw new ObjectDisposedException(null, "Cannot access a closed Stream.");
+        }
+ 
+        /// <summary>
+        /// Reads <paramref name="count"/> values of <typeparamref name="T"/>
+        /// </summary>
+        private T[] ReadArray<T>(int count) where T : unmanaged
+        {
+            var result = new T[count];
+            Span<byte> bytes = MemoryMarshal.AsBytes(result.AsSpan());
+            ReadInto(bytes);
+
+            if (BigEndian)
+                ReverseEach(bytes, Unsafe.SizeOf<T>());
+
             return result;
         }
 
         /// <summary>
-        /// Reads an array of values from the specified offset using the given function, returning the stream to its original position afterwards.
+        /// Reverses the byte order of each <paramref name="size"/>-byte value in <paramref name="bytes"/>.
         /// </summary>
-        private T[] GetValues<T>(Func<int, T[]> readValues, long offset, int count)
+        private static void ReverseEach(Span<byte> bytes, int size)
+        {
+            if (size == 2)
+                BinaryPrimitives.ReverseEndianness(MemoryMarshal.Cast<byte, ushort>(bytes), MemoryMarshal.Cast<byte, ushort>(bytes));
+            else if (size == 4)
+                BinaryPrimitives.ReverseEndianness(MemoryMarshal.Cast<byte, uint>(bytes), MemoryMarshal.Cast<byte, uint>(bytes));
+            else if (size == 8)
+                BinaryPrimitives.ReverseEndianness(MemoryMarshal.Cast<byte, ulong>(bytes), MemoryMarshal.Cast<byte, ulong>(bytes));
+        }
+
+        private T GetValue<T>(long offset) where T : unmanaged
+        {
+            if (TryPeek(offset, out T value))
+                return value;
+
+            StepIn(offset);
+            value = Take<T>();
+            StepOut();
+            return value;
+        }
+
+        private T[] GetArray<T>(long offset, int count) where T : unmanaged
+        {
+            int size = Unsafe.SizeOf<T>();
+            if (count > 0 && count <= int.MaxValue / size && TryPeek(offset, count * size, out var bytes))
+            {
+                var result = new T[count];
+                var destination = MemoryMarshal.AsBytes(result.AsSpan());
+                bytes.CopyTo(destination);
+
+                if (BigEndian)
+                    ReverseEach(destination, size);
+
+                return result;
+            }
+
+            StepIn(offset);
+            T[] values = ReadArray<T>(count);
+            StepOut();
+            return values;
+        }
+
+        internal void GetValues<T>(long offset, Span<T> destination) where T : unmanaged
         {
             StepIn(offset);
-            T[] result = readValues(count);
+            Span<byte> bytes = MemoryMarshal.AsBytes(destination);
+            ReadInto(bytes);
+
+            if (BigEndian)
+                ReverseEach(bytes, Unsafe.SizeOf<T>());
+
             StepOut();
-            return result;
+        }
+
+        internal void GetUInt16s(long offset, Span<int> destination)
+        {
+            StepIn(offset);
+            ReadOnlySpan<ushort> values = MemoryMarshal.Cast<byte, ushort>(Take(checked(destination.Length * sizeof(ushort))));
+
+            if (BigEndian)
+            {
+                for (int i = 0; i < values.Length; i++)
+                    destination[i] = BinaryPrimitives.ReverseEndianness(values[i]);
+            }
+            else
+            {
+                for (int i = 0; i < values.Length; i++)
+                    destination[i] = values[i];
+            }
+
+            StepOut();
         }
 
         /// <summary>
         /// Compares a value to a list of options, returning it if found or excepting if not.
         /// </summary>
-        private T AssertValue<T>(T value, string typeName, string valueFormat, T[] options) where T : IEquatable<T>
+        private T AssertValue<T>(T value, string typeName, string valueFormat, ReadOnlySpan<T> options) where T : IEquatable<T>
         {
             if (IsFlexible) return value;
 
@@ -132,9 +328,21 @@ namespace SoulsFormats
                 if (value.Equals(option))
                     return value;
 
+            throw Mismatch(value, typeName, valueFormat, options.ToArray());
+        }
+
+        private T AssertValue<T>(T value, string typeName, string valueFormat, T option) where T : IEquatable<T>
+        {
+            if (IsFlexible || value.Equals(option)) return value;
+
+            throw Mismatch(value, typeName, valueFormat, [option]);
+        }
+
+        private InvalidDataException Mismatch<T>(T value, string typeName, string valueFormat, T[] options)
+        {
             string strValue = string.Format(valueFormat, value);
             string strOptions = string.Join(", ", options.Select(o => string.Format(valueFormat, o)));
-            throw new InvalidDataException($"Read {typeName}: {strValue} | Expected: {strOptions} | Ending position: 0x{Position:X}");
+            return new InvalidDataException($"Read {typeName}: {strValue} | Expected: {strOptions} | Ending position: 0x{Position:X}");
         }
 
         /// <summary>
@@ -142,8 +350,8 @@ namespace SoulsFormats
         /// </summary>
         public void StepIn(long offset)
         {
-            steps.Push(Stream.Position);
-            Stream.Position = offset;
+            steps.Push(Position);
+            Position = offset;
         }
 
         /// <summary>
@@ -154,7 +362,7 @@ namespace SoulsFormats
             if (steps.Count == 0)
                 throw new InvalidOperationException("Reader is already stepped all the way out.");
 
-            Stream.Position = steps.Pop();
+            Position = steps.Pop();
         }
 
         /// <summary>
@@ -162,8 +370,8 @@ namespace SoulsFormats
         /// </summary>
         public void Pad(int align)
         {
-            if (Stream.Position % align > 0)
-                Stream.Position += align - (Stream.Position % align);
+            if (Position % align > 0)
+                Position += align - (Position % align);
         }
 
         /// <summary>
@@ -171,9 +379,9 @@ namespace SoulsFormats
         /// </summary>
         public void PadRelative(long start, int align)
         {
-            long relPos = Stream.Position - start;
+            long relPos = Position - start;
             if (relPos % align > 0)
-                Stream.Position += align - (relPos % align);
+                Position += align - (relPos % align);
         }
 
         /// <summary>
@@ -181,9 +389,9 @@ namespace SoulsFormats
         /// </summary>
         public void Skip(int count)
         {
-            Stream.Position += count;
+            Position += count;
         }
-        
+
         // From SoulsAssetPipeline -> BinaryReaderWriterExtensions.cs by Meowmaritus
         public long GetNextPaddedOffsetAfterCurrentField(int currentFieldLength, int align)
         {
@@ -202,8 +410,12 @@ namespace SoulsFormats
         /// </summary>
         public bool ReadBoolean()
         {
+            return DecodeBoolean(Take<byte>());
+        }
+
+        private static bool DecodeBoolean(byte b)
+        {
             // BinaryReader.ReadBoolean accepts any non-zero value as true, which I don't want.
-            byte b = br.ReadByte();
             if (b == 0)
                 return false;
             else if (b == 1)
@@ -228,7 +440,13 @@ namespace SoulsFormats
         /// </summary>
         public bool GetBoolean(long offset)
         {
-            return GetValue(ReadBoolean, offset);
+            if (TryPeek(offset, out byte value) && value <= 1)
+                return value == 1;
+
+            StepIn(offset);
+            bool result = ReadBoolean();
+            StepOut();
+            return result;
         }
 
         /// <summary>
@@ -236,7 +454,10 @@ namespace SoulsFormats
         /// </summary>
         public bool[] GetBooleans(long offset, int count)
         {
-            return GetValues(ReadBooleans, offset, count);
+            StepIn(offset);
+            bool[] result = ReadBooleans(count);
+            StepOut();
+            return result;
         }
 
         /// <summary>
@@ -244,7 +465,7 @@ namespace SoulsFormats
         /// </summary>
         public bool AssertBoolean(bool option)
         {
-            return AssertValue(ReadBoolean(), "Boolean", "{0}", new bool[] { option });
+            return AssertValue(ReadBoolean(), "Boolean", "{0}", option);
         }
         #endregion
 
@@ -254,7 +475,7 @@ namespace SoulsFormats
         /// </summary>
         public sbyte ReadSByte()
         {
-            return br.ReadSByte();
+            return Take<sbyte>();
         }
 
         /// <summary>
@@ -262,10 +483,7 @@ namespace SoulsFormats
         /// </summary>
         public sbyte[] ReadSBytes(int count)
         {
-            var result = new sbyte[count];
-            for (int i = 0; i < count; i++)
-                result[i] = ReadSByte();
-            return result;
+            return ReadArray<sbyte>(count);
         }
 
         /// <summary>
@@ -273,7 +491,7 @@ namespace SoulsFormats
         /// </summary>
         public sbyte GetSByte(long offset)
         {
-            return GetValue(ReadSByte, offset);
+            return GetValue<sbyte>(offset);
         }
 
         /// <summary>
@@ -281,15 +499,23 @@ namespace SoulsFormats
         /// </summary>
         public sbyte[] GetSBytes(long offset, int count)
         {
-            return GetValues(ReadSBytes, offset, count);
+            return GetArray<sbyte>(offset, count);
         }
 
         /// <summary>
         /// Reads a one-byte signed integer and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public sbyte AssertSByte(params sbyte[] options)
+        public sbyte AssertSByte(params ReadOnlySpan<sbyte> options)
         {
             return AssertValue(ReadSByte(), "SByte", "0x{0:X}", options);
+        }
+
+        /// <summary>
+        /// Reads a one-byte signed integer and throws an exception if it does not match the specified option.
+        /// </summary>
+        public sbyte AssertSByte(sbyte option)
+        {
+            return AssertValue(ReadSByte(), "SByte", "0x{0:X}", option);
         }
         #endregion
 
@@ -299,7 +525,7 @@ namespace SoulsFormats
         /// </summary>
         public byte ReadByte()
         {
-            return br.ReadByte();
+            return Take<byte>();
         }
 
         /// <summary>
@@ -307,9 +533,9 @@ namespace SoulsFormats
         /// </summary>
         public byte[] ReadBytes(int count)
         {
-            byte[] result = br.ReadBytes(count);
-            if (result.Length != count)
-                throw new EndOfStreamException("Remaining size of stream was smaller than requested number of bytes.");
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            byte[] result = GC.AllocateUninitializedArray<byte>(count);
+            ReadInto(result);
             return result;
         }
 
@@ -318,9 +544,13 @@ namespace SoulsFormats
         /// </summary>
         public void ReadBytes(byte[] buffer, int index, int count)
         {
-            int read = br.Read(buffer, index, count);
-            if (read != count)
-                throw new EndOfStreamException("Remaining size of stream was smaller than requested number of bytes.");
+            ArgumentNullException.ThrowIfNull(buffer);
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            if (buffer.Length - index < count)
+                throw new ArgumentException("Offset and length were out of bounds for the array or count is greater than the number of elements from index to the end of the source collection.");
+
+            ReadInto(buffer.AsSpan(index, count));
         }
 
         /// <summary>
@@ -328,7 +558,7 @@ namespace SoulsFormats
         /// </summary>
         public byte GetByte(long offset)
         {
-            return GetValue(ReadByte, offset);
+            return GetValue<byte>(offset);
         }
 
         /// <summary>
@@ -336,6 +566,9 @@ namespace SoulsFormats
         /// </summary>
         public byte[] GetBytes(long offset, int count)
         {
+            if (TryPeek(offset, count, out var bytes))
+                return bytes.ToArray();
+
             StepIn(offset);
             byte[] result = ReadBytes(count);
             StepOut();
@@ -355,9 +588,17 @@ namespace SoulsFormats
         /// <summary>
         /// Reads a one-byte unsigned integer and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public byte AssertByte(params byte[] options)
+        public byte AssertByte(params ReadOnlySpan<byte> options)
         {
             return AssertValue(ReadByte(), "Byte", "0x{0:X}", options);
+        }
+
+        /// <summary>
+        /// Reads a one-byte unsigned integer and throws an exception if it does not match the specified option.
+        /// </summary>
+        public byte AssertByte(byte option)
+        {
+            return AssertValue(ReadByte(), "Byte", "0x{0:X}", option);
         }
         #endregion
 
@@ -367,10 +608,7 @@ namespace SoulsFormats
         /// </summary>
         public short ReadInt16()
         {
-            if (BigEndian)
-                return BitConverter.ToInt16(ReadReversedBytes(2), 0);
-            else
-                return br.ReadInt16();
+            return Take<short>();
         }
 
         /// <summary>
@@ -378,10 +616,7 @@ namespace SoulsFormats
         /// </summary>
         public short[] ReadInt16s(int count)
         {
-            var result = new short[count];
-            for (int i = 0; i < count; i++)
-                result[i] = ReadInt16();
-            return result;
+            return ReadArray<short>(count);
         }
 
         /// <summary>
@@ -389,7 +624,7 @@ namespace SoulsFormats
         /// </summary>
         public short GetInt16(long offset)
         {
-            return GetValue(ReadInt16, offset);
+            return GetValue<short>(offset);
         }
 
         /// <summary>
@@ -397,15 +632,23 @@ namespace SoulsFormats
         /// </summary>
         public short[] GetInt16s(long offset, int count)
         {
-            return GetValues(ReadInt16s, offset, count);
+            return GetArray<short>(offset, count);
         }
 
         /// <summary>
         /// Reads a two-byte signed integer and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public short AssertInt16(params short[] options)
+        public short AssertInt16(params ReadOnlySpan<short> options)
         {
             return AssertValue(ReadInt16(), "Int16", "0x{0:X}", options);
+        }
+
+        /// <summary>
+        /// Reads a two-byte signed integer and throws an exception if it does not match the specified option.
+        /// </summary>
+        public short AssertInt16(short option)
+        {
+            return AssertValue(ReadInt16(), "Int16", "0x{0:X}", option);
         }
         #endregion
 
@@ -415,10 +658,7 @@ namespace SoulsFormats
         /// </summary>
         public ushort ReadUInt16()
         {
-            if (BigEndian)
-                return BitConverter.ToUInt16(ReadReversedBytes(2), 0);
-            else
-                return br.ReadUInt16();
+            return Take<ushort>();
         }
 
         /// <summary>
@@ -426,10 +666,7 @@ namespace SoulsFormats
         /// </summary>
         public ushort[] ReadUInt16s(int count)
         {
-            var result = new ushort[count];
-            for (int i = 0; i < count; i++)
-                result[i] = ReadUInt16();
-            return result;
+            return ReadArray<ushort>(count);
         }
 
         /// <summary>
@@ -437,7 +674,7 @@ namespace SoulsFormats
         /// </summary>
         public ushort GetUInt16(long offset)
         {
-            return GetValue(ReadUInt16, offset);
+            return GetValue<ushort>(offset);
         }
 
         /// <summary>
@@ -445,15 +682,23 @@ namespace SoulsFormats
         /// </summary>
         public ushort[] GetUInt16s(long offset, int count)
         {
-            return GetValues(ReadUInt16s, offset, count);
+            return GetArray<ushort>(offset, count);
         }
 
         /// <summary>
         /// Reads a two-byte unsigned integer and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public ushort AssertUInt16(params ushort[] options)
+        public ushort AssertUInt16(params ReadOnlySpan<ushort> options)
         {
             return AssertValue(ReadUInt16(), "UInt16", "0x{0:X}", options);
+        }
+
+        /// <summary>
+        /// Reads a two-byte unsigned integer and throws an exception if it does not match the specified option.
+        /// </summary>
+        public ushort AssertUInt16(ushort option)
+        {
+            return AssertValue(ReadUInt16(), "UInt16", "0x{0:X}", option);
         }
         #endregion
 
@@ -463,10 +708,7 @@ namespace SoulsFormats
         /// </summary>
         public int ReadInt32()
         {
-            if (BigEndian)
-                return BitConverter.ToInt32(ReadReversedBytes(4), 0);
-            else
-                return br.ReadInt32();
+            return Take<int>();
         }
 
         /// <summary>
@@ -474,10 +716,7 @@ namespace SoulsFormats
         /// </summary>
         public int[] ReadInt32s(int count)
         {
-            int[] result = new int[count];
-            for (int i = 0; i < count; i++)
-                result[i] = ReadInt32();
-            return result;
+            return ReadArray<int>(count);
         }
 
         /// <summary>
@@ -485,7 +724,7 @@ namespace SoulsFormats
         /// </summary>
         public int GetInt32(long offset)
         {
-            return GetValue(ReadInt32, offset);
+            return GetValue<int>(offset);
         }
 
         /// <summary>
@@ -493,15 +732,23 @@ namespace SoulsFormats
         /// </summary>
         public int[] GetInt32s(long offset, int count)
         {
-            return GetValues(ReadInt32s, offset, count);
+            return GetArray<int>(offset, count);
         }
 
         /// <summary>
         /// Reads a four-byte signed integer and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public int AssertInt32(params int[] options)
+        public int AssertInt32(params ReadOnlySpan<int> options)
         {
             return AssertValue(ReadInt32(), "Int32", "0x{0:X}", options);
+        }
+
+        /// <summary>
+        /// Reads a four-byte signed integer and throws an exception if it does not match the specified option.
+        /// </summary>
+        public int AssertInt32(int option)
+        {
+            return AssertValue(ReadInt32(), "Int32", "0x{0:X}", option);
         }
         #endregion
 
@@ -511,10 +758,7 @@ namespace SoulsFormats
         /// </summary>
         public uint ReadUInt32()
         {
-            if (BigEndian)
-                return BitConverter.ToUInt32(ReadReversedBytes(4), 0);
-            else
-                return br.ReadUInt32();
+            return Take<uint>();
         }
 
         /// <summary>
@@ -522,10 +766,7 @@ namespace SoulsFormats
         /// </summary>
         public uint[] ReadUInt32s(int count)
         {
-            var result = new uint[count];
-            for (int i = 0; i < count; i++)
-                result[i] = ReadUInt32();
-            return result;
+            return ReadArray<uint>(count);
         }
 
         /// <summary>
@@ -533,7 +774,7 @@ namespace SoulsFormats
         /// </summary>
         public uint GetUInt32(long offset)
         {
-            return GetValue(ReadUInt32, offset);
+            return GetValue<uint>(offset);
         }
 
         /// <summary>
@@ -541,15 +782,23 @@ namespace SoulsFormats
         /// </summary>
         public uint[] GetUInt32s(long offset, int count)
         {
-            return GetValues(ReadUInt32s, offset, count);
+            return GetArray<uint>(offset, count);
         }
 
         /// <summary>
         /// Reads a four-byte unsigned integer and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public uint AssertUInt32(params uint[] options)
+        public uint AssertUInt32(params ReadOnlySpan<uint> options)
         {
             return AssertValue(ReadUInt32(), "UInt32", "0x{0:X}", options);
+        }
+
+        /// <summary>
+        /// Reads a four-byte unsigned integer and throws an exception if it does not match the specified option.
+        /// </summary>
+        public uint AssertUInt32(uint option)
+        {
+            return AssertValue(ReadUInt32(), "UInt32", "0x{0:X}", option);
         }
         #endregion
 
@@ -559,10 +808,7 @@ namespace SoulsFormats
         /// </summary>
         public long ReadInt64()
         {
-            if (BigEndian)
-                return BitConverter.ToInt64(ReadReversedBytes(8), 0);
-            else
-                return br.ReadInt64();
+            return Take<long>();
         }
 
         /// <summary>
@@ -570,10 +816,7 @@ namespace SoulsFormats
         /// </summary>
         public long[] ReadInt64s(int count)
         {
-            var result = new long[count];
-            for (int i = 0; i < count; i++)
-                result[i] = ReadInt64();
-            return result;
+            return ReadArray<long>(count);
         }
 
         /// <summary>
@@ -581,7 +824,7 @@ namespace SoulsFormats
         /// </summary>
         public long GetInt64(long offset)
         {
-            return GetValue(ReadInt64, offset);
+            return GetValue<long>(offset);
         }
 
         /// <summary>
@@ -589,15 +832,23 @@ namespace SoulsFormats
         /// </summary>
         public long[] GetInt64s(long offset, int count)
         {
-            return GetValues(ReadInt64s, offset, count);
+            return GetArray<long>(offset, count);
         }
 
         /// <summary>
         /// Reads an eight-byte signed integer and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public long AssertInt64(params long[] options)
+        public long AssertInt64(params ReadOnlySpan<long> options)
         {
             return AssertValue(ReadInt64(), "Int64", "0x{0:X}", options);
+        }
+
+        /// <summary>
+        /// Reads an eight-byte signed integer and throws an exception if it does not match the specified option.
+        /// </summary>
+        public long AssertInt64(long option)
+        {
+            return AssertValue(ReadInt64(), "Int64", "0x{0:X}", option);
         }
         #endregion
 
@@ -607,10 +858,7 @@ namespace SoulsFormats
         /// </summary>
         public ulong ReadUInt64()
         {
-            if (BigEndian)
-                return BitConverter.ToUInt64(ReadReversedBytes(8), 0);
-            else
-                return br.ReadUInt64();
+            return Take<ulong>();
         }
 
         /// <summary>
@@ -618,10 +866,7 @@ namespace SoulsFormats
         /// </summary>
         public ulong[] ReadUInt64s(int count)
         {
-            var result = new ulong[count];
-            for (int i = 0; i < count; i++)
-                result[i] = ReadUInt64();
-            return result;
+            return ReadArray<ulong>(count);
         }
 
         /// <summary>
@@ -629,7 +874,7 @@ namespace SoulsFormats
         /// </summary>
         public ulong GetUInt64(long offset)
         {
-            return GetValue(ReadUInt64, offset);
+            return GetValue<ulong>(offset);
         }
 
         /// <summary>
@@ -637,15 +882,23 @@ namespace SoulsFormats
         /// </summary>
         public ulong[] GetUInt64s(long offset, int count)
         {
-            return GetValues(ReadUInt64s, offset, count);
+            return GetArray<ulong>(offset, count);
         }
 
         /// <summary>
         /// Reads an eight-byte unsigned integer and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public ulong AssertUInt64(params ulong[] options)
+        public ulong AssertUInt64(params ReadOnlySpan<ulong> options)
         {
             return AssertValue(ReadUInt64(), "UInt64", "0x{0:X}", options);
+        }
+
+        /// <summary>
+        /// Reads an eight-byte unsigned integer and throws an exception if it does not match the specified option.
+        /// </summary>
+        public ulong AssertUInt64(ulong option)
+        {
+            return AssertValue(ReadUInt64(), "UInt64", "0x{0:X}", option);
         }
         #endregion
 
@@ -693,15 +946,27 @@ namespace SoulsFormats
         /// </summary>
         public long[] GetVarints(long offset, int count)
         {
-            return GetValues(ReadVarints, offset, count);
+            StepIn(offset);
+            long[] result = ReadVarints(count);
+            StepOut();
+            return result;
         }
 
         /// <summary>
         /// Reads either a four or eight-byte signed integer depending on VarintLong and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public long AssertVarint(params long[] options)
+        public long AssertVarint(params ReadOnlySpan<long> options)
         {
             return AssertValue(ReadVarint(), VarintLong ? "Varint64" : "Varint32", "0x{0:X}", options);
+        }
+
+
+        /// <summary>
+        /// Reads either a four or eight-byte signed integer depending on VarintLong and throws an exception if it does not match the specified option.
+        /// </summary>
+        public long AssertVarint(long option)
+        {
+            return AssertValue(ReadVarint(), VarintLong ? "Varint64" : "Varint32", "0x{0:X}", option);
         }
         #endregion
 
@@ -711,10 +976,7 @@ namespace SoulsFormats
         /// </summary>
         public float ReadSingle()
         {
-            if (BigEndian)
-                return BitConverter.ToSingle(ReadReversedBytes(4), 0);
-            else
-                return br.ReadSingle();
+            return Take<float>();
         }
 
         /// <summary>
@@ -722,10 +984,7 @@ namespace SoulsFormats
         /// </summary>
         public float[] ReadSingles(int count)
         {
-            var result = new float[count];
-            for (int i = 0; i < count; i++)
-                result[i] = ReadSingle();
-            return result;
+            return ReadArray<float>(count);
         }
 
         /// <summary>
@@ -733,7 +992,7 @@ namespace SoulsFormats
         /// </summary>
         public float GetSingle(long offset)
         {
-            return GetValue(ReadSingle, offset);
+            return GetValue<float>(offset);
         }
 
         /// <summary>
@@ -741,15 +1000,24 @@ namespace SoulsFormats
         /// </summary>
         public float[] GetSingles(long offset, int count)
         {
-            return GetValues(ReadSingles, offset, count);
+            return GetArray<float>(offset, count);
         }
 
         /// <summary>
         /// Reads a four-byte floating point number and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public float AssertSingle(params float[] options)
+        public float AssertSingle(params ReadOnlySpan<float> options)
         {
             return AssertValue(ReadSingle(), "Single", "{0}", options);
+        }
+
+
+        /// <summary>
+        /// Reads a four-byte floating point number and throws an exception if it does not match the specified option.
+        /// </summary>
+        public float AssertSingle(float option)
+        {
+            return AssertValue(ReadSingle(), "Single", "{0}", option);
         }
         #endregion
 
@@ -759,10 +1027,7 @@ namespace SoulsFormats
         /// </summary>
         public double ReadDouble()
         {
-            if (BigEndian)
-                return BitConverter.ToDouble(ReadReversedBytes(8), 0);
-            else
-                return br.ReadDouble();
+            return Take<double>();
         }
 
         /// <summary>
@@ -770,10 +1035,7 @@ namespace SoulsFormats
         /// </summary>
         public double[] ReadDoubles(int count)
         {
-            var result = new double[count];
-            for (int i = 0; i < count; i++)
-                result[i] = ReadDouble();
-            return result;
+            return ReadArray<double>(count);
         }
 
         /// <summary>
@@ -781,7 +1043,7 @@ namespace SoulsFormats
         /// </summary>
         public double GetDouble(long offset)
         {
-            return GetValue(ReadDouble, offset);
+            return GetValue<double>(offset);
         }
 
         /// <summary>
@@ -789,41 +1051,46 @@ namespace SoulsFormats
         /// </summary>
         public double[] GetDoubles(long offset, int count)
         {
-            return GetValues(ReadDoubles, offset, count);
+            return GetArray<double>(offset, count);
         }
 
         /// <summary>
         /// Reads an eight-byte floating point number and throws an exception if it does not match any of the specified options.
         /// </summary>
-        public double AssertDouble(params double[] options)
+        public double AssertDouble(params ReadOnlySpan<double> options)
         {
             return AssertValue(ReadDouble(), "Double", "{0}", options);
+        }
+
+        /// <summary>
+        /// Reads an eight-byte floating point number and throws an exception if it does not match the specified option.
+        /// </summary>
+        public double AssertDouble(double option)
+        {
+            return AssertValue(ReadDouble(), "Double", "{0}", option);
         }
         #endregion
 
         #region Enum
-        private TEnum ReadEnum<TEnum, TValue>(Func<TValue> readValue, string valueFormat)
+        private static TEnum TransmuteEnum<TEnum, TValue>(TValue value, string valueFormat) where TEnum : struct, Enum where TValue : struct
         {
-            TValue value = readValue();
-            if (!Enum.IsDefined(typeof(TEnum), value))
-            {
-                string strValue = string.Format(valueFormat, value);
-                throw new InvalidDataException(string.Format(
-                    "Read Byte not present in enum: {0}", strValue));
-            }
-            return (TEnum)(object)value;
+            TEnum result = Unsafe.As<TValue, TEnum>(ref value);
+            if (!Enum.IsDefined(result))
+                throw new InvalidDataException($"Read Byte not present in enum: {string.Format(valueFormat, value)}");
+
+            return result;
         }
 
         /// <summary>
         /// Reads a one-byte value as the specified enum, throwing an exception if not present.
         /// </summary>
-        public TEnum ReadEnum8<TEnum>() where TEnum : Enum
+        public TEnum ReadEnum8<TEnum>() where TEnum : struct, Enum
         {
             Type typ = Enum.GetUnderlyingType(typeof(TEnum));
             if (typ == typeof(byte))
-                return ReadEnum<TEnum, byte>(ReadByte, "0x{0:X}");
+                return TransmuteEnum<TEnum, byte>(ReadByte(), "0x{0:X}");
             if (typ == typeof(sbyte))
-                return ReadEnum<TEnum, sbyte>(ReadSByte, "0x{0:X}");
+                return TransmuteEnum<TEnum, sbyte>(ReadSByte(), "0x{0:X}");
             throw new InvalidDataException($"Enum {typeof(TEnum).Name} has an invalid underlying value type: {typ.Name}");
         }
 
@@ -831,7 +1098,7 @@ namespace SoulsFormats
         /// <summary>
         /// Reads a one-byte enum from the specified position without advancing the stream.
         /// </summary>
-        public TEnum GetEnum8<TEnum>(long position) where TEnum : Enum
+        public TEnum GetEnum8<TEnum>(long position) where TEnum : struct, Enum
         {
             StepIn(position);
             TEnum result = ReadEnum8<TEnum>();
@@ -842,20 +1109,20 @@ namespace SoulsFormats
         /// <summary>
         /// Reads a two-byte value as the specified enum, throwing an exception if not present.
         /// </summary>
-        public TEnum ReadEnum16<TEnum>() where TEnum : Enum
+        public TEnum ReadEnum16<TEnum>() where TEnum : struct, Enum
         {
             Type typ = Enum.GetUnderlyingType(typeof(TEnum));
             if (typ == typeof(short))
-                return ReadEnum<TEnum, short>(ReadInt16, "0x{0:X}");
+                return TransmuteEnum<TEnum, short>(ReadInt16(), "0x{0:X}");
             if (typ == typeof(ushort))
-                return ReadEnum<TEnum, ushort>(ReadUInt16, "0x{0:X}");
+                return TransmuteEnum<TEnum, ushort>(ReadUInt16(), "0x{0:X}");
             throw new InvalidDataException($"Enum {typeof(TEnum).Name} has an invalid underlying value type: {typ.Name}");
         }
 
         /// <summary>
         /// Reads a two-byte enum from the specified position without advancing the stream.
         /// </summary>
-        public TEnum GetEnum16<TEnum>(long position) where TEnum : Enum
+        public TEnum GetEnum16<TEnum>(long position) where TEnum : struct, Enum
         {
             StepIn(position);
             TEnum result = ReadEnum16<TEnum>();
@@ -866,20 +1133,20 @@ namespace SoulsFormats
         /// <summary>
         /// Reads a four-byte value as the specified enum, throwing an exception if not present.
         /// </summary>
-        public TEnum ReadEnum32<TEnum>() where TEnum : Enum
+        public TEnum ReadEnum32<TEnum>() where TEnum : struct, Enum
         {
             Type typ = Enum.GetUnderlyingType(typeof(TEnum));
             if (typ == typeof(int))
-                return ReadEnum<TEnum, int>(ReadInt32, "0x{0:X}");
+                return TransmuteEnum<TEnum, int>(ReadInt32(), "0x{0:X}");
             if (typ == typeof(uint))
-                return ReadEnum<TEnum, uint>(ReadUInt32, "0x{0:X}");
+                return TransmuteEnum<TEnum, uint>(ReadUInt32(), "0x{0:X}");
             throw new InvalidDataException($"Enum {typeof(TEnum).Name} has an invalid underlying value type: {typ.Name}");
         }
 
         /// <summary>
         /// Reads a four-byte enum from the specified position without advancing the stream.
         /// </summary>
-        public TEnum GetEnum32<TEnum>(long position) where TEnum : Enum
+        public TEnum GetEnum32<TEnum>(long position) where TEnum : struct, Enum
         {
             StepIn(position);
             TEnum result = ReadEnum32<TEnum>();
@@ -890,20 +1157,20 @@ namespace SoulsFormats
         /// <summary>
         /// Reads an eight-byte value as the specified enum, throwing an exception if not present.
         /// </summary>
-        public TEnum ReadEnum64<TEnum>() where TEnum : Enum
+        public TEnum ReadEnum64<TEnum>() where TEnum : struct, Enum
         {
             Type typ = Enum.GetUnderlyingType(typeof(TEnum));
             if (typ == typeof(long))
-                return ReadEnum<TEnum, long>(ReadInt64, "0x{0:X}");
+                return TransmuteEnum<TEnum, long>(ReadInt64(), "0x{0:X}");
             if (typ == typeof(ulong))
-                return ReadEnum<TEnum, ulong>(ReadUInt64, "0x{0:X}");
+                return TransmuteEnum<TEnum, ulong>(ReadUInt64(), "0x{0:X}");
             throw new InvalidDataException($"Enum {typeof(TEnum).Name} has an invalid underlying value type: {typ.Name}");
         }
 
         /// <summary>
         /// Reads an eight-byte enum from the specified position without advancing the stream.
         /// </summary>
-        public TEnum GetEnum64<TEnum>(long position) where TEnum : Enum
+        public TEnum GetEnum64<TEnum>(long position) where TEnum : struct, Enum
         {
             StepIn(position);
             TEnum result = ReadEnum64<TEnum>();
@@ -918,8 +1185,63 @@ namespace SoulsFormats
         /// </summary>
         private string ReadChars(Encoding encoding, int length)
         {
-            byte[] bytes = ReadBytes(length);
-            return encoding.GetString(bytes);
+            return encoding.GetString(Take(length));
+        }
+
+        private void ReadInto(Span<byte> bytes)
+        {
+            ReadOnlySpan<byte> buffered = Buffered;
+            if (bytes.Length <= buffered.Length)
+            {
+                buffered[..bytes.Length].CopyTo(bytes);
+                Consume(bytes.Length);
+                return;
+            }
+
+            ThrowIfDisposed();
+
+            buffered.CopyTo(bytes);
+            Consume(buffered.Length);
+            bytes = bytes[buffered.Length..];
+
+            // If we exhaust the bytes currently available in the slice then read into the users buffer
+            // so we can potentially avoid an intermediate copy.
+            if (TryReadUnbuffered(bytes))
+                return;
+
+            buffered = EnsureBuffered(bytes.Length);
+            if (buffered.Length < bytes.Length)
+                throw EndOfData();
+
+            buffered[..bytes.Length].CopyTo(bytes);
+            Consume(bytes.Length);
+        }
+
+        private ReadOnlySpan<byte> TakeNulTerminated(int charWidth)
+        {
+            ThrowIfDisposed();
+
+            int searched = 0;
+            while (true)
+            {
+                ReadOnlySpan<byte> buffered = EnsureBuffered(searched + charWidth);
+
+                int found = charWidth == 1
+                    ? buffered[searched..].IndexOf((byte)0)
+                    : MemoryMarshal.Cast<byte, char>(buffered.Slice(searched, (buffered.Length - searched) & ~1)).IndexOf('\0');
+
+                if (found >= 0)
+                {
+                    int length = searched + found * charWidth;
+                    Consume(length + charWidth);
+                    return buffered[..length];
+                }
+
+                if (buffered.Length < searched + charWidth)
+                    throw EndOfData();
+
+                searched = buffered.Length & ~(charWidth - 1);
+            }
         }
 
         /// <summary>
@@ -927,16 +1249,7 @@ namespace SoulsFormats
         /// </summary>
         private string ReadCharsTerminated(Encoding encoding)
         {
-            var bytes = new List<byte>();
-
-            byte b = ReadByte();
-            while (b != 0)
-            {
-                bytes.Add(b);
-                b = ReadByte();
-            }
-
-            return encoding.GetString(bytes.ToArray());
+            return encoding.GetString(TakeNulTerminated(1));
         }
 
         /// <summary>
@@ -971,6 +1284,9 @@ namespace SoulsFormats
         /// </summary>
         public string GetASCII(long offset, int length)
         {
+            if (TryPeek(offset, length, out var bytes))
+                return SFEncoding.ASCII.GetString(bytes);
+
             StepIn(offset);
             string result = ReadASCII(length);
             StepOut();
@@ -1027,6 +1343,9 @@ namespace SoulsFormats
         /// </summary>
         public string GetShiftJIS(long offset, int length)
         {
+            if (TryPeek(offset, length, out var bytes))
+                return SFEncoding.ShiftJIS.GetString(bytes);
+
             StepIn(offset);
             string result = ReadShiftJIS(length);
             StepOut();
@@ -1038,19 +1357,8 @@ namespace SoulsFormats
         /// </summary>
         public string ReadUTF16()
         {
-            List<byte> bytes = new List<byte>();
-            byte[] pair = ReadBytes(2);
-            while (pair[0] != 0 || pair[1] != 0)
-            {
-                bytes.Add(pair[0]);
-                bytes.Add(pair[1]);
-                pair = ReadBytes(2);
-            }
-
-            if (BigEndian)
-                return SFEncoding.UTF16BE.GetString(bytes.ToArray());
-            else
-                return SFEncoding.UTF16.GetString(bytes.ToArray());
+            ReadOnlySpan<byte> text = TakeNulTerminated(2);
+            return BigEndian ? SFEncoding.UTF16BE.GetString(text) : SFEncoding.UTF16.GetString(text);
         }
 
         /// <summary>
@@ -1069,14 +1377,9 @@ namespace SoulsFormats
         /// </summary>
         public string ReadFixStr(int size)
         {
-            byte[] bytes = ReadBytes(size);
-            int terminator;
-            for (terminator = 0; terminator < size; terminator++)
-            {
-                if (bytes[terminator] == 0)
-                    break;
-            }
-            return SFEncoding.ShiftJIS.GetString(bytes, 0, terminator);
+            ReadOnlySpan<byte> bytes = Take(size);
+            int terminator = bytes.IndexOf((byte)0);
+            return SFEncoding.ShiftJIS.GetString(terminator < 0 ? bytes : bytes[..terminator]);
         }
 
         /// <summary>
@@ -1084,21 +1387,14 @@ namespace SoulsFormats
         /// </summary>
         public string ReadFixStrW(int size)
         {
-            byte[] bytes = ReadBytes(size);
-            int terminator;
-            for (terminator = 0; terminator < size; terminator += 2)
-            {
-                // If length is odd (which it really shouldn't be), avoid indexing out of the array and align the terminator to the end
-                if (terminator == size - 1)
-                    terminator--;
-                else if (bytes[terminator] == 0 && bytes[terminator + 1] == 0)
-                    break;
-            }
+            ReadOnlySpan<byte> bytes = Take(size);
+            int units = MemoryMarshal.Cast<byte, char>(bytes[..(size & ~1)]).IndexOf('\0');
+            ReadOnlySpan<byte> text = units < 0 ? bytes : bytes[..(units * 2)];
 
             if (BigEndian)
-                return SFEncoding.UTF16BE.GetString(bytes, 0, terminator);
+                return SFEncoding.UTF16BE.GetString(text);
             else
-                return SFEncoding.UTF16.GetString(bytes, 0, terminator);
+                return SFEncoding.UTF16.GetString(text);
         }
         #endregion
 
@@ -1165,12 +1461,11 @@ namespace SoulsFormats
         /// </summary>
         public void AssertPattern(int length, byte pattern)
         {
-            byte[] bytes = ReadBytes(length);
-            for (int i = 0; i < length; i++)
-            {
-                if (bytes[i] != pattern)
-                    throw new InvalidDataException($"Expected {length} 0x{pattern:X2}, got {bytes[i]:X2} at position {i}");
-            }
+            ReadOnlySpan<byte> bytes = Take(length);
+
+            int i = bytes.IndexOfAnyExcept(pattern);
+            if (i >= 0)
+                throw new InvalidDataException($"Expected {length} 0x{pattern:X2}, got {bytes[i]:X2} at position {i}");
         }
 
         /// <summary>
@@ -1178,10 +1473,11 @@ namespace SoulsFormats
         /// </summary>
         public Color ReadARGB()
         {
-            byte a = br.ReadByte();
-            byte r = br.ReadByte();
-            byte g = br.ReadByte();
-            byte b = br.ReadByte();
+            ReadOnlySpan<byte> bytes = Take(4);
+            byte a = bytes[0];
+            byte r = bytes[1];
+            byte g = bytes[2];
+            byte b = bytes[3];
             return Color.FromArgb(a, r, g, b);
         }
 
@@ -1190,10 +1486,11 @@ namespace SoulsFormats
         /// </summary>
         public Color ReadABGR()
         {
-            byte a = br.ReadByte();
-            byte b = br.ReadByte();
-            byte g = br.ReadByte();
-            byte r = br.ReadByte();
+            ReadOnlySpan<byte> bytes = Take(4);
+            byte a = bytes[0];
+            byte b = bytes[1];
+            byte g = bytes[2];
+            byte r = bytes[3];
             return Color.FromArgb(a, r, g, b);
         }
 
@@ -1202,10 +1499,11 @@ namespace SoulsFormats
         /// </summary>
         public Color ReadRGBA()
         {
-            byte r = br.ReadByte();
-            byte g = br.ReadByte();
-            byte b = br.ReadByte();
-            byte a = br.ReadByte();
+            ReadOnlySpan<byte> bytes = Take(4);
+            byte r = bytes[0];
+            byte g = bytes[1];
+            byte b = bytes[2];
+            byte a = bytes[3];
             return Color.FromArgb(a, r, g, b);
         }
 
@@ -1214,10 +1512,11 @@ namespace SoulsFormats
         /// </summary>
         public Color ReadBGRA()
         {
-            byte b = br.ReadByte();
-            byte g = br.ReadByte();
-            byte r = br.ReadByte();
-            byte a = br.ReadByte();
+            ReadOnlySpan<byte> bytes = Take(4);
+            byte b = bytes[0];
+            byte g = bytes[1];
+            byte r = bytes[2];
+            byte a = bytes[3];
             return Color.FromArgb(a, r, g, b);
         }
         #endregion
@@ -1233,7 +1532,18 @@ namespace SoulsFormats
             {
                 if (disposing)
                 {
-                    br.Dispose();
+                    if (stream != null)
+                    {
+                        if (!leaveOpen)
+                            stream.Dispose();
+
+                        slice.Release();
+                    }
+                    else
+                    {
+                        slice = default;
+                    }
+
                     steps.Clear();
                 }
 
@@ -1251,5 +1561,126 @@ namespace SoulsFormats
         }
 
         #endregion
+        
+        private struct IoSlice
+        {
+            public byte[] Buffer;
+            public long Start;
+            public int Length;
+            public int Cursor;
+
+            public readonly long Position => Start + Cursor;
+
+            public void Compact(int count, int minimumSize)
+            {
+                int kept = Math.Max(0, Length - Cursor);
+
+                if (Buffer.Length < count)
+                {
+                    byte[] grown = ArrayPool<byte>.Shared.Rent(Math.Max(minimumSize, count));
+                    if (kept > 0)
+                        Array.Copy(Buffer, Cursor, grown, 0, kept);
+                    ArrayPool<byte>.Shared.Return(Buffer);
+                    Buffer = grown;
+                }
+                else if (kept > 0 && Cursor > 0)
+                {
+                    Array.Copy(Buffer, Cursor, Buffer, 0, kept);
+                }
+
+                Start += Cursor;
+                Cursor = 0;
+                Length = kept;
+            }
+
+            public void Release()
+            {
+                if (Buffer != null)
+                    ArrayPool<byte>.Shared.Return(Buffer);
+
+                this = default;
+            }
+        }
+
+        private void SetPosition(long value)
+        {
+            if (stream == null)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegative(value);
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(value, int.MaxValue);
+                slice.Cursor = (int)value;
+                return;
+            }
+
+            if (value < 0)
+                stream.Position = value;
+
+            if (value >= slice.Start && value <= slice.Start + slice.Length)
+            {
+                slice.Cursor = (int)(value - slice.Start);
+            }
+            else if (!stream.CanSeek)
+            {
+                stream.Position = value;
+            }
+            else
+            {
+                slice.Start = value;
+                slice.Length = 0;
+                slice.Cursor = 0;
+            }
+        }
+
+        private bool Fill(int count)
+        {
+            if (stream == null)
+                return false;
+
+            slice.Compact(count, BufferSize);
+
+            long end = slice.Start + slice.Length;
+            if (stream.CanSeek && stream.Position != end)
+                stream.Position = end;
+
+            while (slice.Length < count)
+            {
+                int read = stream.Read(slice.Buffer, slice.Length, slice.Buffer.Length - slice.Length);
+                if (read == 0)
+                    return false;
+                slice.Length += read;
+            }
+
+            return true;
+        }
+
+        private bool TryReadUnbuffered(Span<byte> bytes)
+        {
+            if (stream == null || bytes.Length < BufferSize)
+                return false;
+
+            long position = slice.Position;
+            if (stream.CanSeek && stream.Position != position)
+                stream.Position = position;
+
+            int read = 0;
+            try
+            {
+                while (read < bytes.Length)
+                {
+                    int more = stream.Read(bytes[read..]);
+                    if (more == 0)
+                        throw new EndOfStreamException("Remaining size of stream was smaller than requested number of bytes.");
+                    read += more;
+                }
+            }
+            finally
+            {
+                slice.Start = position + read;
+                slice.Length = 0;
+                slice.Cursor = 0;
+            }
+
+            return true;
+        }
     }
 }

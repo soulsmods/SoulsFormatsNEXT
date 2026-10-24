@@ -115,13 +115,7 @@ namespace SoulsFormats
 
             stream.Position = 0; 
             using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
-            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
-            {
-                TFormat file = new TFormat();
-                file.Compression = compression;
-                file.Read(dbr);
-                return file;
-            }
+                return ReadInternal(br);
         }
 
         /// <summary>
@@ -130,13 +124,7 @@ namespace SoulsFormats
         public static TFormat Read(byte[] bytes)
         {
             using (BinaryReaderEx br = new BinaryReaderEx(false, bytes))
-            using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
-            {
-                TFormat file = new TFormat();
-                file.Compression = compression;
-                file.Read(dbr);
-                return file;
-            }
+                return ReadInternal(br);
         }
 
         /// <summary>
@@ -144,8 +132,15 @@ namespace SoulsFormats
         /// </summary>
         public static TFormat Read(string path)
         {
-            using (FileStream stream = File.OpenRead(path))
-            using (BinaryReaderEx br = new BinaryReaderEx(false, stream, true))
+            using (BinaryReaderEx br = new BinaryReaderEx(false, path))
+                return ReadInternal(br);
+        }
+
+        /// <summary>
+        /// Reads a file from a reader at its start, automatically decompressing it if necessary.
+        /// </summary>
+        internal static TFormat ReadInternal(BinaryReaderEx br)
+        {
             using (BinaryReaderEx dbr = SFUtil.GetDecompressedBinaryReader(br, out DCX.CompressionInfo compression))
             {
                 TFormat file = new TFormat();
