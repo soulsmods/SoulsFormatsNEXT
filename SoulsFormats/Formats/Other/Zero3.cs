@@ -510,7 +510,7 @@ namespace SoulsFormats.Other
             if (magic == "BND3")
             {
                 wrapped = true;
-                var bnd = BND3.Read(br.Stream);
+                var bnd = BND3.ReadInternal(br);
                 wrappingVersion = bnd.Version;
                 if (bnd.Files.Count != 1)
                 {

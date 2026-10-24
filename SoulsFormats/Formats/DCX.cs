@@ -13,13 +13,16 @@ namespace SoulsFormats
     {
         #region Is
 
+        private static ReadOnlySpan<byte> DcpMagic => "DCP\0"u8;
+        private static ReadOnlySpan<byte> DcxMagic => "DCX\0"u8;
+
         internal static bool Is(BinaryReaderEx br)
         {
-            if (br.Stream.Length < 4)
+            if (br.Length < 4)
                 return false;
 
-            string magic = br.GetASCII(0, 4);
-            return magic == "DCP\0" || magic == "DCX\0";
+            ReadOnlySpan<byte> magic = br.GetBytes(0, 4);
+            return magic.SequenceEqual(DcpMagic) || magic.SequenceEqual(DcxMagic);
         }
 
         /// <summary>

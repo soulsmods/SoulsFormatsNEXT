@@ -67,7 +67,7 @@ namespace SoulsFormats
             {
                 if (disposing)
                 {
-                    DataBR?.Stream?.Dispose();
+                    DataBR?.Dispose();
                 }
 
                 disposedValue = true;

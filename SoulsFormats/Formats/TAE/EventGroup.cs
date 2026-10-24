@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -67,7 +68,7 @@ namespace SoulsFormats
                 indices = new List<int>();
             }
 
-            internal EventGroup(BinaryReaderEx br, List<long> eventHeaderOffsets, TAEFormat format)
+            internal EventGroup(BinaryReaderEx br, ReadOnlySpan<long> eventHeaderOffsets, TAEFormat format)
             {
                 long entryCount = br.ReadVarint();
                 long valuesOffset = br.ReadVarint();
@@ -119,12 +120,14 @@ namespace SoulsFormats
 
                 br.StepIn(valuesOffset);
                 {
-                    if (format == TAEFormat.SOTFS)
-                        indices = br.ReadVarints((int)entryCount).Select(offset
-                            => eventHeaderOffsets.FindIndex(headerOffset => headerOffset == offset)).ToList();
-                    else
-                        indices = br.ReadInt32s((int)entryCount).Select(offset
-                            => eventHeaderOffsets.FindIndex(headerOffset => headerOffset == offset)).ToList();
+                    indices = new List<int>((int)entryCount);
+                    for (long i = 0; i < entryCount; i++)
+                    {
+                        long offset = format == TAEFormat.SOTFS ? br.ReadVarint() : br.ReadInt32();
+                        int index = eventHeaderOffsets.BinarySearch(offset);
+                        
+                        indices.Add(index);
+                    }
                 }
                 br.StepOut();
             }

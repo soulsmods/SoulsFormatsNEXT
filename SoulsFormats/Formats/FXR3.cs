@@ -1171,7 +1171,7 @@ namespace SoulsFormats
 
             public static List<Field> ReadMany(BinaryReaderEx br, int count, object context = null)
             {
-                List<Field> fieldList = new List<Field>();
+                List<Field> fieldList = new List<Field>(count);
                 for (int index = 0; index < count; ++index)
                     fieldList.Add(Read(br, context, index));
                 return fieldList;

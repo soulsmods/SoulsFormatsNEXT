@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -316,59 +317,68 @@ namespace SoulsFormats
                         br.AssertInt32(0);
                     }
 
-                    var eventHeaderOffsets = new List<long>(eventCount);
-                    var eventParameterOffsets = new List<long>(eventCount);
-                    Events = new List<Event>(eventCount);
-                    br.StepIn(eventHeadersOffset);
+                    // Only needed while reading, so pooled.
+                    long[] eventHeaderOffsets = ArrayPool<long>.Shared.Rent(eventCount);
+                    long[] eventParameterOffsets = ArrayPool<long>.Shared.Rent(eventCount);
+                    try
                     {
-                        for (int i = 0; i < eventCount; i++)
+                        Events = new List<Event>(eventCount);
+                        br.StepIn(eventHeadersOffset);
                         {
-                            eventHeaderOffsets.Add(br.Position);
-                            Events.Add(Event.Read(br, out long pOffset, format));
-                            eventParameterOffsets.Add(pOffset);
-
-                            if (i > 0)
+                            for (int i = 0; i < eventCount; i++)
                             {
-                                //  Go to previous event's parameters
-                                br.StepIn(eventParameterOffsets[i - 1]);
+                                eventHeaderOffsets[i] = br.Position;
+                                Events.Add(Event.Read(br, out long pOffset, format));
+                                eventParameterOffsets[i] = pOffset;
+
+                                if (i > 0)
                                 {
-                                    // Read the space between the previous event's parameter start and the start of this event data.
-                                    long gapBetweenEventParamOffsets = eventParameterOffsets[i] - eventParameterOffsets[i - 1];
-                                    // Subtract to account for the current event's type and offset 
-                                    Events[i - 1].ReadParameters(br, (int)(gapBetweenEventParamOffsets - (br.VarintLong ? 16 : 8)));
+                                    //  Go to previous event's parameters
+                                    br.StepIn(eventParameterOffsets[i - 1]);
+                                    {
+                                        // Read the space between the previous event's parameter start and the start of this event data.
+                                        long gapBetweenEventParamOffsets = eventParameterOffsets[i] - eventParameterOffsets[i - 1];
+                                        // Subtract to account for the current event's type and offset 
+                                        Events[i - 1].ReadParameters(br, (int)(gapBetweenEventParamOffsets - (br.VarintLong ? 16 : 8)));
+                                    }
+                                    br.StepOut();
+                                }
+                            }
+                        }
+                        br.StepOut();
+
+                        if (eventCount > 0)
+                        {
+                            if (eventGroupsOffset == 0)
+                            {
+                                lastEventNeedsParamGen = true;
+                                lastEventParamOffset = eventParameterOffsets[eventCount - 1];
+                            }
+                            else
+                            {
+                                // Go to last event's parameters
+                                br.StepIn(eventParameterOffsets[eventCount - 1]);
+                                {
+                                    // Read the space between the last event's parameter start and the start of the event groups.
+                                    Events[eventCount - 1].ReadParameters(br, (int)(eventGroupsOffset - eventParameterOffsets[eventCount - 1]));
                                 }
                                 br.StepOut();
                             }
                         }
-                    }
-                    br.StepOut();
 
-                    if (eventCount > 0)
-                    {
-                        if (eventGroupsOffset == 0)
+                        EventGroups = new List<EventGroup>(eventGroupCount);
+                        br.StepIn(eventGroupsOffset);
                         {
-                            lastEventNeedsParamGen = true;
-                            lastEventParamOffset = eventParameterOffsets[eventCount - 1];
+                            for (int i = 0; i < eventGroupCount; i++)
+                                EventGroups.Add(new EventGroup(br, eventHeaderOffsets.AsSpan(0, eventCount), format));
                         }
-                        else
-                        {
-                            // Go to last event's parameters
-                            br.StepIn(eventParameterOffsets[eventCount - 1]);
-                            {
-                                // Read the space between the last event's parameter start and the start of the event groups.
-                                Events[eventCount - 1].ReadParameters(br, (int)(eventGroupsOffset - eventParameterOffsets[eventCount - 1]));
-                            }
-                            br.StepOut();
-                        }
+                        br.StepOut();
                     }
-
-                    EventGroups = new List<EventGroup>(eventGroupCount);
-                    br.StepIn(eventGroupsOffset);
+                    finally
                     {
-                        for (int i = 0; i < eventGroupCount; i++)
-                            EventGroups.Add(new EventGroup(br, eventHeaderOffsets, format));
+                        ArrayPool<long>.Shared.Return(eventHeaderOffsets);
+                        ArrayPool<long>.Shared.Return(eventParameterOffsets);
                     }
-                    br.StepOut();
 
                     foreach (var grp in EventGroups)
                     {
