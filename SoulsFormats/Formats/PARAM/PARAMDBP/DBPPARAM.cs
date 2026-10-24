@@ -66,7 +66,7 @@ namespace SoulsFormats
             br.BigEndian = BigEndian;
 
             // Make a private copy of the file to read row data from later
-            byte[] copy = br.GetBytes(0, (int)br.Stream.Length);
+            byte[] copy = br.GetBytes(0, (int)br.Length);
             CellReader = new BinaryReaderEx(br.BigEndian, copy);
         }
 
