@@ -1,9 +1,9 @@
 name: Publish NuGet package
 
 on:
-
   push:
-    branches: [nuget-publishing]
+    tags:
+      - v*
 
 permissions:
   id-token: write
@@ -20,7 +20,7 @@ jobs:
           dotnet-version: 9.0.x
 
       - name: Pack
-        run: dotnet pack SoulsFormats/SoulsFormats.csproj -c Release -o artifacts -p:Version=${{ format('0.0.1-ci.{0}', github.run_number) }}
+        run: dotnet pack SoulsFormats/SoulsFormats.csproj -c Release -o artifacts
 
       - name: NuGet login
         uses: NuGet/login@v1
