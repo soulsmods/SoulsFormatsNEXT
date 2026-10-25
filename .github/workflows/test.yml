@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  checks: write
 
 env:
   OODLE_URL: https://github.com/WorkingRobot/OodleUE/releases/download/2026-06-04-1357/gcc-x64-release.zip
@@ -41,15 +43,16 @@ jobs:
           --blame-crash --blame-crash-dump-type mini
           --results-directory "$RUNNER_TEMP/results"
 
-      - name: Summarize failures
+      - uses: dorny/test-reporter@v3
         if: always()
-        run: |
-          trx="$RUNNER_TEMP/results/results.trx"
-          if [ -f "$trx" ]; then
-            python3 .github/scripts/test-summary.py "$trx" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "No test results" >> "$GITHUB_STEP_SUMMARY"
-          fi
+        with:
+          name: Integration test results
+          path: ${{ runner.temp }}/results/*.trx
+          reporter: dotnet-trx
+          list-suites: failed
+          list-tests: failed
+          max-annotations: 50
+          fail-on-error: false
 
       - name: Find coverage report
         if: always() && env.COVERAGE == 'true'
