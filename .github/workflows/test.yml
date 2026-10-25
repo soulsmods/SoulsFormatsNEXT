@@ -35,10 +35,25 @@ jobs:
           SOULSFORMATS_GAME_DATA: /mnt/fsvfs
         run: >
           dotnet test SoulsFormats.IntegrationTests -c Release
-          --logger "trx;LogFileName=$RUNNER_TEMP/results.trx"
+          --logger "trx;LogFileName=results.trx"
+          --settings SoulsFormats.IntegrationTests/coverage.runsettings
+          --collect "Code Coverage"
+          --blame-crash --blame-crash-dump-type mini
+          --results-directory "$RUNNER_TEMP/results"
+
+      - name: Find coverage report
+        if: always()
+        run: echo "COVERAGE_FILE=$(find "$RUNNER_TEMP/results" -name '*.cobertura.xml' | head -1)" >> "$GITHUB_ENV"
+
+      - uses: coverallsapp/github-action@v2
+        if: always() && env.COVERAGE_FILE != ''
+        with:
+          file: ${{ env.COVERAGE_FILE }}
+          format: cobertura
+          base-path: ${{ github.workspace }}
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: integration-test-results
-          path: ${{ runner.temp }}/results.trx
+          path: ${{ runner.temp }}/results
