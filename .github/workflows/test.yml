@@ -1,0 +1,20 @@
+name: Integration Testing
+
+on:
+  push:
+    branches:
+      - integration-testing
+
+permissions:
+  contents: read
+
+jobs:
+  integration-testing:
+    runs-on:
+      group: soulsmods-nonfree-runner
+      labels: [self-hosted, linux-x64, has-game-data]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: ls -R /games
