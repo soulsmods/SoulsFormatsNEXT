@@ -50,19 +50,32 @@ jobs:
         run: |
           logs="$RUNNER_TEMP/witchy-logs"
           mkdir -p "$logs"
-          export logs
-          find /mnt/fsvfs -type f -print0 |
-            xargs -0 -P "$(nproc)" -I{} sh -c '
+          # Skip formats WitchyBND defers to external tools
+          find /mnt/fsvfs -type f \
+            ! -iname '*.lua' ! -iname '*.hks' ! -iname '*.hkx' ! -iname '*.gfx' ! -iname '*.flver' \
+            ! -iname '*.lua.dcx' ! -iname '*.hks.dcx' ! -iname '*.hkx.dcx' ! -iname '*.gfx.dcx' ! -iname '*.flver.dcx' \
+            | sort > "$RUNNER_TEMP/files"
+          total=$(wc -l < "$RUNNER_TEMP/files")
+          echo "Unpacking $total files"
+          export logs total
+          awk '{ print NR; print }' "$RUNNER_TEMP/files" |
+            xargs -d '\n' -n 2 -P "$(nproc)" sh -c '
+              n=$1 file=$2
               out=$(mktemp -d)
-              log="$logs/$(printf %s "$1" | tr / _).log"
-              export file="$1" out
+              log="$logs/$(printf %s "$file" | tr / _).log"
+              export file out
+              start=$(date +%s.%N)
               script -qefc '\''"$WITCHYBND" --passive --unpack --location "$out" "$file"'\'' /dev/null \
                 < /dev/null > "$log" 2>&1
               status=$?
+              took=$(awk "BEGIN { print $(date +%s.%N) - $start }")
               rm -rf "$out"
-              if [ "$status" -ne 0 ]; then
-                echo "::error file=$1::WitchyBND failed ($status)"
+              if [ "$status" -eq 0 ]; then
+                printf "[%s/%s] ok %s (%.1fs)\n" "$n" "$total" "$file" "$took"
+              else
+                printf "[%s/%s] error %s (%.1fs, exit %s)\n" "$n" "$total" "$file" "$took" "$status"
+                echo "::error file=$file::WitchyBND failed ($status)"
                 cat "$log"
                 exit 1
               fi
-            ' _ {}
+            ' _
