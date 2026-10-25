@@ -1,3 +1,5 @@
+using Allure.Net.Commons;
+
 namespace SoulsFormats.IntegrationTests;
 
 public sealed class GameFileReader(Game game)
@@ -23,11 +25,12 @@ public sealed class GameFileReader(Game game)
     {
         foreach (BinderFile entry in binder.Files)
         {
-            string entryPath = $"{path}/{entry.Name ?? entry.ID.ToString()}";
+            string entryName = entry.Name ?? entry.ID.ToString();
+            string entryPath = $"{path}/{entryName}";
 
             try
             {
-                TryRead(entryPath, entry.Bytes);
+                AllureApi.Step(entryName, () => TryRead(entryPath, entry.Bytes));
             }
             catch (Exception ex)
             {

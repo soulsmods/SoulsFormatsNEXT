@@ -1,8 +1,19 @@
+using Allure.Net.Commons;
+using Allure.NUnit;
+
 namespace SoulsFormats.IntegrationTests;
 
+[AllureNUnit]
 [Parallelizable(ParallelScope.All)]
 public class GameFileTests
 {
+    static GameFileTests() => AllureLifecycle.Instance.AddTypeFormatter(new GameFormatter());
+
+    private sealed class GameFormatter : TypeFormatter<Game>
+    {
+        public override string Format(Game value) => value.Name;
+    }
+
     public static IEnumerable<TestCaseData> Files() => Game.All.SelectMany(game =>
         Game.Root is null ? [Missing(game, $"{Game.RootVariable} isn't set.")]
         : !Directory.Exists(game.Directory) ? [Missing(game, $"{game} isn't at {game.Directory}.")]
@@ -16,13 +27,19 @@ public class GameFileTests
     {
         string fullPath = Path.Combine(game.Directory, path);
         string extension = Format.ExtensionOf(path);
+        bool data = extension.EndsWith("bdt", StringComparison.OrdinalIgnoreCase);
+        bool header = extension.EndsWith("bhd", StringComparison.OrdinalIgnoreCase);
 
-        if (extension.EndsWith("bdt", StringComparison.OrdinalIgnoreCase))
+        AllureApi.AddParentSuite(game.Name);
+        AllureApi.AddSuite(data || header ? "BXF" : game.FormatOf(extension)?.Name ?? "No format");
+        AllureApi.SetTestName(path);
+
+        if (data)
             Assert.Ignore();
 
         var reader = new GameFileReader(game);
 
-        if (extension.EndsWith("bhd", StringComparison.OrdinalIgnoreCase))
+        if (header)
             reader.ReadEntries(path, ReadSplitBinder(fullPath));
         else if (!reader.TryRead(path, File.ReadAllBytes(fullPath)))
             Assert.Ignore($"No format for .{extension}.");
