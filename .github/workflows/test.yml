@@ -46,6 +46,26 @@ jobs:
           unzip -p "$RUNNER_TEMP/oodle.zip" lib/liboodle-data-shared.so \
             > "$(dirname "$WITCHYBND")/liboo2corelinux64.so.9"
 
+      - name: Debug
+        run: |
+          stamp() { while IFS= read -r line; do printf '%s %s\n' "$(date +%T.%3N)" "$line"; done; }
+          files="/mnt/fsvfs/1245620/aeg800_010.bnk"
+          for game in /mnt/fsvfs/*/; do
+            files="$files $(find "$game" -type f -print -quit)"
+          done
+          for file in $files; do
+            echo "::group::$file"
+            echo "read"
+            time cat "$file" > /dev/null
+            echo "unpack"
+            out=$(mktemp -d)
+            export file out
+            time script -qefc '"$WITCHYBND" --passive --unpack --location "$out" "$file"' /dev/null \
+              < /dev/null 2>&1 | stamp || echo "--- exit $?"
+            rm -rf "$out"
+            echo "::endgroup::"
+          done
+
       - name: Unpack game files
         run: |
           logs="$RUNNER_TEMP/witchy-logs"
