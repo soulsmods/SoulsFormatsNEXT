@@ -45,6 +45,8 @@ jobs:
 
       - uses: dorny/test-reporter@v3
         if: always()
+        env:
+          NODE_OPTIONS: --max-old-space-size=24576
         with:
           name: Integration test results
           path: ${{ runner.temp }}/results/*.trx
