@@ -18,62 +18,27 @@ jobs:
       group: soulsmods-nonfree-runner
       labels: [self-hosted, linux-x64, has-game-data]
     timeout-minutes: 360
-    env:
-      WITCHY: ${{ github.workspace }}/witchy
     steps:
       - uses: actions/checkout@v4
-        with:
-          repository: garyttierney/WitchyBND
-          ref: fix/oodle-api
-          path: witchy
-
-      - uses: actions/checkout@v4
-        with:
-          path: witchy/SoulsFormats
-
-      - name: Build WitchyBND
-        working-directory: ${{ env.WITCHY }}
-        run: |
-          git submodule update --init --depth 1 PromptPlus
-          rm global.json
-          dotnet publish -c Release -r linux-x64 WitchyBND
-          echo "WITCHYBND=$WITCHY/bin/publish/linux-x64/WitchyBND" >> "$GITHUB_ENV"
 
       - name: Download Oodle
         run: |
           curl -fsSL -o "$RUNNER_TEMP/oodle.zip" "$OODLE_URL"
           echo "$OODLE_SHA256  $RUNNER_TEMP/oodle.zip" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/oodle"
           unzip -p "$RUNNER_TEMP/oodle.zip" lib/liboodle-data-shared.so \
-            > "$(dirname "$WITCHYBND")/liboo2corelinux64.so.9"
+            > "$RUNNER_TEMP/oodle/liboo2corelinux64.so.9"
+          echo "LD_LIBRARY_PATH=$RUNNER_TEMP/oodle" >> "$GITHUB_ENV"
 
-      - name: Unpack game files
-        run: |
-          logs="$RUNNER_TEMP/witchy-logs"
-          mkdir -p "$logs"
-          # Skip formats WitchyBND defers to external tools
-          find /mnt/fsvfs -type f \
-            ! -iname '*.lua' ! -iname '*.hks' ! -iname '*.hkx' ! -iname '*.gfx' ! -iname '*.flver' \
-            ! -iname '*.lua.dcx' ! -iname '*.hks.dcx' ! -iname '*.hkx.dcx' ! -iname '*.gfx.dcx' ! -iname '*.flver.dcx' \
-            | sort > "$RUNNER_TEMP/files"
-          total=$(wc -l < "$RUNNER_TEMP/files")
-          echo "Unpacking $total files"
-          export logs total
-          awk '{ print NR; print }' "$RUNNER_TEMP/files" |
-            xargs -d '\n' -n 2 -P "$(nproc)" sh -c '
-              n=$1 file=$2
-              out=$(mktemp -d)
-              log="$logs/$(printf %s "$file" | tr / _).log"
-              start=$(date +%s.%N)
-              "$WITCHYBND" --passive --unpack --location "$out" "$file" < /dev/null > "$log" 2>&1
-              status=$?
-              took=$(awk "BEGIN { print $(date +%s.%N) - $start }")
-              rm -rf "$out"
-              if [ "$status" -eq 0 ]; then
-                printf "[%s/%s] ok %s (%.1fs)\n" "$n" "$total" "$file" "$took"
-              else
-                printf "[%s/%s] error %s (%.1fs, exit %s)\n" "$n" "$total" "$file" "$took" "$status"
-                echo "::error file=$file::WitchyBND failed ($status)"
-                cat "$log"
-                exit 1
-              fi
-            ' _
+      - name: Read game files
+        env:
+          SOULSFORMATS_GAME_DATA: /mnt/fsvfs
+        run: >
+          dotnet test SoulsFormats.IntegrationTests -c Release
+          --logger "trx;LogFileName=$RUNNER_TEMP/results.trx"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: ${{ runner.temp }}/results.trx

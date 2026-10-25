@@ -1,0 +1,6 @@
+{
+  "configProperties": {
+    "System.GC.Server": true,
+    "System.GC.HeapHardLimit": 8589934592
+  }
+}
