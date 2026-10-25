@@ -5,7 +5,7 @@ using InteropNativeLibrary = System.Runtime.InteropServices.NativeLibrary;
 
 namespace SoulsFormats
 {
-    internal sealed unsafe class OodleCompressor : IOodleCompressor
+    public sealed unsafe class OodleCompressor : IOodleCompressor
     {
         private IntPtr handle;
         private readonly bool isOodle26;
