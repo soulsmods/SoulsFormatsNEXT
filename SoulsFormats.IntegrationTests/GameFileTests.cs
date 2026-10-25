@@ -27,7 +27,8 @@ public class GameFileTests
         else if (!reader.TryRead(path, File.ReadAllBytes(fullPath)))
             Assert.Ignore($"No format for .{extension}.");
 
-        Assert.That(reader.Failures, Is.Empty, () => string.Join("\n\n", reader.Failures));
+        if (reader.Failures.Count > 0)
+            Assert.Fail(string.Join("\n\n", reader.Failures));
     }
 
     private static IBinder ReadSplitBinder(string headerPath)

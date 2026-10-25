@@ -11,6 +11,7 @@ permissions:
 env:
   OODLE_URL: https://github.com/WorkingRobot/OodleUE/releases/download/2026-06-04-1357/gcc-x64-release.zip
   OODLE_SHA256: 458c66945ea6124d4f6fcf64cec5601ab230f61f6677a6ecab6cca621a9d0e11
+  COVERAGE: false
 
 jobs:
   integration-testing:
@@ -36,13 +37,22 @@ jobs:
         run: >
           dotnet test SoulsFormats.IntegrationTests -c Release
           --logger "trx;LogFileName=results.trx"
-          --settings SoulsFormats.IntegrationTests/coverage.runsettings
-          --collect "Code Coverage"
+          ${{ env.COVERAGE == 'true' && '--settings SoulsFormats.IntegrationTests/coverage.runsettings --collect "Code Coverage"' || '' }}
           --blame-crash --blame-crash-dump-type mini
           --results-directory "$RUNNER_TEMP/results"
 
-      - name: Find coverage report
+      - name: Summarize failures
         if: always()
+        run: |
+          trx="$RUNNER_TEMP/results/results.trx"
+          if [ -f "$trx" ]; then
+            python3 .github/scripts/test-summary.py "$trx" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No test results" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Find coverage report
+        if: always() && env.COVERAGE == 'true'
         run: echo "COVERAGE_FILE=$(find "$RUNNER_TEMP/results" -name '*.cobertura.xml' | head -1)" >> "$GITHUB_ENV"
 
       - uses: coverallsapp/github-action@v2
