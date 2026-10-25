@@ -8,13 +8,61 @@ on:
 permissions:
   contents: read
 
+env:
+  OODLE_URL: https://github.com/WorkingRobot/OodleUE/releases/download/2026-06-04-1357/gcc-x64-release.zip
+  OODLE_SHA256: 458c66945ea6124d4f6fcf64cec5601ab230f61f6677a6ecab6cca621a9d0e11
+
 jobs:
   integration-testing:
     runs-on:
       group: soulsmods-nonfree-runner
       labels: [self-hosted, linux-x64, has-game-data]
+    timeout-minutes: 360
+    env:
+      WITCHY: ${{ github.workspace }}/witchy
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-      - run: ls -R /mnt/fsvfs
+          repository: garyttierney/WitchyBND
+          ref: fix/oodle-api
+          path: witchy
+
+      - uses: actions/checkout@v4
+        with:
+          path: witchy/SoulsFormats
+
+      - name: Build WitchyBND
+        working-directory: ${{ env.WITCHY }}
+        run: |
+          git submodule update --init --depth 1 PromptPlus
+          rm global.json
+          dotnet publish -c Release -r linux-x64 WitchyBND
+          echo "WITCHYBND=$WITCHY/bin/publish/linux-x64/WitchyBND" >> "$GITHUB_ENV"
+
+      - name: Download Oodle
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/oodle.zip" "$OODLE_URL"
+          echo "$OODLE_SHA256  $RUNNER_TEMP/oodle.zip" | sha256sum -c -
+          unzip -p "$RUNNER_TEMP/oodle.zip" lib/liboodle-data-shared.so \
+            > "$(dirname "$WITCHYBND")/liboo2corelinux64.so.9"
+
+      - name: Unpack game files
+        run: |
+          logs="$RUNNER_TEMP/witchy-logs"
+          mkdir -p "$logs"
+          export logs
+          find /mnt/fsvfs -type f -print0 |
+            xargs -0 -P "$(nproc)" -I{} sh -c '
+              out=$(mktemp -d)
+              log="$logs/$(printf %s "$1" | tr / _).log"
+              export file="$1" out
+              script -qefc '\''"$WITCHYBND" --passive --unpack --location "$out" "$file"'\'' /dev/null \
+                < /dev/null > "$log" 2>&1
+              status=$?
+              rm -rf "$out"
+              if [ "$status" -ne 0 ]; then
+                echo "::error file=$1::WitchyBND failed ($status)"
+                cat "$log"
+                exit 1
+              fi
+            ' _ {}
