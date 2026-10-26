@@ -27,6 +27,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Print OIDC claims
+        run: |
+          payload=$(curl -fsSH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" \
+            | grep -o '"value":"[^"]*"' | cut -d'"' -f4 | cut -d. -f2 | tr '_-' '/+')
+          while (( ${#payload} % 4 )); do payload+='='; done
+          base64 -d <<< "$payload"; echo
+
       - name: Download Oodle
         run: |
           curl -fsSL -o "$RUNNER_TEMP/oodle.zip" "$OODLE_URL"
@@ -64,6 +72,7 @@ jobs:
           base-path: ${{ github.workspace }}
 
       - uses: aws-actions/configure-aws-credentials@v4
+        id: aws
         if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
         with:
           role-to-assume: arn:aws:iam::323036354437:role/soulsmods-runners-publish-test-results
@@ -75,7 +84,7 @@ jobs:
           node-version: 22
 
       - name: Download report history
-        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
+        if: ${{ !cancelled() && steps.aws.outcome == 'success' }}
         run: |
           for history in "$HISTORY" history/refs/heads/master.jsonl.gz; do
             aws s3 cp "s3://$BUCKET/$history" allure-history.jsonl.gz && gunzip allure-history.jsonl.gz && exit 0
@@ -83,7 +92,7 @@ jobs:
           echo "No history yet."
 
       - name: Generate report
-        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
+        if: ${{ !cancelled() && steps.aws.outcome == 'success' }}
         env:
           ALLURE_HISTORY_PATH: ${{ github.workspace }}/allure-history.jsonl
           NODE_OPTIONS: --max-old-space-size=24576
@@ -94,7 +103,7 @@ jobs:
           --history-limit 5
 
       - name: Publish report
-        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
+        if: ${{ !cancelled() && steps.aws.outcome == 'success' }}
         run: |
           s5cmd --numworkers 256 --log error cp 'allure-report/*' "s3://$BUCKET/$REPORT/"
           gzip -c allure-history.jsonl | aws s3 cp - "s3://$BUCKET/$HISTORY"
