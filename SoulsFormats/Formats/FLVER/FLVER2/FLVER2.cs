@@ -139,7 +139,7 @@ namespace SoulsFormats
             br.AssertByte(0);
             br.AssertByte(0);
 
-            br.AssertInt32(0);
+            var duskbloodsSize = br.ReadInt32(); //Unknown buffer size in duskbloods flvers?
             br.AssertInt32(0);
 
             if (Header.Version >= 0x20014)
