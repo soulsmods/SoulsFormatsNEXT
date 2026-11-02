@@ -23,8 +23,7 @@ namespace SoulsFormats
         public int dwCaps4;
         public int dwReserved2;
         public HEADER_DXT10 header10;
-
-        public static byte[] DX10DXGI = { 29, 65, 72, 75, 78, 86, 91, 93, 94, 95, 96, 97, 98, 99, };
+        public static byte[] DX10DXGI = { 10, 11, 12, 13, 14, 29, 65, 72, 75, 78, 86, 88, 91, 93, 94, 95, 96, 97, 98, 99, };
 
         public int DataOffset => ddspf.dwFourCC == "DX10" ? 0x94 : 0x80;
 
@@ -425,11 +424,55 @@ namespace SoulsFormats
             P8,
             A8P8,
             B4G4R4A4_UNORM,
-            P208,
-            V208,
-            V408,
+            P208 = 130,
+            V208 = 131,
+            V408 = 132,
+            //ASTC values are NVIDIA's extended DXGI_FORMAT values, not part of Microsoft's official enum, so they won't work in dds.
+            //Sourced from: https://github.com/nvpro-samples/nvpro_core/blob/bc19d6ac3ef62938d0ea0e099735878457ce1b6e/fileformats/texture_formats.h
+            ASTC_4X4_TYPELESS = 133,
+            ASTC_4X4_UNORM = 134,
+            ASTC_4X4_UNORM_SRGB = 135,
+            ASTC_5X4_TYPELESS = 137,
+            ASTC_5X4_UNORM = 138,
+            ASTC_5X4_UNORM_SRGB = 139,
+            ASTC_5X5_TYPELESS = 141,
+            ASTC_5X5_UNORM = 142,
+            ASTC_5X5_UNORM_SRGB = 143,
+            ASTC_6X5_TYPELESS = 145,
+            ASTC_6X5_UNORM = 146,
+            ASTC_6X5_UNORM_SRGB = 147,
+            ASTC_6X6_TYPELESS = 149,
+            ASTC_6X6_UNORM = 150,
+            ASTC_6X6_UNORM_SRGB = 151,
+            ASTC_8X5_TYPELESS = 153,
+            ASTC_8X5_UNORM = 154,
+            ASTC_8X5_UNORM_SRGB = 155,
+            ASTC_8X6_TYPELESS = 157,
+            ASTC_8X6_UNORM = 158,
+            ASTC_8X6_UNORM_SRGB = 159,
+            ASTC_8X8_TYPELESS = 161,
+            ASTC_8X8_UNORM = 162,
+            ASTC_8X8_UNORM_SRGB = 163,
+            ASTC_10X5_TYPELESS = 165,
+            ASTC_10X5_UNORM = 166,
+            ASTC_10X5_UNORM_SRGB = 167,
+            ASTC_10X6_TYPELESS = 169,
+            ASTC_10X6_UNORM = 170,
+            ASTC_10X6_UNORM_SRGB = 171,
+            ASTC_10X8_TYPELESS = 173,
+            ASTC_10X8_UNORM = 174,
+            ASTC_10X8_UNORM_SRGB = 175,
+            ASTC_10X10_TYPELESS = 177,
+            ASTC_10X10_UNORM = 178,
+            ASTC_10X10_UNORM_SRGB = 179,
+            ASTC_12X10_TYPELESS = 181,
+            ASTC_12X10_UNORM = 182,
+            ASTC_12X10_UNORM_SRGB = 183,
+            ASTC_12X12_TYPELESS = 185,
+            ASTC_12X12_UNORM = 186,
+            ASTC_12X12_UNORM_SRGB = 187,
             FORCE_UINT,
         }
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+#pragma warning restore CS1591 
     }
 }

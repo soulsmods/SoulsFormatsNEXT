@@ -9,6 +9,19 @@ namespace SoulsFormats.Compression
     public static class ZlibHelper
     {
         /// <summary>
+        /// Write Zlib, but without the binarywriter instance and returns the result as a byte[]
+        /// </summary>
+        public static byte[] WriteZlibToBytes(byte[] data, byte formatByte)
+        {
+            using var ms = new System.IO.MemoryStream();
+            using (var bw = new BinaryWriterEx(false, ms))
+            {
+                Compression.ZlibHelper.WriteZlib(bw, formatByte, data);
+            }
+            return ms.ToArray();
+        }
+
+        /// <summary>
         /// Compresses data and writes it to a BinaryWriterEx with Zlib wrapper.
         /// </summary>
         public static int WriteZlib(BinaryWriterEx bw, byte formatByte, byte[] input)

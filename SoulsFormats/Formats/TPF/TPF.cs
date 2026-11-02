@@ -227,16 +227,6 @@ namespace SoulsFormats
                 Name = name;
                 Format = format;
                 Flags1 = flags1;
-
-                var dds = new DDS(bytes);
-                if (dds.dwCaps2.HasFlag(DDS.DDSCAPS2.CUBEMAP))
-                    Type = TexType.Cubemap;
-                else if (dds.dwCaps2.HasFlag(DDS.DDSCAPS2.VOLUME))
-                    Type = TexType.Volume;
-                else if (dds.dwDepth > 1)
-                    Type = TexType.TextureArray;
-                else
-                    Type = TexType.Texture;
                 Platform = platform;
 
                 var potentialMagic = SFEncoding.ASCII.GetString(bytes, 0, 4);
@@ -247,24 +237,72 @@ namespace SoulsFormats
                 }
 
                 Header = new TexHeader();
-                Header.DXGIFormat = (int)dds.GetDXGIFormat();
-                Header.Width = (short)dds.dwWidth;
-                Header.Height = (short)dds.dwHeight;
-                switch (Type)
-                {
-                    case TexType.Texture:
-                        Header.TextureCount = 1;
-                        break;
-                    case TexType.Cubemap:
-                        Header.TextureCount = 6;
-                        break;
-                    case TexType.Volume:
-                    case TexType.TextureArray:
-                        Header.TextureCount = dds.dwDepth;
-                        break;
-                }
+                DDS dds;
+                List<Headerizer.Image> images;
 
-                var images = Headerizer.GetDDSTextureBuffers(dds, bytes);
+                if (KTX2.Is(bytes))
+                {
+                    //KTX2 import for Switch 2 ASTC textures
+                    var ktx = new KTX2(bytes);
+                    if (!ktx.IsASTCTexture(out int fw, out int fh, out bool srgb))
+                    {
+                        throw new NotSupportedException($"KTX2 vkFormat {ktx.vkFormat} is not an ASTC format supported for TPF repacking.");
+                    }
+
+                    int dxgi = Headerizer.GetSwitch2DxgiForAstcFootprint(fw, fh, srgb);
+                    //Barebones header to pass info
+                    dds = new DDS();
+                    dds.dwWidth = (int)ktx.pixelWidth;
+                    dds.dwHeight = (int)ktx.pixelHeight;
+                    dds.header10 = new DDS.HEADER_DXT10();
+                    dds.header10.dxgiFormat = (DDS.DXGI_FORMAT)dxgi;
+
+                    Type = ktx.layerCount > 1 ? TexType.TextureArray : TexType.Texture;
+                    Header.DXGIFormat = dxgi;
+                    Header.Width = (short)ktx.pixelWidth;
+                    Header.Height = (short)ktx.pixelHeight;
+                    switch (Type)
+                    {
+                        case TexType.Texture:
+                            Header.TextureCount = 1;
+                            break;
+                        case TexType.TextureArray:
+                            Header.TextureCount = (int)ktx.layerCount;
+                            break;
+                    }
+                    images = ktx.GetImages();
+                }
+                else
+                {
+                    dds = new DDS(bytes);
+                    if (dds.dwCaps2.HasFlag(DDS.DDSCAPS2.CUBEMAP))
+                        Type = TexType.Cubemap;
+                    else if (dds.dwCaps2.HasFlag(DDS.DDSCAPS2.VOLUME))
+                        Type = TexType.Volume;
+                    else if (dds.dwDepth > 1)
+                        Type = TexType.TextureArray;
+                    else
+                        Type = TexType.Texture;
+
+                    Header.DXGIFormat = (int)dds.GetDXGIFormat();
+                    Header.Width = (short)dds.dwWidth;
+                    Header.Height = (short)dds.dwHeight;
+                    switch (Type)
+                    {
+                        case TexType.Texture:
+                            Header.TextureCount = 1;
+                            break;
+                        case TexType.Cubemap:
+                            Header.TextureCount = 6;
+                            break;
+                        case TexType.Volume:
+                        case TexType.TextureArray:
+                            Header.TextureCount = dds.dwDepth;
+                            break;
+                    }
+
+                    images = Headerizer.GetDDSTextureBuffers(dds, bytes);
+                }
 
                 //Set this here in case we need to adjust it
                 Mipmaps = (byte)dds.dwMipMapCount;
@@ -282,6 +320,10 @@ namespace SoulsFormats
                     case TPFPlatform.PS4:
                         Bytes = Headerizer.WritePS4Images(images, dds, Type);
                         Header.Unk2 = 0xD;
+                        break;
+                    case TPFPlatform.Switch2:
+                    case TPFPlatform.Switch2EldenRing:
+                        Bytes = Headerizer.WriteSwitch2Images(images, dds, Type);
                         break;
                     case TPFPlatform.PS5:
                         //Bytes = WritePS5Images(images);
@@ -326,10 +368,17 @@ namespace SoulsFormats
                         if (flag2 != 0)
                             Header.Remap = br.ReadInt32();
                     }
-                    else if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone || platform == TPFPlatform.PS5)
+                    else if (platform >= TPFPlatform.PS4 && platform <= TPFPlatform.Switch2)
                     {
                         Header.TextureCount = br.ReadInt32();
-                        Header.Unk2 = br.AssertInt32(0, 0x9, 0xD);
+                        //Duskbloods (Switch 2) uses values 0x0-0x4 for Unk2;
+                        //Elden Ring envmap probe arrays also use 0x20/0x30/0x40 (2x slice count)
+                        Header.Unk2 = br.AssertInt32(0, 0x1, 0x2, 0x3, 0x4, 0x9, 0xD, 0x20, 0x30, 0x40);
+                        if (platform == TPFPlatform.Switch2 || platform == TPFPlatform.Switch2EldenRing)
+                        {
+                            Header.Switch2UnkSht0 = br.ReadUInt16();
+                            Header.Switch2UnkSht1 = br.ReadUInt16();
+                        }
                     }
                 }
 
@@ -337,7 +386,7 @@ namespace SoulsFormats
                 //Formerly 'Flags2', as seen in Yabber
                 bool hasFloatStruct = br.AssertInt32(0, 1) == 1;
 
-                if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone || platform == TPFPlatform.PS5)
+                if (platform >= TPFPlatform.PS4 && platform <= TPFPlatform.Switch2)
                     Header.DXGIFormat = br.ReadInt32();
 
                 if (hasFloatStruct)
@@ -402,10 +451,15 @@ namespace SoulsFormats
                         if (flag2 != 0)
                             bw.WriteInt32(Header.Remap);
                     }
-                    else if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone || platform == TPFPlatform.PS5)
+                    else if (platform >= TPFPlatform.PS4 && platform <= TPFPlatform.Switch2)
                     {
                         bw.WriteInt32(Header.TextureCount);
                         bw.WriteInt32(Header.Unk2);
+                        if (platform == TPFPlatform.Switch2 || platform == TPFPlatform.Switch2EldenRing)
+                        {
+                            bw.WriteUInt16(Header.Switch2UnkSht0);
+                            bw.WriteUInt16(Header.Switch2UnkSht1);
+                        }
                     }
                 }
 
@@ -413,7 +467,7 @@ namespace SoulsFormats
                 //Formerly 'Flags2', as seen in Yabber
                 bw.WriteInt32(FloatStruct == null ? 0 : 1);
 
-                if (platform == TPFPlatform.PS4 || platform == TPFPlatform.Xbone)
+                if (platform >= TPFPlatform.PS4 && platform <= TPFPlatform.Switch2)
                     bw.WriteInt32(Header.DXGIFormat);
 
                 if (FloatStruct != null)
@@ -508,6 +562,16 @@ namespace SoulsFormats
             PS5 = 8,
 
             /// <summary>
+            /// Elden Ring: Tarnished Edition (Switch 2). Same layout and tiling as <see cref="Switch2"/>.
+            /// </summary>
+            Switch2EldenRing = 7,
+
+            /// <summary>
+            /// 
+            /// </summary>
+            Switch2 = 0xA,
+
+            /// <summary>
             /// Virtuos Games, Switch enum. Technically 4, but conflicts with From Software's PS4 enum
             /// Texture metadata is same as PC
             /// Textures are headered .xtx
@@ -570,6 +634,14 @@ namespace SoulsFormats
             /// Unknown; 0x9 some places, 0xD in DS3.
             /// </summary>
             public int Unk2 { get; set; }
+            /// <summary>
+            /// Always 0xC9?
+            /// </summary>
+            public ushort Switch2UnkSht0 { get; set; }
+            /// <summary>
+            /// Always 0x1?
+            /// </summary>
+            public ushort Switch2UnkSht1 { get; set; }
 
             /// <summary>
             /// A value for remapping color channel order on PS3.<br/>

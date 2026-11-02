@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using static DrSwizzler.DDS.DXEnums;
 using static SoulsFormats.DDS;
 using static SoulsFormats.TPF;
 
@@ -82,6 +84,9 @@ namespace SoulsFormats
             [112] = DXGI_FORMAT.BC7_UNORM_SRGB,
             [113] = DXGI_FORMAT.BC6H_UF16,
             [115] = DXGI_FORMAT.BC6H_UF16,
+            //Duskbloods (Switch 2) ASTC formats. The TPF's DXGI metadata field is
+            //used for these when present; these entries are a fallback only.
+            [0xCF] = DXGI_FORMAT.ASTC_8X8_UNORM,
         };
 
         /// <summary>
@@ -137,7 +142,7 @@ namespace SoulsFormats
             [1] = "DXT1",
             [3] = "DXT3",
             [5] = "DXT5",
-            [22] = "q\0\0\0", // 0x71
+            [22] = "q\0\0\0", // 0x71 = D3DFMT_A16B16G16R16F; legacy fallback only — RGBA16 DXGI fields now get a DX10 header via DX10DXGI
             [23] = "DXT5",
             [24] = "ATI1",
             [25] = "DXT1",
@@ -178,17 +183,25 @@ namespace SoulsFormats
             extension = ".dds";
 
             var potentialMagic = SFEncoding.ASCII.GetString(texture.Bytes, 0, 4);
-            if (potentialMagic == "DDS ")
-                return texture.Bytes;
-            else if (potentialMagic == "GNF ")
+            switch(potentialMagic)
             {
-                extension = ".gnf";
-                return texture.Bytes;
+                case "DDS ":
+                    return texture.Bytes;
+                case "GNF ":
+                    extension = ".gnf";
+                    return texture.Bytes;
+                case "DFvN":
+                    extension = ".xtx";
+                    return texture.Bytes;
+                default:
+                    break;
             }
-            else if (potentialMagic == "DFvN")
+
+            //If it's not in the DDS pixel format ranges, go to KTX2
+            if(texture.Header.DXGIFormat > 132)
             {
-                extension = ".xtx";
-                return texture.Bytes;
+                extension = ".ktx2";
+                return HeaderizeKTX2(texture);
             }
 
             if (texture.Header.DXGIFormat == (int)DXGI_FORMAT.UNKNOWN)
@@ -381,6 +394,9 @@ namespace SoulsFormats
                     return ReadPS4Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat, type);
                 case TPFPlatform.PS5:
                     return ReadPS5Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat);
+                case TPFPlatform.Switch2:
+                case TPFPlatform.Switch2EldenRing:
+                    return ReadSwitch2Images(new BinaryReaderEx(false, bytes), width, height, depth, mipCount, dxgiFormat, type);
                 case TPFPlatform.PC:
                 case TPFPlatform.Switch:
                 default:
@@ -810,12 +826,209 @@ namespace SoulsFormats
             return bufferLengthMin;
         }
 
+        private static List<Image> ReadSwitch2Images(BinaryReaderEx br, int finalWidth, int finalHeight, int depth, int mipCount, DXGI_FORMAT dxgiFormat, TPF.TexType type)
+        {
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSizeExtended((DXGIFormat)dxgiFormat, out int blockBytes, out int footprintW, out int footprintH, out int bpp);
+
+            List<Image> imageList = new List<Image>(depth);
+
+            //Prepare mip set lists
+            for (int i = 0; i < depth; i++)
+            {
+                imageList.Add(new Image());
+            }
+
+            long sliceLength = br.Length / depth;
+
+            //Slices are stored one after another, each taking an equal share of the buffer
+            for (int s = 0; s < depth; s++)
+            {
+                long mipOffset = sliceLength * s;
+                int mipWidth = finalWidth;
+                int mipHeight = finalHeight;
+
+                for (int m = 0; m < mipCount; m++)
+                {
+                    long fullBufferLength = GetDeSwizzleSizeWidthHeight(blockBytes, footprintW, footprintH, mipWidth, mipHeight, out int deSwizzWidth, out int deSwizzHeight);
+
+                    //Stop once we run out of data (miscounted mips/truncated files)
+                    long remaining = br.Length - mipOffset;
+                    if (remaining <= 0)
+                        break;
+                    long bufferLength = Math.Min(fullBufferLength, remaining);
+
+                    br.Position = mipOffset;
+                    byte[] mipFull = br.ReadBytes((int)bufferLength);
+                    //Offsets always advance by the full tile aligned size
+                    mipOffset += fullBufferLength;
+
+                    //Make sure the tile extraction always sees a full tile aligned buffer
+                    if (mipFull.Length < fullBufferLength)
+                    {
+                        var padded = new byte[fullBufferLength];
+                        Array.Copy(mipFull, padded, mipFull.Length);
+                        mipFull = padded;
+                    }
+
+                    byte[] deswizzled = DrSwizzler.Deswizzler.Switch2Deswizzle(mipFull, deSwizzWidth, deSwizzHeight, (DrSwizzler.DDS.DXEnums.DXGIFormat)dxgiFormat);
+                    byte[] levelData = DrSwizzler.Util.ExtractTileASTC(deswizzled, blockBytes, footprintW, footprintH, deSwizzWidth, mipWidth, mipHeight);
+                    imageList[s].subImages.Add(levelData);
+
+                    GetNextMipDimensions(Math.Max(footprintW, footprintH), ref mipWidth, ref mipHeight);
+                }
+            }
+
+            return imageList;
+        }
+
+        /// <summary>
+        /// Get swizzle size with piel block width and pixel block height instead of assuming square texels.
+        /// </summary>
+        private static long GetDeSwizzleSizeWidthHeight(int sourceBytesPerPixelSet, int pixelBlockW, int pixelBlockH, int width, int height, out int deSwizzWidth, out int deSwizzHeight)
+        {
+            //Block columns, padded so that each block row is a multiple of 64 bytes wide
+            int blocksPerRowMin = Math.Max(1, 64 / sourceBytesPerPixelSet);
+            int blocksX = (width + pixelBlockW - 1) / pixelBlockW;
+            blocksX = Math.Max((blocksX + blocksPerRowMin - 1) / blocksPerRowMin * blocksPerRowMin, blocksPerRowMin);
+
+            //Block rows, padded to the next power of two (minimum of one full tile)
+            int blocksY = (height + pixelBlockH - 1) / pixelBlockH;
+            int pow2 = 8;
+            while (pow2 < blocksY)
+                pow2 <<= 1;
+            blocksY = pow2;
+
+            deSwizzWidth = blocksX * pixelBlockW;
+            deSwizzHeight = blocksY * pixelBlockH;
+            return (long)blocksX * sourceBytesPerPixelSet * blocksY;
+        }
+
+        /// <summary>
+        /// Get S
+        /// </summary>
+        private static long GetSwizzleSizeSwitch2Write(int blockBytes, int footprintW, int footprintH, int width, int height, bool singleLevelSingleSlice, out int deSwizzWidth, out int deSwizzHeight)
+        {
+            long size = GetDeSwizzleSizeWidthHeight(blockBytes, footprintW, footprintH, width, height, out deSwizzWidth, out deSwizzHeight);
+
+            if (singleLevelSingleSlice)
+            {
+                int blockRows = (height + footprintH - 1) / footprintH;
+                int paddedRows = deSwizzHeight / footprintH;
+                int mult128 = Math.Max(8, (blockRows + 127) / 128 * 128);
+                if (mult128 < paddedRows)
+                {
+                    paddedRows = mult128;
+                    deSwizzHeight = paddedRows * footprintH;
+                    size = (long)(deSwizzWidth / footprintW) * blockBytes * paddedRows;
+                }
+            }
+
+            return size;
+        }
+
+        /// <summary>
+        /// Writes back switch 2 image data
+        /// </summary>
+        public static byte[] WriteSwitch2Images(List<Image> images, DDS ddsHeader, TPF.TexType type)
+        {
+            int maxMipCount = 0;
+            foreach (var img in images)
+            {
+                maxMipCount = Math.Max(img.subImages.Count, maxMipCount);
+            }
+
+            int dxgi = (int)ddsHeader.GetDXGIFormat();
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSizeExtended((DrSwizzler.DDS.DXEnums.DXGIFormat)dxgi, out int blockBytes, out int pixelBlockWidth, out int pixelBlockHeight, out int bpp);
+
+            var bw = new BinaryWriterEx(false);
+            int width;
+            int height;
+            //Single mip, single slice textures pad block rows to multiples of 128 rather
+            //than the next power of two when that is smaller
+            bool singleLevelSingleSlice = images.Count == 1 && maxMipCount == 1;
+            //Slices are stored one after another, each slice holding its full mip chain
+            foreach (var img in images)
+            {
+                width = ddsHeader.dwWidth;
+                height = ddsHeader.dwHeight;
+                for (int m = 0; m < maxMipCount; m++)
+                {
+                    if (img.subImages.Count <= m)
+                        break;
+
+                    var bufferLengthMin = GetSwizzleSizeSwitch2Write(blockBytes, pixelBlockWidth, pixelBlockHeight, width, height, singleLevelSingleSlice, out int deSwizzWidth, out int deSwizzHeight);
+
+                    int sx = deSwizzWidth / pixelBlockWidth;
+                    int sy = deSwizzHeight / pixelBlockHeight;
+                    long bufferSize = (long)sx * sy * blockBytes;
+                    byte[] outBuffer = new byte[bufferSize];
+                    Array.Copy(img.subImages[m], outBuffer, img.subImages[m].Length);
+
+                    byte[] buffer = DrSwizzler.Swizzler.Switch2Swizzle(outBuffer, width, height, (DrSwizzler.DDS.DXEnums.DXGIFormat)dxgi);
+                    bw.WriteBytes(buffer);
+
+                    //Pad out mipmap buffers as needed
+                    if (buffer.Length < bufferLengthMin)
+                    {
+                        bw.WritePattern((int)(bufferLengthMin - buffer.Length), 0);
+                    }
+
+                    GetNextMipDimensions(Math.Max(pixelBlockWidth, pixelBlockHeight), ref width, ref height);
+                }
+            }
+
+            return bw.FinishBytes();
+        }
+
+        /// <summary>
+        /// Handle textures outside DDS pixel format ranges
+        /// </summary>
+        private static byte[] HeaderizeKTX2(Texture texture)
+        {
+            int dxgi = texture.Header.DXGIFormat;
+            DrSwizzler.Util.GetsourceBytesPerPixelSetAndPixelSizeExtended((DrSwizzler.DDS.DXEnums.DXGIFormat)dxgi, out int blockBytes, out int pixelBlockWidth, out int pixelBlockHeight, out int bpp);
+
+            int width = texture.Header.Width;
+            int height = texture.Header.Height;
+            int depth = Math.Max(1, texture.Header.TextureCount);
+            int mipCount = texture.Mipmaps < 1 ? DetermineMipCount(width, height) : texture.Mipmaps;
+            TexType type = texture.Type;
+
+            List<Image> images = ReadSwitch2Images(new BinaryReaderEx(false, texture.Bytes), width, height, depth, mipCount, (DXGI_FORMAT)dxgi, type);
+            mipCount = images[0].subImages.Count;
+
+            return KTX2.WriteKtx2(images, width, height, depth, mipCount, dxgi, pixelBlockWidth, pixelBlockHeight);
+        }
+
+        /// <summary>
+        /// The Switch 2 TPF DXGI value for an ASTC footprint, for repacking KTX2 files into TPFs.
+        /// </summary>
+        public static int GetSwitch2DxgiForAstcFootprint(int footprintW, int footprintH, bool srgb)
+        {
+            uint vk = KTX2.VkFormatForAstcFootprint(footprintW, footprintH, srgb);
+            if (vk == 0)
+                throw new NotSupportedException($"No Switch 2 DXGI value for ASTC footprint {footprintW}x{footprintH}.");
+
+            return (int)NvproDxgiForVkFormat(vk);
+        }
+
+        /// <summary>
+        /// NVIDIA's extended DXGI id for a Vulkan ASTC VkFormat (nvpro_core texture_formats.h).
+        /// </summary>
+        private static uint NvproDxgiForVkFormat(uint vk)
+        {
+            //vkFormat ASTC pairs 157-184 map to nvpro ids spaced 4 apart from ASTC_4X4_UNORM (134) onwards
+            int index = (int)(vk - (uint)KTX2.VkFormat.ASTC_4X4_UNORM_BLOCK);
+            int footprint = index >> 1;
+            int srgb = index & 1;
+            return (uint)(134 + footprint * 4 + srgb);
+        }
+
         /// <summary>
         /// Grab a dds's texture buffer data.
         /// Returns a List which contains 
         /// </summary>
-        public static List<Image> GetDDSTextureBuffers(DDS ddsHeader, byte[] ddsBytes)
-        {
+        public static List<Image> GetDDSTextureBuffers(DDS ddsHeader, byte[] ddsBytes)        {
             BinaryReaderEx br = new BinaryReaderEx(false, ddsBytes);
             List<Image> imageList = new List<Image>();
             br.Position = ddsHeader.DataOffset;
