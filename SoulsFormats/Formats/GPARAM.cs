@@ -110,14 +110,14 @@ namespace SoulsFormats
             offsets.Unk3 = br.ReadInt32();
             offsets.Unk3ValueIDs = br.ReadInt32();
             Unk40 = br.ReadSingle();
-            if (Game == GPGame.DarkSouls3 || Game == GPGame.Sekiro)
+            if (Game == GPGame.DarkSouls3 || Game >= GPGame.Sekiro)
             {
                 offsets.CommentOffsetsOffsets = br.ReadInt32();
                 offsets.CommentOffsets = br.ReadInt32();
                 offsets.Comments = br.ReadInt32();
             }
 
-            if (Game == GPGame.Sekiro)
+            if (Game >= GPGame.Sekiro)
                 Unk50 = br.ReadSingle();
 
             Groups = new List<Group>(groupCount);
@@ -130,7 +130,7 @@ namespace SoulsFormats
             for (int i = 0; i < unk3Count; ++i)
                 Unk3s.Add(new Unk3(br, Game, offsets));
 
-            if (Game == GPGame.DarkSouls3 || Game == GPGame.Sekiro)
+            if (Game == GPGame.DarkSouls3 || Game >= GPGame.Sekiro)
             {
                 int[] commentOffsetsOffsets = br.GetInt32s(offsets.CommentOffsetsOffsets, groupCount);
                 int commentOffsetsLength = offsets.Comments - offsets.CommentOffsets;
@@ -176,14 +176,14 @@ namespace SoulsFormats
             bw.ReserveInt32("UnkOffset3");
             bw.ReserveInt32("Unk3ValuesOffset");
             bw.WriteSingle(Unk40);
-            if (Game == GPGame.DarkSouls3 || Game == GPGame.Sekiro)
+            if (Game == GPGame.DarkSouls3 || Game >= GPGame.Sekiro)
             {
                 bw.ReserveInt32("CommentOffsetsOffsetsOffset");
                 bw.ReserveInt32("CommentOffsetsOffset");
                 bw.ReserveInt32("CommentsOffset");
             }
 
-            if (Game == GPGame.Sekiro)
+            if (Game >= GPGame.Sekiro)
                 bw.WriteSingle(Unk50);
 
             bw.FillInt32("HeaderSize", (int)bw.Position);
@@ -227,7 +227,7 @@ namespace SoulsFormats
             for (int i = 0; i < Unk3s.Count; ++i)
                 Unk3s[i].WriteValues(bw, Game, i, unk3ValuesOffset);
 
-            if (Game == GPGame.DarkSouls3 || Game == GPGame.Sekiro)
+            if (Game == GPGame.DarkSouls3 || Game >= GPGame.Sekiro)
             {
                 bw.FillInt32("CommentOffsetsOffsetsOffset", (int)bw.Position);
                 for (int i = 0; i < Groups.Count; ++i)
@@ -638,11 +638,11 @@ namespace SoulsFormats
                     br.StepIn(offsets.ValueIDs + valueIDsOffset);
                     {
                         ValueIDs = new List<int>(valueCount);
-                        TimeOfDay = game != GPGame.Sekiro ? null : new List<float>(valueCount);
+                        TimeOfDay = game < GPGame.Sekiro ? null : new List<float>(valueCount);
                         for (int i = 0; i < valueCount; ++i)
                         {
                             ValueIDs.Add(br.ReadInt32());
-                            if (game == GPGame.Sekiro)
+                            if (game >= GPGame.Sekiro)
                                 TimeOfDay.Add(br.ReadSingle());
                         }
 
@@ -745,7 +745,7 @@ namespace SoulsFormats
                 for (int i = 0; i < ValueIDs.Count; ++i)
                 {
                     bw.WriteInt32(ValueIDs[i]);
-                    if (game == GPGame.Sekiro)
+                    if (game >= GPGame.Sekiro)
                         bw.WriteSingle(TimeOfDay[i]);
                 }
             }
@@ -799,7 +799,7 @@ namespace SoulsFormats
                 GroupIndex = br.ReadInt32();
                 int count = br.ReadInt32();
                 uint valueIDsOffset = br.ReadUInt32();
-                if (game == GPGame.Sekiro)
+                if (game >= GPGame.Sekiro)
                     Unk0C = br.ReadInt32();
 
                 ValueIDs = new List<int>(br.GetInt32s(offsets.Unk3ValueIDs + valueIDsOffset, count));
@@ -810,7 +810,7 @@ namespace SoulsFormats
                 bw.WriteInt32(GroupIndex);
                 bw.WriteInt32(ValueIDs.Count);
                 bw.ReserveInt32($"Unk3ValueIDsOffset{index}");
-                if (game == GPGame.Sekiro)
+                if (game >= GPGame.Sekiro)
                     bw.WriteInt32(Unk0C);
             }
 
